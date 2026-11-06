@@ -1,0 +1,9 @@
+# Paths are relative to this config file.
+[project]
+name = "rag-workflow-lab"
+
+[paths]
+sources_manifest = "../data/corpus/sources.json"
+local_data_dir = "../data/local"
+
+# Model IDs, corpus version and retrieval settings will be added when selected.

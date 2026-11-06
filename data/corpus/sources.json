@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "status": "selected",
+  "sources": [
+    {
+      "source_id": "PG-EXPLAIN",
+      "title": "Using EXPLAIN",
+      "url": "https://www.postgresql.org/docs/18/using-explain.html",
+      "format": "html",
+      "postgresql_version": "18",
+      "selection": {
+        "mode": "page"
+      }
+    },
+    {
+      "source_id": "PG-MULTI",
+      "title": "Multicolumn Indexes",
+      "url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html",
+      "format": "html",
+      "postgresql_version": "18",
+      "selection": {
+        "mode": "page"
+      }
+    },
+    {
+      "source_id": "PG-PARTIAL",
+      "title": "Partial Indexes",
+      "url": "https://www.postgresql.org/docs/18/indexes-partial.html",
+      "format": "html",
+      "postgresql_version": "18",
+      "selection": {
+        "mode": "page"
+      }
+    },
+    {
+      "source_id": "PG-STATS",
+      "title": "The Cumulative Statistics System — pg_stat_replication",
+      "url": "https://www.postgresql.org/docs/18/monitoring-stats.html",
+      "format": "html",
+      "postgresql_version": "18",
+      "selection": {
+        "mode": "sections",
+        "section_ids": [
+          "MONITORING-PG-STAT-REPLICATION-VIEW"
+        ]
+      }
+    }
+  ]
+}

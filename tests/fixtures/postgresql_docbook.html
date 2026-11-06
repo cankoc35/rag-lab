@@ -1,0 +1,43 @@
+<!doctype html>
+<!-- Synthetic fixture matching the PostgreSQL DocBook layout, not a corpus document. -->
+<html><head><title>Fixture browser title</title><style>CSS_NOISE</style></head>
+<body><header>SITE_NOISE</header><form>SEARCH_NOISE</form>
+<div id="docContent">
+  <div class="navheader"><table><tr><td>NAV_NOISE</td></tr></table></div>
+  <div class="sect1" id="ROOT">
+    <div class="titlepage"><h2>1.&nbsp;Fixture <code>SQL</code> <a class="id_link" href="#ROOT">#</a></h2></div>
+    <div class="toc"><p>TOC_NOISE</p></div>
+    <p>Keep <code>inline_name</code> and <em>meaning</em> together &amp; readable.</p>
+    <script>SCRIPT_NOISE</script><style>LOCAL_CSS_NOISE</style>
+    <p hidden="hidden">HIDDEN_NOISE</p>
+    <div class="sect2" id="FIRST">
+      <div class="titlepage"><h3>1.1. Query example <a class="id_link" href="#FIRST">#</a></h3></div>
+      <pre class="programlisting">
+EXPLAIN SELECT *
+    FROM orders
+    WHERE amount &lt; 10 AND enabled = <strong>TRUE</strong>;
+</pre>
+      <ul class="itemizedlist"><li><p>First list item.</p></li><li>Second <code>item</code>.</li></ul>
+    </div>
+    <p>Parent section after child.</p>
+    <div class="sect2" id="MONITORING-PG-STAT-REPLICATION-VIEW">
+      <div class="titlepage"><h3>1.2. <code>pg_stat_replication</code> <a class="id_link" href="#MONITORING-PG-STAT-REPLICATION-VIEW">#</a></h3></div>
+      <p>Selected replication introduction.</p>
+      <div class="table" id="REPLICATION-TABLE">
+        <p class="title"><strong>Replication columns</strong></p>
+        <div class="table-contents"><table class="table">
+          <thead><tr><th colspan="2">Column and description</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="2"><p><code>replay_lag</code> interval</p><p>Replay delay.</p></td><td>First value</td></tr>
+            <tr><td>NULL</td></tr>
+          </tbody>
+        </table></div>
+      </div><br class="table-break" />
+      <p>Lag can become NULL on an idle system.</p>
+      <div class="note"><h3 class="title">Note</h3><p>NULL is not proof of zero lag.</p></div>
+      <p>Selected section after note.</p>
+    </div>
+    <div class="sect2" id="OTHER"><h3>1.3. Other view</h3><p>OTHER_SECTION_NOISE</p></div>
+  </div>
+  <div class="navfooter">FOOTER_NOISE</div>
+</div><footer>SITE_FOOTER_NOISE</footer></body></html>

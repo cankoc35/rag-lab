@@ -1,0 +1,591 @@
+{
+  "schema_version": 1,
+  "dataset_id": "postgresql18-document-dev",
+  "dataset_version": "1.0.0",
+  "split": "dev",
+  "language": "en",
+  "status": "source_verified",
+  "verified_on": "2026-11-06",
+  "verification": {
+    "review": "Answers and claim-to-source support reviewed by the assistant against the saved PostgreSQL 18 snapshots.",
+    "reference_checks": "File hashes, source/snapshot/chunk identities, one-based block positions, block hashes, exact quote spans, anchors and requirement references are checked offline.",
+    "model_answer_runs": 0,
+    "retrieval_runs": 0
+  },
+  "reference_policy": {
+    "requirements": "The entries annotate claims in the verified reference answer; they are not a finalized correctness rubric. Supporting_evidence_ids within one entry are alternatives (any).",
+    "coverage": "Selected reference evidence is not an exhaustive list of valid passages. Future evaluation must allow equivalent sufficient evidence, including a different valid passage or chunk.",
+    "limits": "This annotation does not implement a scoring metric, freeze a held-out set, or establish irreducible multi-document reasoning.",
+    "span_coordinates": "Zero-based Python Unicode character offsets in the original parsed block text; end is exclusive.",
+    "model_input": "Use only the question as the model-visible query. Gold answers, requirements and evidence remain evaluation data outside ingestion.",
+    "versioning": "Changing the source snapshot, parser, chunker, tokenizer or chunk settings requires revalidating references and versioning this development dataset."
+  },
+  "source_state": {
+    "source_state_id": "postgresql18-pilot-document-snapshots-v1",
+    "sources_manifest": {
+      "path": "data/corpus/sources.json",
+      "sha256": "1f2ac8ff0517b160bafaed87b55f0995ac947ce7720e406bf32239ac9c9a387b"
+    },
+    "chunking": {
+      "chunker_version": "section-blocks-v1",
+      "serialization_version": "chunk-context-v1",
+      "settings": {
+        "target_tokens": 512,
+        "max_tokens": 1024,
+        "document_prefix": "search_document: "
+      },
+      "tokenizer": {
+        "identifier": "nomic-ai/nomic-embed-text-v1.5",
+        "revision": "e9b6763023c676ca8431644204f50c2b100d9aab",
+        "fingerprint": "193209d0efaf65a10abebfccaa2d1d0a39566c167e757aff7951c06802b7afd8",
+        "max_input_tokens": 8192
+      }
+    },
+    "sources": [
+      {
+        "source_id": "PG-EXPLAIN",
+        "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+        "source_url": "https://www.postgresql.org/docs/18/using-explain.html",
+        "title": "Using EXPLAIN",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-EXPLAIN-20261102T173311Z-yhdhybna/manifest.json",
+            "sha256": "1ed08e6ff4eca93ed59bab6b733995d69c1b0b1c33e4929a8b21db01cf6342a1"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-EXPLAIN-20261102T173311Z-yhdhybna/PG-EXPLAIN.html",
+            "sha256": "22b29b578fe330ce2a1eca03dcc6ecfb540eb6211e21cfa4d61d93d55e87bf7e"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-EXPLAIN-20261102T173311Z-yhdhybna.json",
+            "sha256": "d3b19e4794f35be171518aa0af84b9f83932390746fad7b652a4d5372c026ce0"
+          },
+          "chunks": {
+            "path": "data/local/chunks/pilot-section-blocks-v1/PG-EXPLAIN-20261102T173311Z-yhdhybna.json",
+            "sha256": "2f09e331c3b8b72053d1ce1e039366066e8c00c9c13aadaf77c9018ed1edefc0"
+          }
+        }
+      },
+      {
+        "source_id": "PG-MULTI",
+        "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+        "source_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html",
+        "title": "Multicolumn Indexes",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-MULTI-20261105T191707Z-96nc6y0c/manifest.json",
+            "sha256": "94634e95f7d49b95519bf175de5f654a221d9d779f71d7fda49e845a77502bf0"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-MULTI-20261105T191707Z-96nc6y0c/PG-MULTI.html",
+            "sha256": "df6631e673511c60f9ea45dab2b5c69ab80ff1a747117af72236006dc59063d1"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-MULTI-20261105T191707Z-96nc6y0c.json",
+            "sha256": "10d0c62ab9dd2692edf0d3e56a891dbe4389740e603539cbccddb1891afcbce0"
+          },
+          "chunks": {
+            "path": "data/local/chunks/pilot-section-blocks-v1/PG-MULTI-20261105T191707Z-96nc6y0c.json",
+            "sha256": "b83c96e054c847e3d7dc285a565397de2eefec042f67edefa259f9c0c148f913"
+          }
+        }
+      },
+      {
+        "source_id": "PG-PARTIAL",
+        "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+        "source_url": "https://www.postgresql.org/docs/18/indexes-partial.html",
+        "title": "Partial Indexes",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-PARTIAL-20261105T191707Z-kmf7w4sp/manifest.json",
+            "sha256": "28b23636b3c10d5aae4b2a76fad8512b6c1d509813fc72d33c9b0f39473efd2c"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-PARTIAL-20261105T191707Z-kmf7w4sp/PG-PARTIAL.html",
+            "sha256": "ab67b4a1909a9be617038dcea60e34b7d8f898ca9e8b5f0a569e4df389caa18e"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-PARTIAL-20261105T191707Z-kmf7w4sp.json",
+            "sha256": "5bb739c314f0570eede63704cbdd78f40467a9aa620e8804cdef51b70b30fa2d"
+          },
+          "chunks": {
+            "path": "data/local/chunks/pilot-section-blocks-v1/PG-PARTIAL-20261105T191707Z-kmf7w4sp.json",
+            "sha256": "89ef28039f8d7c021b46eca2b4ee3b7d5d69adb8aec587cce9ba029b821b0806"
+          }
+        }
+      },
+      {
+        "source_id": "PG-STATS",
+        "snapshot_id": "PG-STATS-20261105T191715Z-zm7b259y",
+        "source_url": "https://www.postgresql.org/docs/18/monitoring-stats.html",
+        "title": "The Cumulative Statistics System — pg_stat_replication",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-STATS-20261105T191715Z-zm7b259y/manifest.json",
+            "sha256": "605670466994a51d773688bfc3f5980c26b4f8a48544fc8cf1daf0bbd28879c2"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-STATS-20261105T191715Z-zm7b259y/PG-STATS.html",
+            "sha256": "4b872e1cd30fd40679c000bf3e5efc15d9f1e4d7a003aed877cfe2c09381c45c"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-STATS-20261105T191715Z-zm7b259y.json",
+            "sha256": "4f757e685e2bbba3de4542996d3f4f88ce469e44c27b0385df6fe73576bd2d3a"
+          },
+          "chunks": {
+            "path": "data/local/chunks/pilot-section-blocks-v1/PG-STATS-20261105T191715Z-zm7b259y.json",
+            "sha256": "5bbff7a271da9f7a4ebeeed55ac3a7e0c2921e13cb7910a2ef98b678080a96de"
+          }
+        }
+      }
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "P01",
+      "question_type": "direct_document",
+      "question": "What is the main difference between EXPLAIN and EXPLAIN ANALYZE?",
+      "verification_status": "source_verified",
+      "expected_answer": "Plain EXPLAIN shows the planned query execution and estimates. EXPLAIN ANALYZE actually executes the query and adds actual row counts and run times for plan nodes alongside the estimates.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P01-R1",
+          "statement": "Distinguish estimated plan information from actual execution measurements.",
+          "supporting_evidence_ids": [
+            "P01-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P01-R2",
+          "statement": "State explicitly that EXPLAIN ANALYZE executes the query.",
+          "supporting_evidence_ids": [
+            "P01-E1"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P01-E1",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-89739f79bcb18bf22232a85778efd456498952232a5a935207bbf80dee895aaf",
+          "block_index": 76,
+          "block_sha256": "7f19a3988cc407b12c832e3771b36837b0a15b063ce77d8199fa6dd9f203dddd",
+          "heading_path": [
+            "14.1. Using EXPLAIN",
+            "14.1.2. EXPLAIN ANALYZE"
+          ],
+          "anchor": "USING-EXPLAIN-ANALYZE",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN-ANALYZE",
+          "span": {
+            "start": 0,
+            "end": 302,
+            "text": "It is possible to check the accuracy of the planner's estimates by using EXPLAIN's ANALYZE option. With this option, EXPLAIN actually executes the query, and then displays the true row counts and true run time accumulated within each plan node, along with the same estimates that a plain EXPLAIN shows."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 alone supports both the estimate-versus-measurement distinction and the fact that ANALYZE executes the query."
+    },
+    {
+      "question_id": "P02",
+      "question_type": "direct_document",
+      "question": "Why are filters on the leading columns of a multicolumn B-tree index generally useful?",
+      "verification_status": "source_verified",
+      "expected_answer": "Leading-column constraints make a multicolumn B-tree index efficient because leading equalities, together with an inequality on the first column without equality, limit the index range scanned. Conditions on later columns can still be checked in the index, but do not necessarily reduce that range. Missing a leading-column constraint does not categorically rule out index use.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P02-R1",
+          "statement": "Explain how leading equality constraints and the first inequality constraint limit the scanned range.",
+          "supporting_evidence_ids": [
+            "P02-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P02-R2",
+          "statement": "Avoid claiming that a later-column-only condition always prevents index use or always narrows the scanned range.",
+          "supporting_evidence_ids": [
+            "P02-E1"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P02-E1",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-44beb0244cab53c289ffdbd832673fdf95deebfe4bca8550643fa5f7b93cba22",
+          "block_index": 9,
+          "block_sha256": "f8761a6e407aced926694e0379dc67dc4db641821de625c871c0e61e9a27f883",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 646,
+            "text": "A multicolumn B-tree index can be used with query conditions that involve any subset of the index's columns, but the index is most efficient when there are constraints on the leading (leftmost) columns. The exact rule is that equality constraints on leading columns, plus any inequality constraints on the first column that does not have an equality constraint, will always be used to limit the portion of the index that is scanned. Constraints on columns to the right of these columns are checked in the index, so they'll always save visits to the table proper, but they do not necessarily reduce the portion of the index that has to be scanned."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 covers both leading-column efficiency and the limits of a blanket no-index-use rule for later columns."
+    },
+    {
+      "question_id": "P03",
+      "question_type": "direct_document",
+      "question": "What relationship must the query condition have to a partial index predicate for the index to be usable?",
+      "verification_status": "source_verified",
+      "expected_answer": "At planning time, PostgreSQL must recognize that the query's WHERE condition mathematically implies the partial-index predicate. Logical implication that the planner cannot recognize is insufficient; supported simple inequality implications or an appropriate matching predicate are examples. This establishes usability, not a guarantee that the planner will select the index.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P03-R1",
+          "statement": "State the direction of implication: query condition implies index predicate, with recognition at planning time.",
+          "supporting_evidence_ids": [
+            "P03-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P03-R2",
+          "statement": "Distinguish index usability from the planner choosing an index rather than a potentially cheaper path.",
+          "supporting_evidence_ids": [
+            "P03-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P03-E1",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-971ade3b40170a1ddafc63dc138b9061404c8370fd9139f24fe961d5f677467d",
+          "block_index": 27,
+          "block_sha256": "ccdd4878409946bfd35e400b4aa3a7eedf9557b4821f009c1dc5f382b3258a87",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 373,
+            "end": 1118,
+            "text": "To be precise, a partial index can be used in a query only if the system can recognize that the WHERE condition of the query mathematically implies the predicate of the index. PostgreSQL does not have a sophisticated theorem prover that can recognize mathematically equivalent expressions that are written in different forms. (Not only is such a general theorem prover extremely difficult to create, it would probably be too slow to be of any real use.) The system can recognize simple inequality implications, for example “x < 1” implies “x < 2”; otherwise the predicate condition must exactly match part of the query's WHERE condition or the index will not be recognized as usable. Matching takes place at query planning time, not at run time."
+          }
+        },
+        {
+          "evidence_id": "P03-E2",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-f2d39bc25b313b28d87fc0ae75607ca3caabb1f45469578fb240bc1a89e08421",
+          "block_index": 33,
+          "block_sha256": "7dba6509330ce599bf087bd0e29d4d863dee02b5ba193e42cf9b3c25809de293",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 287,
+            "end": 497,
+            "text": "Normally, PostgreSQL makes reasonable choices about index usage (e.g., it avoids them when retrieving common values, so the earlier example really only saves index size, it is not required to avoid index usage)"
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 supplies the predicate-implication and planning-time rule. E2 supports the selection qualification through the documented avoidance of indexes for common values; both are from the same source."
+    },
+    {
+      "question_id": "P04",
+      "question_type": "direct_document",
+      "question": "Can a NULL replay_lag in pg_stat_replication be treated as zero seconds?",
+      "verification_status": "source_verified",
+      "expected_answer": "No: a raw NULL replay_lag is not a measured numeric zero and should not automatically be interpreted as zero seconds. Lag can become NULL after a fully replayed standby is idle for a short time. A monitoring system may choose to display that state as missing data, zero, or the last known value, but that presentation policy does not make NULL itself a numeric measurement.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P04-R1",
+          "statement": "Do not identify a raw NULL lag with a measured numeric zero.",
+          "supporting_evidence_ids": [
+            "P04-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P04-R2",
+          "statement": "Explain that NULL can occur on a fully caught-up, idle standby.",
+          "supporting_evidence_ids": [
+            "P04-E1",
+            "P04-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P04-E1",
+          "source_id": "PG-STATS",
+          "snapshot_id": "PG-STATS-20261105T191715Z-zm7b259y",
+          "chunk_id": "PG-STATS-1d06cb99474971e99eeca92a390008a702db46e6ebc03c767a299aa651803a54",
+          "block_index": 5,
+          "block_sha256": "83ffb14253ec088bb9fcc6b811332995b6845cba54b8d46816e02726961e046f",
+          "heading_path": [
+            "27.2. The Cumulative Statistics System",
+            "27.2.4. pg_stat_replication"
+          ],
+          "anchor": "MONITORING-PG-STAT-REPLICATION-VIEW",
+          "citation_url": "https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-REPLICATION-VIEW",
+          "span": {
+            "start": 482,
+            "end": 689,
+            "text": "If the standby server has entirely caught up with the sending server and there is no more WAL activity, the most recently measured lag times will continue to be displayed for a short time and then show NULL."
+          }
+        },
+        {
+          "evidence_id": "P04-E2",
+          "source_id": "PG-STATS",
+          "snapshot_id": "PG-STATS-20261105T191715Z-zm7b259y",
+          "chunk_id": "PG-STATS-cd3b6e1eee14d978c70c65867feb7f8a4cfb2fef70c40966b70623340851c3c0",
+          "block_index": 8,
+          "block_sha256": "16f780c6545f02e6c51f13ea4062b22c2c858c9c86c29c510ba4ea088d1bb4de",
+          "heading_path": [
+            "27.2. The Cumulative Statistics System",
+            "27.2.4. pg_stat_replication",
+            "Note"
+          ],
+          "anchor": "MONITORING-PG-STAT-REPLICATION-VIEW",
+          "citation_url": "https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-REPLICATION-VIEW",
+          "span": {
+            "start": 277,
+            "end": 890,
+            "text": "In particular, when the standby has caught up completely, pg_stat_replication shows the time taken to write, flush and replay the most recent reported WAL location rather than zero as some users might expect. This is consistent with the goal of measuring synchronous commit and transaction visibility delays for recent write transactions. To reduce confusion for users expecting a different model of lag, the lag columns revert to NULL after a short time on a fully replayed idle system. Monitoring systems should choose whether to represent this as missing data, zero or continue to display the last known value."
+          }
+        }
+      ],
+      "evidence_combination_note": "E2 alone supports a complete answer. E1 is an alternative supporting passage for the idle, caught-up case; retrieving both chunks is not mandatory.",
+      "scope_notes": [
+        "NULL alone is not proof of a replication failure. The source explicitly permits a monitoring presentation policy; do not turn the reference answer into a claim that a dashboard can never display zero."
+      ],
+      "optional_guidance": {
+        "statement": "Distinguish the database value from a monitoring presentation policy that may choose missing data, zero, or the last known value.",
+        "supporting_evidence_ids": [
+          "P04-E2"
+        ]
+      }
+    },
+    {
+      "question_id": "P05",
+      "question_type": "multi_document",
+      "question": "With an index on (customer_id, created_at), does filtering only on created_at always require a Seq Scan, and how can we inspect the chosen path?",
+      "verification_status": "source_verified",
+      "expected_answer": "No. For a multicolumn B-tree index in PostgreSQL 18, filtering only on the second column does not automatically force a Seq Scan. Skip scan may be useful, for example when the leading column has few distinct values and repeated index searches are estimated to be cheaper. It is not guaranteed; data distribution and estimated costs affect the choice. Use EXPLAIN on the actual query to inspect the chosen plan.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P05-R1",
+          "statement": "Reject the claim that a missing customer_id filter always requires a Seq Scan; explain index use conditionally for B-tree.",
+          "supporting_evidence_ids": [
+            "P05-E1",
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R2",
+          "statement": "Describe index use as a cost-dependent possibility, not a guaranteed chosen path; skip scan is a documented example.",
+          "supporting_evidence_ids": [
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R3",
+          "statement": "Use EXPLAIN to inspect the actual chosen execution plan.",
+          "supporting_evidence_ids": [
+            "P05-E3"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P05-E1",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-44beb0244cab53c289ffdbd832673fdf95deebfe4bca8550643fa5f7b93cba22",
+          "block_index": 9,
+          "block_sha256": "f8761a6e407aced926694e0379dc67dc4db641821de625c871c0e61e9a27f883",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 202,
+            "text": "A multicolumn B-tree index can be used with query conditions that involve any subset of the index's columns, but the index is most efficient when there are constraints on the leading (leftmost) columns."
+          }
+        },
+        {
+          "evidence_id": "P05-E2",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-affa4be6a528401083ced7a8d10f2c78640bc7a36e1a4b04caf96796d7712db1",
+          "block_index": 10,
+          "block_sha256": "1e0c660601e50fe71f1f7eb31393a24f5594af629e675203bd5672339f053b44",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 803,
+            "text": "For example, given an index on (x, y), and a query condition WHERE y = 7700, a B-tree index scan might be able to apply the skip scan optimization. This generally happens when the query planner expects that repeated WHERE x = N AND y = 7700 searches for every possible value of N (or for every x value that is actually stored in the index) is the fastest possible approach, given the available indexes on the table. This approach is generally only taken when there are so few distinct x values that the planner expects the scan to skip over most of the index (because most of its leaf pages cannot possibly contain relevant tuples). If there are many distinct x values, then the entire index will have to be scanned, so in most cases the planner will prefer a sequential table scan over using the index."
+          }
+        },
+        {
+          "evidence_id": "P05-E3",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-e695851d3a78ced2a53a84ad547396ba734b01dfdb7bfca42bd7247ffbff968e",
+          "block_index": 2,
+          "block_sha256": "df54dbc0c8bf2c0fbf3a6dcabbf8e1190d9b7812c9e42f21055a9cb5a7008b50",
+          "heading_path": [
+            "14.1. Using EXPLAIN"
+          ],
+          "anchor": "USING-EXPLAIN",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN",
+          "span": {
+            "start": 263,
+            "end": 352,
+            "text": "You can use the EXPLAIN command to see what query plan the planner creates for any query."
+          }
+        }
+      ],
+      "evidence_combination_note": "PG-MULTI supplies index eligibility and skip-scan conditions; PG-EXPLAIN supplies the inspection mechanism. E2 plus E3 cover all requirements; E1 is alternative support for the first requirement.",
+      "scope_notes": [
+        "The draft question does not name the index access method. The skip-scan explanation is explicitly conditional on B-tree, not a statement about every index type.",
+        "This is a documentation question. No database query was run and no particular plan for an Atlas table is asserted.",
+        "A supported explanation using another valid index-scan path is acceptable; the reference skip-scan example is not a compulsory predicted plan."
+      ]
+    },
+    {
+      "question_id": "P06",
+      "question_type": "multi_document",
+      "question": "Is choosing a Seq Scan for a query whose condition matches a partial index necessarily an error?",
+      "verification_status": "source_verified",
+      "expected_answer": "No. Recognizing that a query condition implies a partial-index predicate makes the index usable, but does not force its selection. A sequential scan can be a sensible cost-based choice, for example for a very small table or a query retrieving common values. Inspect the actual query plan with EXPLAIN rather than treating Seq Scan by itself as evidence of an error.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P06-R1",
+          "statement": "Separate recognized predicate implication and index usability from compulsory index selection.",
+          "supporting_evidence_ids": [
+            "P06-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P06-R2",
+          "statement": "Explain why Seq Scan can be reasonable, using costs, a small table, or common-value access rather than declaring an automatic planner error.",
+          "supporting_evidence_ids": [
+            "P06-E2",
+            "P06-E3"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P06-E1",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-971ade3b40170a1ddafc63dc138b9061404c8370fd9139f24fe961d5f677467d",
+          "block_index": 27,
+          "block_sha256": "ccdd4878409946bfd35e400b4aa3a7eedf9557b4821f009c1dc5f382b3258a87",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 373,
+            "end": 1118,
+            "text": "To be precise, a partial index can be used in a query only if the system can recognize that the WHERE condition of the query mathematically implies the predicate of the index. PostgreSQL does not have a sophisticated theorem prover that can recognize mathematically equivalent expressions that are written in different forms. (Not only is such a general theorem prover extremely difficult to create, it would probably be too slow to be of any real use.) The system can recognize simple inequality implications, for example “x < 1” implies “x < 2”; otherwise the predicate condition must exactly match part of the query's WHERE condition or the index will not be recognized as usable. Matching takes place at query planning time, not at run time."
+          }
+        },
+        {
+          "evidence_id": "P06-E2",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-62eaad5eddb3a958292aaed94f392a2252c93321dfd4b2ac63c68eca75d4777d",
+          "block_index": 112,
+          "block_sha256": "9c8d222b3221cff313f64caa6f6a2c5c1604f51db26113a96ffd6d1f7a70bd6f",
+          "heading_path": [
+            "14.1. Using EXPLAIN",
+            "14.1.3. Caveats"
+          ],
+          "anchor": "USING-EXPLAIN-CAVEATS",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN-CAVEATS",
+          "span": {
+            "start": 197,
+            "end": 701,
+            "text": "The planner's cost estimates are not linear and so it might choose a different plan for a larger or smaller table. An extreme example is that on a table that only occupies one disk page, you'll nearly always get a sequential scan plan whether indexes are available or not. The planner realizes that it's going to take one disk page read to process the table in any case, so there's no value in expending additional page reads to look at an index. (We saw this happening in the polygon_tbl example above.)"
+          }
+        },
+        {
+          "evidence_id": "P06-E3",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-f2d39bc25b313b28d87fc0ae75607ca3caabb1f45469578fb240bc1a89e08421",
+          "block_index": 33,
+          "block_sha256": "7dba6509330ce599bf087bd0e29d4d863dee02b5ba193e42cf9b3c25809de293",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 287,
+            "end": 497,
+            "text": "Normally, PostgreSQL makes reasonable choices about index usage (e.g., it avoids them when retrieving common values, so the earlier example really only saves index size, it is not required to avoid index usage)"
+          }
+        },
+        {
+          "evidence_id": "P06-E4",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-e695851d3a78ced2a53a84ad547396ba734b01dfdb7bfca42bd7247ffbff968e",
+          "block_index": 2,
+          "block_sha256": "df54dbc0c8bf2c0fbf3a6dcabbf8e1190d9b7812c9e42f21055a9cb5a7008b50",
+          "heading_path": [
+            "14.1. Using EXPLAIN"
+          ],
+          "anchor": "USING-EXPLAIN",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN",
+          "span": {
+            "start": 263,
+            "end": 352,
+            "text": "You can use the EXPLAIN command to see what query plan the planner creates for any query."
+          }
+        }
+      ],
+      "evidence_combination_note": "The reference explanation combines the predicate rule (E1) with cost-based examples (E2 or E3). E4 supports optional EXPLAIN guidance. E1 plus E3 can support the core answer within PG-PARTIAL; the multi_document draft label does not prove that every correct answer needs two source documents.",
+      "scope_notes": [
+        "The question-type label is retained from the pilot draft. Reference passages overlap; this is not an irreducible multi-hop benchmark claim.",
+        "A plan must be assessed for the actual data and costs; this record does not conclude that every Seq Scan is optimal."
+      ],
+      "optional_guidance": {
+        "statement": "Use EXPLAIN to inspect the actual chosen plan.",
+        "supporting_evidence_ids": [
+          "P06-E4"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+[console_scripts]
+rag-workflow-lab = rag_workflow_lab.cli:main

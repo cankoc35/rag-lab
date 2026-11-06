@@ -1,0 +1,3 @@
+# Scaffold only. PostgreSQL/pgvector and MLflow services are not configured yet.
+name: rag-workflow-lab
+services: {}

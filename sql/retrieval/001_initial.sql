@@ -1,0 +1,3 @@
+-- Scaffold: retrieval storage schema is not implemented yet.
+-- Planned: versioned sources, sections, chunks and embedding/index metadata.
+-- Select the embedding model and vector dimension before adding vector DDL.

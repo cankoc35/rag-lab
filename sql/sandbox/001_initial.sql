@@ -1,0 +1,2 @@
+-- Scaffold: sandbox schema and synthetic state fixtures are not implemented.
+-- Keep sandbox state and read-only tool access separate from retrieval storage.
