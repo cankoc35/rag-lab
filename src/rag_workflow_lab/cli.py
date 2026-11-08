@@ -1,4 +1,4 @@
-"""CLI entry point for local checks, explicit downloads and offline parsing."""
+"""CLI for local checks, explicit DB checks/downloads and offline parsing."""
 
 import argparse
 from dataclasses import asdict
@@ -6,9 +6,10 @@ import json
 from pathlib import Path
 
 from rag_workflow_lab import __version__
-from rag_workflow_lab.config import load_settings
+from rag_workflow_lab.config import load_database_settings, load_settings
 from rag_workflow_lab.ingestion.download import SourceDownloadError, download_source, load_sources
 from rag_workflow_lab.ingestion.parse import parse_snapshot
+from rag_workflow_lab.store import DatabaseCheckError, check_database
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,7 +34,16 @@ def main(argv: list[str] | None = None) -> int:
         if name == "parse-source":
             check.add_argument("--source-id", required=True)
             check.add_argument("--manifest", type=Path, required=True)
+    commands.add_parser("check-db", help="Check PostgreSQL and pgvector with read-only SQL using POSTGRES_* settings.")
     args = parser.parse_args(argv)
+
+    if args.command == "check-db":
+        try:
+            result = check_database(load_database_settings())
+        except (ValueError, DatabaseCheckError) as exc:
+            parser.exit(2, f"Database check failed: {exc}\n")
+        print(json.dumps({"status": "ok", **asdict(result)}, indent=2))
+        return 0
 
     if args.command in {"check-config", "check-sources", "download-source", "parse-source"}:
         try:

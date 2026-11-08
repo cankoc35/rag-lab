@@ -7,6 +7,8 @@
 
 Before project work or answering “where did we leave off?”, verify this is the `rag-workflow-lab` checkout (not MOTIF-RAG), then read `README.md`, `docs/PROJECT_CONTEXT.md`, `docs/STATUS.md`, and `docs/ROADMAP.md` in that order. Read `docs/METHOD_DESIGN.md` and `docs/EVALUATION_PLAN.md` before changing the experiment, and `docs/LITERATURE_GAPS.md` before making a novelty claim. This is an Agentic RAG chatbot and empirical thesis project, not the MOTIF-RAG evaluation library. The supervisor liked the Agentic RAG direction; the precise research question, corpus, models, and architecture remain open. Label proposals as proposals and ask before making a major scope decision.
 
+After the orientation documents, read `docs/HANDOFF.md` for the current code/artifact map and resume checks. Treat dated verification results as historical evidence, not proof that local services are running now. Keep the handoff current when the stopping point changes.
+
 For “where did we leave off?”, briefly report the actual current state, confirmed decisions, open decisions, and next concrete action. Do not infer completed work from a plan. If files conflict, flag the conflict instead of silently choosing a thesis direction. After a meaningful work session, update `docs/STATUS.md` with progress and the next action. When a lasting decision changes, update `docs/PROJECT_CONTEXT.md` and, if it affects the sequence, `docs/ROADMAP.md`. Keep `README.md` as the short public entry point; do not duplicate entire conversations in these files.
 
 ## Build approach
@@ -17,6 +19,21 @@ For “where did we leave off?”, briefly report the actual current state, conf
 - Preserve source identifiers so answers can cite the evidence actually used. Allow the chatbot to say it lacks sufficient evidence.
 - Keep experiments reproducible: record dataset version, model identifier and settings, prompt version, code version, and tool configuration.
 - Keep development questions separate from any future held-out thesis test set. Do not invent results or claim Agentic RAG is better without a fair comparison.
+
+## Simplicity First
+
+Write simple, readable, concise code that the owner can easily review.
+Prefer clear names and straightforward control flow over clever or compressed code.
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
 ## Safety and verification
 

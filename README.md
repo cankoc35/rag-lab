@@ -21,8 +21,18 @@ have been parsed into source-linked JSON blocks. All 184 blocks have
 with a 512-token target and 1024-token ceiling, preserving code and tables.
 The [first six development questions](data/evaluation/dev/document_questions.json)
 now have source-verified answers and evidence mapped to those chunks.
-Retrieval, model calls and workflow/evaluation runners are not implemented,
-and there is no running database.
+[Local Nomic embeddings](docs/EMBEDDING_SETUP.md) now work: a pinned model
+produces normalized 768-dimensional document/query vectors. A one-chunk,
+one-question runtime check and its offline repeat passed. A
+[PostgreSQL + pgvector Compose setup](docs/POSTGRES_SETUP.md) is now configured
+and passed temporary live checks. The optional Psycopg 3 driver, environment
+settings and `check-db` command are implemented. The command passed against
+the local service with PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only
+transaction. Application tables now exist; corpus storage operations remain pending.
+Alembic is now installed and configured for manually written raw-SQL
+migrations. Revision `0001` was applied on 2026-11-07, creating the four
+retrieval tables; their initial contents are empty.
+Retrieval, generator calls and workflow/evaluation runners are not implemented.
 The [source allowlist](data/corpus/sources.json) now selects four PostgreSQL 18
 documentation pages; the statistics page is scoped to `pg_stat_replication`.
 The [pilot scope](docs/PILOT_SCOPE.md) contains 20 question records: P01–P06
@@ -43,7 +53,10 @@ available.
 
 For a new session, read the [project context](docs/PROJECT_CONTEXT.md) and
 [current status](docs/STATUS.md) to see decisions, open questions, and the
-next concrete step.
+next concrete step. Follow the reading order in [AGENTS.md](AGENTS.md), then
+use the [session handoff](docs/HANDOFF.md) for code paths, local artifacts and
+resume commands. On 2026-11-08 the PostgreSQL container was stopped; the applied
+schema above is the last verified database state, not a current health check.
 
 The [papers reading list](docs/papers/rag-papers/README.md) contains background literature,
 not a retrieval corpus or evaluation dataset. The proposed implementation
@@ -124,20 +137,28 @@ document is a finished review or approved protocol.
 ## Working stack decisions and open choices
 
 - Python 3.11+ for the application.
-- PostgreSQL with pgvector, run locally in Docker, for document storage and vector search (chosen direction; not set up yet).
+- PostgreSQL with pgvector in local Docker Compose for document storage and
+  vector search (configured and checked from Python; retrieval tables are created).
+- Application database access uses parameterized raw SQL without an ORM.
+  Psycopg 3.3.8 is pinned in the optional `database` dependencies and installed
+  locally. Environment settings and read-only connection checks are implemented;
+  Alembic 1.20.1 handles migrations with SQLAlchemy 2.1.8 used only for migration
+  connections. Revision `0001` is applied; application storage/search remain pending.
 - A local embedding model for indexing and retrieval.
+- Initial pilot embedding model: `nomic-ai/nomic-embed-text-v1.5`, pinned revision,
+  768-dimensional output through Sentence Transformers, CPU float32 initially.
 - Local open-source and affordable hosted LLMs are both under consideration for generation and tool calling; providers and exact models are TBD. A weak local model should not obscure system-level improvements.
 - LangGraph for the agentic workflow (chosen; start with the simplest working baseline).
 - Self-hosted MLflow for tracing, with PostgreSQL as its backend store (chosen; not set up yet). A tracing platform is not itself the research contribution.
 
 The corpus snapshot/coverage, LLM provider/models, and exact experimental
-protocol remain open; no embedding/generation model is installed yet. Using a hosted model may send
+protocol remain open; a local embedding model is installed, while the generator remains unselected. Using a hosted model may send
 prompts and retrieved text to its provider; choose the corpus accordingly.
 
 ## Run the scaffold
 
-From the repository root, use Python 3.11+; the current CLI has no third-party
-runtime dependencies and can run directly from the source checkout:
+From the repository root, use Python 3.11+; the current ingestion CLI has no
+third-party runtime dependencies and can run directly from the source checkout:
 
 ```sh
 PYTHONPATH=src python3.11 -m rag_workflow_lab --help
@@ -205,8 +226,52 @@ The [development-data guide](data/evaluation/dev/README.md) describes the
 reference answers and evidence alternatives. This check requires saved local
 artifacts, uses only the standard library, and performs no model evaluation.
 
-`compose.yaml` and the SQL files are scaffolds;
-no PostgreSQL or MLflow services are configured yet.
+The optional [embedding setup](docs/EMBEDDING_SETUP.md) has an opt-in download
+and runtime check. After its first model/dependency download, repeat offline:
+
+```sh
+PYTHONPATH=src HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 uv run --offline --locked --no-project --python 3.11 scripts/embedding_smoke.py
+```
+
+Model weights stay under `data/local/models/`; reports go under
+`outputs/embeddings/`. The script embeds one chunk and one raw question;
+it does not perform corpus indexing or retrieval evaluation.
+
+Start [PostgreSQL + pgvector](docs/POSTGRES_SETUP.md) after setting the password
+in a local `.env` copied from `.env.example`:
+
+```sh
+docker compose config --quiet
+docker compose up -d --wait postgres
+```
+
+Compose uses a pinned image, loopback port, named volume, extension bootstrap
+and healthcheck. The [Python database setup](docs/POSTGRES_SETUP.md#python-driver-and-environment-settings)
+documents the optional Psycopg installation and `load_database_settings()`.
+It reads `POSTGRES_*` from the process environment without connecting; use
+`uv run --env-file .env` to load a local file explicitly. After installing the
+optional database dependencies, check the connection and installed extension:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python -m rag_workflow_lab check-db
+```
+
+`check-db` runs read-only SQL and prints server/pgvector versions as JSON.
+Missing credentials, a missing driver/extension or a DB failure produce exit
+code 2; credentials and raw driver errors are omitted from output. The command
+does not require the pilot TOML file. Application tables exist; corpus storage
+and search remain pending. MLflow is not configured.
+
+Alembic reads the same environment settings. Check the current schema revision:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python alembic current
+```
+
+The repository head and the applied database revision are both `0001`.
+The four retrieval tables were verified on 2026-11-07. See the
+[migration setup](docs/POSTGRES_SETUP.md#alembic-migrations) for installation
+and revision commands. Raw-SQL revisions belong in `migrations/versions/`.
 
 Offline unit tests use the Python standard library:
 
@@ -216,7 +281,10 @@ PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 
 Downloader tests simulate HTTP responses; parser tests use a small synthetic
 DocBook fixture; chunking tests use synthetic blocks and a test token counter.
-All 48 unit tests run offline without local snapshots, tokenizer packages or models.
+Database settings tests cover defaults, environment overrides, validation and
+password handling. DB-check tests use a fake driver for SQL results, resource
+cleanup, CLI output and safe failures. All 80 unit tests run offline without a database, driver,
+local snapshots, tokenizer packages or models.
 Real network verification is run separately with the explicit `download-source`
 command; the four saved snapshots were also checked through the offline parser CLI.
 

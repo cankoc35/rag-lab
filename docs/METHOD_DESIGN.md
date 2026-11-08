@@ -121,6 +121,10 @@ definitions and per-run fields.
 
 ## Open decisions
 
+The initial pilot embedding choice is now [pinned local Nomic](EMBEDDING_SETUP.md)
+with a document/query smoke check. This does not finalize the study's generator,
+judges or model-quality comparisons.
+
 PostgreSQL documentation version/coverage, sandbox fixtures and tool contracts,
 exact enhanced workflow, router implementation, models, final question counts,
 quality margin, metric definitions, and the supervisor's preferred diagram

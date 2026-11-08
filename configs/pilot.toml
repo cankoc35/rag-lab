@@ -6,4 +6,13 @@ name = "rag-workflow-lab"
 sources_manifest = "../data/corpus/sources.json"
 local_data_dir = "../data/local"
 
-# Model IDs, corpus version and retrieval settings will be added when selected.
+[embedding]
+model_id = "nomic-ai/nomic-embed-text-v1.5"
+revision = "e9b6763023c676ca8431644204f50c2b100d9aab"
+models_dir = "../data/local/models"
+device = "cpu"
+dimensions = 768
+max_tokens = 1024
+
+# Database settings are read separately from POSTGRES_* environment variables.
+# Generator and retrieval settings remain separate future steps.

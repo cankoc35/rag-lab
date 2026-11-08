@@ -89,10 +89,11 @@ by Git. Each snapshot gets a JSON file containing chunks and indexed headings;
 `--output-dir PATH` selects a new directory explicitly. Existing directories
 are rejected, and all documents are validated before output creation.
 
-The tokenizer remains the Nomic Embed Text v1.5 **candidate**, pinned at
-`e9b6763023c676ca8431644204f50c2b100d9aab`. No embedding model was selected,
-no weights were loaded and no embedding or database operation was performed.
-The actual embedding adapter's behavior must be checked before indexing.
+At the chunking step, the Nomic Embed Text v1.5 tokenizer was still a
+candidate, pinned at `e9b6763023c676ca8431644204f50c2b100d9aab`. Nomic has
+since been selected for the initial pilot, and a [local embedding smoke check](EMBEDDING_SETUP.md)
+passed. All saved chunk token counts still match. No database indexing or
+retrieval evaluation has occurred.
 
 ## Verified corpus output
 
@@ -120,6 +121,7 @@ input hashes. These results establish structural correctness on this corpus;
 they do not measure retrieval or answer quality.
 
 P01–P06 now have [source-verified reference answers and chunk evidence](../data/evaluation/dev/README.md).
-Next, finalize the embedding model/adapter and verify its document/query inputs
-before indexing. Keep this chunking configuration versioned and shared across
-subsequent workflow comparisons.
+The local adapter's document/query smoke check has passed, and Alembic revision
+`0001` created the retrieval tables. Raw-SQL snapshot/chunk import and corpus
+indexing are next; see [HANDOFF.md](HANDOFF.md) for runtime state and inputs.
+Keep this chunking configuration versioned and shared across later comparisons.

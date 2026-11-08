@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-06. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-08. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -142,13 +142,14 @@ renaming these questions; keep related scenario families within one split.
 
 1. **Completed:** A controlled parser for four saved HTML sources preserves
    section text, code, tables, heading paths, source/snapshot IDs and anchors.
-   **Next small step:** Produce chunks from these blocks.
-2. Write two synthetic documents and add Markdown ingestion. These tasks do
+   Section-aware chunking produced 49 verified chunks. Nomic is selected and
+   its local adapter works; PostgreSQL + pgvector and retrieval revision `0001`
+   are set up. See [HANDOFF.md](HANDOFF.md) for runtime state and local inputs.
+2. **Next small step:** Implement raw-SQL snapshot/chunk import into the
+   existing tables. Then embed/index the corpus with the pinned Nomic adapter
+   and inspect P01–P06 retrieval. This first check does not require generation.
+3. Write two synthetic documents and add Markdown ingestion. These tasks do
    not require a model or orchestration framework.
-3. Choose a local embedding model, configure PostgreSQL + pgvector, and use
-   the same model for query/document embeddings. Inspect whether required
-   evidence appears in top-k for pilot document questions. The first retrieval
-   check does not require generation.
 4. Select the generator, add LLM-only/Simple RAG answer runs with citations
    and MLflow traces. Then create DB fixtures/tools, verify tool questions,
    and implement enhanced/agentic workflows.
@@ -158,5 +159,5 @@ source state, gold answer/rubric, required source-span/tool evidence IDs and
 answerability. Separate gold data from model-visible questions and corpus.
 Record model, prompt, corpus, tool and code versions in runs.
 
-**Still open:** Full corpus snapshot, embedding/LLM models, tool schemas,
+**Still open:** Full corpus snapshot, generator/LLM models, tool schemas,
 cost/latency measurement details and the final thesis-test protocol.

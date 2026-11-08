@@ -45,7 +45,9 @@ change. No result or target percentage is assumed here.
 [verified reference answers and pinned evidence](../data/evaluation/dev/README.md).
 The evidence checker validates references/integrity, not answer correctness
 or retrieval performance. These annotations do not finalize the scoring
-rubric; no evaluation/model run has occurred. P07–P20 remain drafts.
+rubric; no scored retrieval or answer-generation run has occurred. P07–P20 remain drafts.
+The subsequent [embedding runtime check](EMBEDDING_SETUP.md) produced two
+vectors; it reports no retrieval or answer-quality metric.
 
 Each run should link a stable `run_id` and `question_id` to the workflow or
 router policy; question type; dataset/corpus/live-state versions; generator,

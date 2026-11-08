@@ -1,9 +1,12 @@
-# Embedding model — pilot proposal
+# Embedding model — initial pilot decision
 
-**Date:** 2026-11-05. **Status:** Source-checked proposal, not a final model
-selection or installed setup. No model weights were downloaded and no
-embedding/database test was run. PostgreSQL + pgvector is the owner's
-existing preference, reaffirmed in this session.
+**Updated:** 2026-11-08. **Status:** Following the Nomic recommendation, the
+owner authorized its first local embedding step. Nomic Embed Text v1.5 is
+selected for the initial pilot; weights are cached locally and one document/
+query runtime check plus an offline repeat passed. Retrieval quality is not
+measured. PostgreSQL + pgvector is configured and revision `0001` created the
+retrieval tables; corpus import/indexing remain pending. See
+[EMBEDDING_SETUP.md](EMBEDDING_SETUP.md) for the exact revision/settings.
 
 ## Language decision and starting proposal
 
@@ -13,8 +16,8 @@ answers and evaluation content. Multilingual/cross-lingual support is not
 required. This supersedes the Turkish-question/English-document rationale
 for the earlier BGE-M3 proposal.
 
-The proposal remains **one local dense embedding model and PostgreSQL +
-pgvector**. Embed documents and questions with the same model/revision; keep
+The pilot uses **one local dense embedding model and PostgreSQL +
+pgvector** as the storage direction. Embed documents and questions with the same model/revision; keep
 embeddings and index fixed across simple/enhanced/agentic comparisons. Select
 by English technical-retrieval quality, input limits, tokenization and local
 resource use. A multilingual model can perform well in English; language
@@ -27,7 +30,7 @@ capacity above that threshold was not specified.
 
 | Model | Approximate parameters | Dense vector dimensions | Documented maximum input | Pilot role |
 | --- | --- | --- | --- | --- |
-| `nomic-ai/nomic-embed-text-v1.5` | 137M | 768 (default) | 8192 tokens | Priority English candidate to examine; flexibility for long SQL blocks |
+| `nomic-ai/nomic-embed-text-v1.5` | 137M | 768 (default) | 8192 tokens | Selected initial pilot model; adapter ceiling is 1024 |
 | `BAAI/bge-base-en-v1.5` | 109M | 768 | 512 tokens | English alternative with a tighter chunk budget |
 
 Input limits and vector dimensions were checked in the
@@ -62,13 +65,15 @@ size, sequence length, backend, activations and concurrent LLM/Docker use.
 There is no measured throughput or memory result on this device yet.
 
 An 8192-token capacity does not require chunks of that size. A small target
-size can coexist with a budget that preserves longer SQL blocks. Exact
-limits, overflow policy and tokenizer revision remain open.
+size can coexist with a budget that preserves longer SQL blocks.
+The chunker now uses a 512-token soft target and 1024-token ceiling with
+explicit overflow errors. The pinned adapter uses the same tokenizer revision
+and a 1024-token input ceiling; extending native context is not tested.
 
 ## pgvector and multiple models
 
-The two candidates' default dense outputs could use `vector(768)` with cosine
-distance; the final column dimensions depend on model selection.
+The selected model's dense outputs fit the applied schema's `vector(768)`
+column. Cosine-distance search is planned but not implemented yet.
 [pgvector](https://github.com/pgvector/pgvector) supports exact and approximate
 search. Its current HNSW `vector` limit is 2000 dimensions, so 768 fits.
 Start the small pilot with exact search; assess HNSW as the dataset grows.
@@ -83,20 +88,23 @@ settings during comparisons.
 
 ## Tokenizer measurement and next verification
 
-The owner requested block token measurement before model selection. The
+The owner requested block token measurement before model selection. At that step, the
 Nomic candidate's tokenizer was pinned and used locally for all 184 parsed
 blocks; see [TOKEN_COUNTS.md](TOKEN_COUNTS.md). Including headings, the
 document prefix and special tokens, the maximum code block is 658 tokens and
 the table is 811. Three blocks exceed 512. Only tokenizer metadata was
-downloaded; no model weights or embedding inference were involved. This
-measurement does not finalize the embedding model or chunk budgets.
+downloaded; no model weights or embedding inference were involved in that
+measurement. Model selection and its runtime check came afterward.
 
 The owner subsequently requested the 512/1024-token strategy; the
 [implemented chunker](CHUNKING.md) produces 49 verified chunks, at most 822
-tokens with the candidate tokenizer. This does not select the embedding model.
-Once the model/adapter is selected, verify its actual
-input limit, pooling/normalization and local execution settings; then add
-pgvector ingestion. Verify expected evidence spans for development questions
-P01–P06 and inspect retrieval quality. Use these results to assess whether
-changing the model is necessary; do not select models based on held-out test
-outcomes.
+tokens with that tokenizer. Nomic was then selected for the initial pilot;
+the [local adapter check](EMBEDDING_SETUP.md) verified one complete 822-token
+chunk and one 25-token query, producing finite, normalized 768-dimensional
+vectors without truncation or inference network access. Offline replay matched.
+Next, implement snapshot/chunk import into the existing PostgreSQL tables,
+then embed/index the corpus and inspect retrieval on P01–P06. Their evidence
+mapping is already source-verified. The service was stopped at the 2026-11-08
+runtime check; see [HANDOFF.md](HANDOFF.md) before live DB work.
+Use broader development evidence before making a model-quality comparison;
+do not select models based on held-out test outcomes.

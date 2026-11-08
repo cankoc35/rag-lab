@@ -7,8 +7,9 @@ remain the original measurements, distinct from complete chunk sizes.
 
 **Measured:** 2026-11-05, 20:38 UTC. **Scope:** All 184 parsed blocks from the
 four saved PostgreSQL sources. These are block measurements, not finished
-chunks, embeddings or a retrieval-quality benchmark. The embedding model
-remains a proposal.
+chunks, embeddings or a retrieval-quality benchmark. Nomic was a candidate at
+measurement time and was later selected and checked with the
+[local embedding adapter](EMBEDDING_SETUP.md).
 
 ## Tokenizer and counting rules
 
@@ -47,8 +48,9 @@ greater than the stated number.
 The task prefix follows the [Nomic model card](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5).
 The pinned [tokenizer configuration](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5/blob/e9b6763023c676ca8431644204f50c2b100d9aab/tokenizer_config.json)
 and [Sentence Transformers configuration](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5/blob/e9b6763023c676ca8431644204f50c2b100d9aab/sentence_bert_config.json)
-both specify 8,192 tokens. An embedding adapter's actual runtime limit still
-needs verification when that adapter is implemented.
+both specify 8,192 tokens. The later adapter uses a verified 1024-token
+application ceiling; extended context is not tested. These block measurements
+remain distinct from the adapter's runtime checks.
 
 ## Results
 

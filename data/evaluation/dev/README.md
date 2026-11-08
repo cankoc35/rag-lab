@@ -78,6 +78,9 @@ unit tests** also passed. The local verification record is
 `outputs/validation/document-questions-v1.json`.
 
 No retrieval/model-answer run was performed and the evaluation runner, scoring
-metrics and final thesis protocol remain unimplemented or open. Next, finalize
-the local embedding model/adapter and check its document/query inputs before
-indexing the corpus.
+metrics and final thesis protocol remain unimplemented or open. The
+[local Nomic adapter](../../../docs/EMBEDDING_SETUP.md) has since passed a
+document/query runtime check. PostgreSQL + pgvector and the four retrieval
+tables now exist. Next implement snapshot/chunk import and corpus indexing
+before using these questions for retrieval checks. See the
+[session handoff](../../../docs/HANDOFF.md) for current state and local inputs.

@@ -1,15 +1,20 @@
-# Code structure — proposal
+# Code structure — implemented and planned components
 
-**Last updated:** 2026-11-05. **Status:** The owner requested the planned
+**Last updated:** 2026-11-08. **Status:** The owner requested the planned
 files while preserving existing files and folders; the scaffold now exists.
 CLI help/version, config and source-manifest loading/validation work.
-Unimplemented modules contain responsibility docstrings; SQL, Compose and
-prompts do not yet provide application behavior. The source allowlist was
+Unimplemented modules contain responsibility docstrings, and prompts remain
+scaffolds. Raw-SQL Alembic revision `0001` created the four retrieval tables;
+`store.py` currently implements only the read-only connection check.
+PostgreSQL + pgvector Compose and the extension bootstrap are configured and
+verified. The source allowlist was
 populated with four PostgreSQL 18 records on 2026-11-02. Loading/validation,
 shared source/snapshot types, single-source downloading and the offline HTML
 parser/`parse-source` command and section-aware chunking are implemented.
-The offline corpus script uses a cached tokenizer; this did not select a model,
-freeze the full corpus or finalize the experimental protocol.
+The initial local Nomic embedding adapter is also implemented and passed a
+document/query runtime check. The full corpus and experimental protocol remain
+open. See [HANDOFF.md](HANDOFF.md) for local inputs and the next import step;
+the service was stopped at the 2026-11-08 runtime check.
 
 ## Core approach
 
@@ -31,10 +36,16 @@ rag-workflow-lab/
 ├── pyproject.toml                 # Package, required dependencies, CLI entry
 ├── .env.example                   # Environment example without secret values
 ├── compose.yaml                   # Local PostgreSQL; MLflow when needed
+├── alembic.ini                    # Migration configuration, no credentials
+├── migrations/
+│   ├── env.py                    # Connection from existing POSTGRES_* settings
+│   └── versions/
+│       └── 0001_create_retrieval_tables.py  # Applied raw-SQL schema
 ├── configs/
 │   └── pilot.toml                 # Explicit experiment/model/retrieval settings
 ├── sql/
-│   ├── retrieval/001_initial.sql  # Source, section/chunk and vector tables
+│   ├── retrieval/000_extensions.sql  # Docker bootstrap: vector extension
+│   ├── retrieval/001_initial.sql  # Preserved comment-only scaffold
 │   └── sandbox/001_initial.sql    # Later: example database and fixture tables
 ├── src/rag_workflow_lab/
 │   ├── __init__.py
@@ -178,7 +189,8 @@ section ID exists. That download-only step did not change code or rerun tests.
 The parser step on the same day added 16 tests; all 35 offline unit tests
 passed. All four real snapshots were parsed through the CLI with network
 access blocked; outputs were saved as `data/local/parsed/<snapshot_id>.json`.
-Tests use standard-library `unittest`; RAG/model dependencies are not installed.
+These are historical results from the scaffold/parser stages. Tests use
+standard-library `unittest`; later embedding and DB checks are described below.
 Actual commands are documented in README.
 
 ## Current functional boundary
@@ -204,9 +216,26 @@ embedding inputs and neighbor IDs. The counter is supplied by the caller;
 the application adds no tokenizer dependency. The standalone
 `scripts/chunk_corpus.py` uses an isolated cached tokenizer and verifies all
 four sources offline: 49 chunks, all 46 code blocks and the table intact.
-All 48 offline unit tests pass. See [CHUNKING.md](CHUNKING.md) for the API and
-reproduction command. Embeddings, database connections, LLM calls and LangGraph
-remain later stages.
+The chunking step passed 48 offline unit tests; the embedding step brings the
+total to 59. See [CHUNKING.md](CHUNKING.md) for the chunk API and reproduction
+command. `embeddings.py` now explicitly loads a pinned, checksummed local
+Nomic snapshot and produces normalized document/query vectors, with an
+injected backend seam for offline tests. `scripts/embedding_smoke.py` is the
+opt-in runtime command; its dependency lockfile and model manifest support
+reproducibility. [EMBEDDING_SETUP.md](EMBEDDING_SETUP.md) records its results.
+The optional `database` extra now pins Psycopg 3.3.8. `config.py` also provides
+explicit `POSTGRES_*` environment loading with validation and password-safe
+repr, independently of TOML/ingestion settings. Ten additional offline tests
+bring the total to 69. The subsequent `check-db` command in `cli.py` calls
+`store.check_database()` for read-only raw-SQL connectivity/version/extension
+checks. Eleven fake-driver/CLI tests bring the total to 80; the explicit live
+command passed against PostgreSQL 18.6 + pgvector 0.8.7. Corpus-wide
+embedding/indexing, application storage/search, generator calls and LangGraph
+remain later stages. Alembic is now installed and configured through
+`alembic.ini` and `migrations/env.py`. Manual raw-SQL revisions belong under
+`migrations/versions/`. Revision `0001_create_retrieval_tables.py` was applied
+on 2026-11-07 and its four empty retrieval tables were verified. Raw-SQL store
+operations and corpus import remain next steps.
 
 Related plans: [Pilot scope](PILOT_SCOPE.md), [method](METHOD_DESIGN.md),
 [evaluation](EVALUATION_PLAN.md) and [roadmap](ROADMAP.md).

@@ -1,3 +1,35 @@
-# Scaffold only. PostgreSQL/pgvector and MLflow services are not configured yet.
 name: rag-workflow-lab
-services: {}
+
+services:
+  postgres:
+    # Pin the multi-architecture image, including its PostgreSQL build.
+    image: pgvector/pgvector:0.8.7-pg18-trixie@sha256:5895949dfcdf308eb0cd31c950c93c14895c77f33fbedfecf1fa511ab1d4bcd2
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-rag_workflow_lab}
+      POSTGRES_USER: ${POSTGRES_USER:-rag_lab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # PostgreSQL 18 stores versioned data under /var/lib/postgresql.
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql
+      - type: bind
+        source: ./sql/retrieval/000_extensions.sql
+        target: /docker-entrypoint-initdb.d/000_extensions.sql
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      # TCP becomes ready after first-run initialization scripts finish.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 30s
+
+volumes:
+  postgres_data:

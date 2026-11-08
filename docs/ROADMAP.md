@@ -13,7 +13,8 @@ sources/page-section scope are selected; all four HTML snapshots are saved
 and hash-verified, with their IDs recorded in STATUS.md. The offline HTML
 parser is implemented and all four snapshots have source-linked block outputs.
 Section-aware chunking now produces 49 verified chunks with preserved code/tables.
-The complete corpus snapshot, models, tools, and
+A pinned local Nomic adapter passed a document/query runtime check and offline repeat.
+The complete corpus snapshot, generator model, tools, and
 the final corpus/evaluation protocol remain open.
 
 ## 1. Define the minimum testbed
@@ -46,11 +47,22 @@ draft exist; the source/fixture verification work is not done yet.
 
 - Python package/CLI and module/data/test directory scaffolds now exist. The
   owner requested all planned file paths together; component behavior is still
-  implemented in the stages below. Source/download/parser tests and local
-  check/download/parse CLI commands are implemented; DB/model integration is future work.
+  implemented in the stages below. Source/download/parser/chunking code, local
+  embedding inference and the DB connection check work. Corpus import, indexing
+  and retrieval are the next integration steps.
 - Follow the [code structure and staged implementation plan](CODE_STRUCTURE.md)
   when filling in the scaffold modules.
 - Run PostgreSQL with `pgvector` locally in Docker.
+  The [Compose service and extension bootstrap](POSTGRES_SETUP.md) are now
+  configured and passed temporary live checks. Python `check-db` also passed
+  against the project service with PostgreSQL 18.6 and pgvector 0.8.7.
+- Use parameterized raw SQL for application database access without an ORM
+  (owner decision, 2026-11-06). Psycopg 3.3.8 is now an optional dependency,
+  installed locally; environment settings and the explicit read-only
+  connection/extension check are implemented. Alembic is selected, installed
+  and configured for manually written raw-SQL revisions. The owner authorized
+  application on 2026-11-07; revision `0001` is applied and its four empty
+  retrieval tables are verified.
 - Add replaceable configuration for the model, embeddings, database, and
   self-hosted MLflow tracing.
 - Start with a command-line interface rather than a web UI.
@@ -128,12 +140,21 @@ margin before final testing. Adaptive routing itself is not claimed as novel.
 
 The [512/1024-token chunker](CHUNKING.md) is implemented and verified on all
 four saved sources. P01–P06 have verified answers and chunk evidence.
-Finalize the local embedding model/adapter and verify its document/query
-inputs before indexing. The Nomic tokenizer remains a candidate setup;
-no final embedding model selection or model run has occurred.
+The [local Nomic adapter](EMBEDDING_SETUP.md) passed its first document/query
+check. PostgreSQL + pgvector Compose is configured and temporarily verified.
+The Psycopg dependency, environment settings and `check-db` command are now
+implemented. The command passed on the persistent project service with
+PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only transaction.
+Alembic setup and its live connection check have also passed.
+Revision `0001` was applied on 2026-11-07; the four retrieval tables are verified
+and were empty at that check. On 2026-11-08 the project container was stopped;
+start the existing service and inspect its state before a live import.
+Next implement raw-SQL snapshot/chunk store operations, then embed/index the
+corpus and inspect P01–P06 retrieval. The [session handoff](HANDOFF.md) maps
+the inputs and existing code for this step.
 Prepare the synthetic sources/evidence listed in
 [PILOT_SCOPE.md](PILOT_SCOPE.md) and build retrieval.
-Fix the embedding
-model before indexing and the generator before answer runs. Review the method
+Keep the embedding model/settings fixed across workflow comparisons and select
+the generator before answer runs. Review the method
 design with the supervisor and continue literature work in parallel; keep the
 final thesis protocol open until its remaining choices are resolved.
