@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-08. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-12. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -145,8 +145,9 @@ renaming these questions; keep related scenario families within one split.
    Section-aware chunking produced 49 verified chunks. Nomic is selected and
    its local adapter works; PostgreSQL + pgvector and retrieval revision `0001`
    are set up. See [HANDOFF.md](HANDOFF.md) for runtime state and local inputs.
-2. **Next small step:** Implement raw-SQL snapshot/chunk import into the
-   existing tables. Then embed/index the corpus with the pinned Nomic adapter
+2. **Next small step:** Run the prepared raw-SQL snapshot/chunk importer for a
+   committed import. Its code passed full-corpus checks with rollback, so the
+   tables remain empty. Then embed/index the corpus with the pinned Nomic adapter
    and inspect P01–P06 retrieval. This first check does not require generation.
 3. Write two synthetic documents and add Markdown ingestion. These tasks do
    not require a model or orchestration framework.

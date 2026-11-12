@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-08. Resume guide for another AI or developer.
+**Updated:** 2026-11-12. Resume guide for another AI or developer.
 Use [STATUS.md](STATUS.md) for dated verification records. Plans and scaffold
 files do not imply working features.
 
@@ -39,7 +39,7 @@ adaptive router later. The exact thesis question and protocol remain open.
 | Sources                | Four PostgreSQL 18 HTML snapshots; allowlist, downloader and parser                                | Synthetic runbooks, Markdown ingestion and sandbox fixtures                     |
 | Chunking               | 184 parsed blocks become 49 chunks; target 512, ceiling 1024 tokens; intact SQL/tables, no overlap | No new chunking work required for the current four sources                      |
 | Embedding              | Local Nomic adapter; one chunk and one query embedded, with an identical offline repeat            | Corpus-wide embedding and indexing; no retrieval-quality result                 |
-| Database               | Compose, Psycopg settings, read-only `check-db`, applied revision `0001`                       | Snapshot/chunk import and vector-search operations                              |
+| Database               | Compose, Psycopg settings, `check-db`, revision `0001`, raw-SQL snapshot/chunk storage and import script | Committed corpus import and vector search |
 | Questions              | 20 pilot records; P01–P06 have verified answers/evidence                                          | P07–P20 remain drafts; held-out set is empty                                   |
 | Answering / evaluation | Planning documents and module paths                                                                | Generator selection, answer runs, tools, workflows, traces, metrics and runners |
 
@@ -48,17 +48,23 @@ with explicit owner authorization on 2026-11-07. Catalog checks verified
 `source_snapshots`, `chunks`, `embedding_indexes` and `chunk_embeddings`, all
 empty, with `vector(768)`. The local record is
 `outputs/validation/retrieval-schema-0001/applied-2026-11-07.json`.
-On 2026-11-08, `docker compose ps --all` reported the project container as
-`exited`; `check-db` failed with exit code 2. The service was not started during
-this documentation session, so revision and row counts were not rechecked.
-Do not treat the old verification record as a live health check.
+On 2026-11-12, the service was healthy, `check-db` passed and revision `0001`
+was confirmed. The full four-snapshot/49-chunk import passed a round trip and
+repeat-run check, then was rolled back. All four tables remain empty.
+Record: `outputs/validation/corpus-import-2026-11-12.json`. The earlier stopped
+service observation from 2026-11-08 is historical, not the current check.
 
 ## Code and local artifacts
 
-Read these before implementing the import:
+The prepared import consists of:
 
-- [store.py](../src/rag_workflow_lab/store.py): currently only the DB health
-  check; there are no corpus writes or vector searches.
+- [store.py](../src/rag_workflow_lab/store.py): `check_database()`,
+  `save_snapshots()` and `save_chunks()`. The save functions accept an existing
+  connection; their caller owns the transaction. They preserve exact records
+  and reject changed payloads under existing IDs. There is no vector search.
+- [import_corpus.py](../scripts/import_corpus.py): reads saved artifacts from
+  the pilot allowlist, checks snapshots/provenance, then saves all records in
+  one connection/transaction. It reads no gold data and generates no embeddings.
 - [config.py](../src/rag_workflow_lab/config.py) and
   [contracts.py](../src/rag_workflow_lab/contracts.py): environment settings and
   source/snapshot/parsed-block/chunk data contracts. These are not ORM entities.
@@ -94,18 +100,21 @@ and `search_query: ` query conventions and normalization.
 Database/migration packages are in `.venv`; ML dependencies use the isolated
 `embedding_smoke.py` environment and lockfile. Setup guides cover installation.
 
-## Next small implementation step
+## Next small step
 
-Implement minimal Psycopg/raw-SQL store operations and an explicit import entry
-point for the **four saved snapshot manifests and 49 existing chunks**.
-Preserve source/snapshot/chunk IDs, exact `embedding_text`, token counts and
-citation/chunking/tokenizer metadata. Verify stored contents and repeat-run
-behavior without duplicating records. This step does not require a new schema.
+Run the prepared importer for a **committed** import of the four saved
+snapshot manifests and 49 existing chunks. Preparation/testing is complete,
+but no corpus import has been committed. The command is documented in README:
 
-Before the live import, start the existing Compose service and inspect its
-revision and contents. Preserve the volume and pinned inputs. Then embed/index
-all chunks and inspect P01–P06 retrieval. Generation, LangGraph, synthetic tools
-and the router come in later steps.
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py
+```
+
+Inspect service/revision before running and verify four snapshots and 49 chunks
+afterward. Identical repeats must leave the same contents and counts. Preserve
+the volume and pinned inputs. Then implement corpus embedding/indexing and
+inspect P01–P06 retrieval. Generation, LangGraph, synthetic tools and the router
+come in later steps.
 
 ## Checks and resume commands
 
@@ -116,10 +125,11 @@ PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 python3.11 scripts/check_document_questions.py
 ```
 
-Last recorded unit result: **80 passed** during earlier code/migration
-preparation work; not rerun for this documentation-only update. The six-question
-reference checker passed again on 2026-11-08. It checks artifact integrity,
-not retrieval or answer quality. No RAG evaluation result exists.
+On 2026-11-12, **86 offline unit tests and 3 opt-in DB integration tests passed**.
+The latter use temporary tables and close without committing; the explicit
+`RAG_LAB_TEST_DB=1` command is in README. The six-question reference checker
+also passed. It checks artifact integrity, not retrieval or answer quality.
+No RAG evaluation result exists.
 
 Inspect the service first; when resuming DB work, start it with its existing volume:
 
@@ -131,9 +141,9 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 ```
 
 Load `.env` explicitly without printing credentials. Inspect `git status`
-before editing: the checkout has accumulated uncommitted work and new files;
-HEAD is `e301eaa`. Preserve those changes. No commit or push was made in this
-handoff session.
+before editing. The checkout was clean at the start of the 2026-11-12 import
+preparation (HEAD `481e8b6`); this session's code/tests/docs are uncommitted.
+Preserve existing changes. No commit or push was made in this session.
 
 Suggested opening request for a new session:
 

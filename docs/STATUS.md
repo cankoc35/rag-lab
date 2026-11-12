@@ -1,6 +1,6 @@
 # Current status
 
-**Last updated:** 2026-11-08
+**Last updated:** 2026-11-12
 
 **Stage:** Section-aware chunking is implemented. The four PostgreSQL snapshots
 produce 49 verified chunks. P01–P06 have source-verified reference answers and
@@ -9,7 +9,9 @@ pgvector Compose and the Psycopg driver/environment settings are implemented.
 The `check-db` command passed against local PostgreSQL 18.6 + pgvector 0.8.7
 with a verified read-only transaction. Alembic is installed and configured;
 revision `0001` is applied and the four empty retrieval tables are verified.
-Corpus import, indexing and retrieval remain next stages.
+Raw-SQL snapshot/chunk storage and the import script are implemented and
+verified with rollback. Committed corpus import, indexing and retrieval remain
+next stages.
 **Confirmed:** According to the owner, the supervisor liked the Agentic RAG
 subject; the project will continue in this direction.
 **Proposed:** Compare three RAG workflows and an adaptive router. The precise
@@ -23,16 +25,16 @@ prompts, answers and evaluation content. Only chat with the owner may use
 Turkish. Multilingual support is not required.
 **Owner decision, 2026-11-06:** Application database access will use
 parameterized raw SQL without an ORM. Psycopg 3.3.8 and environment settings
-are available and the read-only connection check works. Application storage/
-search operations remain pending. Alembic revision `0001` is applied.
+are available and the read-only connection check works. Snapshot/chunk storage
+is now implemented; vector search remains pending. Alembic revision `0001` is applied.
 **Owner instruction, 2026-11-07:** Apply the prepared migration; this superseded
 the earlier preparation-only hold. Application and catalog checks passed.
 
-**Current runtime check, 2026-11-08:** The project PostgreSQL container is
-`exited` according to `docker compose ps --all`. `check-db` returned exit code 2;
-the service was not started or changed during this documentation session.
-Revision `0001` and the empty row counts above were last verified on 2026-11-07,
-not rechecked today. Start the existing service and inspect it before importing.
+**Current runtime check, 2026-11-12:** The project PostgreSQL service is healthy.
+`check-db` passed with PostgreSQL 18.6, pgvector 0.8.7 and a read-only transaction;
+revision `0001` is applied. Full-corpus import verification was rolled back.
+All four retrieval tables were verified empty afterward. This supersedes the
+stopped-service observation from 2026-11-08.
 The [session handoff](HANDOFF.md) gives the reading order, code/artifact map
 and resume commands for another AI or developer.
 
@@ -388,6 +390,23 @@ earlier proposals, missing features and preparation-only holds.
   Local-link/heading-anchor and code-fence checks passed across all 14 updated
   Markdown files (137 local links); `git diff --check` passed.
 
+- **2026-11-12, snapshot/chunk import prepared:** Added `save_snapshots()` and
+  `save_chunks()` to `store.py` and `scripts/import_corpus.py`. The script uses
+  the pilot allowlist, saved snapshot checks and chunk-provenance checks;
+  file loading completes before a DB connection is opened. Both save functions
+  share the script's transaction. Identical records are accepted; an existing
+  ID with different contents fails instead of overwriting data. Chunk text,
+  exact embedding input, token counts and all remaining metadata are preserved.
+- **86 offline unit tests and 3 opt-in PostgreSQL integration tests passed**.
+  The integration tests use temporary tables, verifying round trips, repeat
+  imports, conflicting payloads and whole-transaction rollback. A separate
+  verification imported all four real snapshots and 49 chunks twice in one
+  transaction, checked every stored field, then rolled back. Before and after
+  counts were `(0, 0, 0, 0)` for snapshots, chunks, embedding indexes and vectors.
+  Record: `outputs/validation/corpus-import-2026-11-12.json`. The six-question
+  reference checker also passed with its pinned inputs unchanged. No committed
+  import, model inference, new migration or dependency change occurred.
+
 ### Saved official-documentation snapshots
 
 Each directory is under `data/local/snapshots/` and contains
@@ -436,7 +455,8 @@ general web/PDF/Markdown and nested content tables are not supported.
 - Beyond source loading, downloads, HTML parsing, chunking and local embedding,
   retrieval, generator LLM, tracing, tools, workflows and evaluation runners are
   not implemented. PostgreSQL Compose and the Python connection check work,
-  and the retrieval tables exist, but corpus storage/search are pending;
+  and the retrieval tables and snapshot/chunk storage exist. The committed
+  corpus import and vector search are pending;
   MLflow is not configured. No generator or
   RAG/evaluation run has been executed.
 - There is no finalized three-workflow protocol or frozen test set; no
@@ -476,7 +496,7 @@ general web/PDF/Markdown and nested content tables are not supported.
   Psycopg 3.3.8 is installed locally and environment settings are implemented;
   pgvector-python remains an optional adapter proposal. `check-db` has passed
   on the local service. Alembic revision `0001` is applied and verified;
-  application corpus storage/search remain pending.
+  snapshot/chunk storage is prepared; committed import and vector search remain pending.
   Add the chosen LangGraph orchestration after a baseline built from simple
   Python functions; use MLflow to trace initial end-to-end runs.
   [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview),
@@ -491,8 +511,10 @@ general web/PDF/Markdown and nested content tables are not supported.
   insufficient-evidence abstention. Retain LLM-only-correct questions. This
   approval does not finalize the whole protocol; sample size/rubric remain
   open and there are no model runs or a runnable evaluation dataset.
-- **Next concrete task:** Implement Psycopg/raw-SQL store operations to import
-  the saved source snapshots and 49 chunks into the existing retrieval tables.
+- **Next concrete task:** Run the prepared `scripts/import_corpus.py` for a
+  committed import of the saved four snapshots and 49 chunks, then verify DB
+  records and repeat-run counts. The current code has only been exercised with
+  rollback, so the tables remain empty.
   `sql/retrieval/001_initial.sql` is still a comment-only scaffold, not an
   applied migration. Then embed/index the
   [49 verified chunks](CHUNKING.md) with the selected Nomic adapter. Use P01–P06
@@ -501,8 +523,8 @@ general web/PDF/Markdown and nested content tables are not supported.
 
 ## First steps when returning
 
-1. Revision `0001` is applied and the retrieval tables are empty. Implement
-   raw-SQL store operations for saved snapshots/chunks, then embed/index the corpus with
+1. Revision `0001` is applied and the retrieval tables are empty. Run the
+   prepared raw-SQL snapshot/chunk importer, then embed/index the corpus with
    the pinned Nomic adapter. Keep P01–P06 reference answers outside ingestion;
    use them to inspect retrieval. P07–P20 remain drafts, and the held-out
    thesis test set is still separate and unprepared.

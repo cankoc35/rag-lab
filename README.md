@@ -28,7 +28,9 @@ one-question runtime check and its offline repeat passed. A
 and passed temporary live checks. The optional Psycopg 3 driver, environment
 settings and `check-db` command are implemented. The command passed against
 the local service with PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only
-transaction. Application tables now exist; corpus storage operations remain pending.
+transaction. Application tables and raw-SQL snapshot/chunk storage now exist.
+The [import script](scripts/import_corpus.py) is prepared and verified with
+rollback; a committed corpus import remains pending.
 Alembic is now installed and configured for manually written raw-SQL
 migrations. Revision `0001` was applied on 2026-11-07, creating the four
 retrieval tables; their initial contents are empty.
@@ -55,8 +57,8 @@ For a new session, read the [project context](docs/PROJECT_CONTEXT.md) and
 [current status](docs/STATUS.md) to see decisions, open questions, and the
 next concrete step. Follow the reading order in [AGENTS.md](AGENTS.md), then
 use the [session handoff](docs/HANDOFF.md) for code paths, local artifacts and
-resume commands. On 2026-11-08 the PostgreSQL container was stopped; the applied
-schema above is the last verified database state, not a current health check.
+resume commands. On 2026-11-12 PostgreSQL was healthy with revision `0001`;
+all four retrieval tables remained empty after import verification was rolled back.
 
 The [papers reading list](docs/papers/rag-papers/README.md) contains background literature,
 not a retrieval corpus or evaluation dataset. The proposed implementation
@@ -143,7 +145,8 @@ document is a finished review or approved protocol.
   Psycopg 3.3.8 is pinned in the optional `database` dependencies and installed
   locally. Environment settings and read-only connection checks are implemented;
   Alembic 1.20.1 handles migrations with SQLAlchemy 2.1.8 used only for migration
-  connections. Revision `0001` is applied; application storage/search remain pending.
+  connections. Revision `0001` is applied; snapshot/chunk storage is implemented,
+  while committed corpus import and vector search remain pending.
 - A local embedding model for indexing and retrieval.
 - Initial pilot embedding model: `nomic-ai/nomic-embed-text-v1.5`, pinned revision,
   768-dimensional output through Sentence Transformers, CPU float32 initially.
@@ -259,8 +262,9 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 `check-db` runs read-only SQL and prints server/pgvector versions as JSON.
 Missing credentials, a missing driver/extension or a DB failure produce exit
 code 2; credentials and raw driver errors are omitted from output. The command
-does not require the pilot TOML file. Application tables exist; corpus storage
-and search remain pending. MLflow is not configured.
+does not require the pilot TOML file. Application tables and snapshot/chunk
+storage exist; corpus import has not been committed and search remains pending.
+MLflow is not configured.
 
 Alembic reads the same environment settings. Check the current schema revision:
 
@@ -273,6 +277,21 @@ The four retrieval tables were verified on 2026-11-07. See the
 [migration setup](docs/POSTGRES_SETUP.md#alembic-migrations) for installation
 and revision commands. Raw-SQL revisions belong in `migrations/versions/`.
 
+Import the existing saved snapshots and chunks when ready to populate the DB:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py
+```
+
+This command **commits** the four snapshots and 49 chunks in one transaction.
+It reads the pilot source allowlist, verifies saved HTML/manifests with the
+existing parser and checks chunk provenance. It preserves exact embedding
+inputs and all remaining chunk fields as JSONB metadata. Identical repeats
+are accepted; different contents for an existing ID fail and roll back the
+whole import. Printed counts describe processed records, including existing
+matches. The command does not generate embeddings or read evaluation data.
+Use `--chunks-dir PATH` to select another saved chunk run.
+
 Offline unit tests use the Python standard library:
 
 ```sh
@@ -283,10 +302,20 @@ Downloader tests simulate HTTP responses; parser tests use a small synthetic
 DocBook fixture; chunking tests use synthetic blocks and a test token counter.
 Database settings tests cover defaults, environment overrides, validation and
 password handling. DB-check tests use a fake driver for SQL results, resource
-cleanup, CLI output and safe failures. All 80 unit tests run offline without a database, driver,
+cleanup, CLI output and safe failures. Import-input tests verify source checks,
+provenance, duplicate IDs and allowlist boundaries. All 86 unit tests run offline without a database, driver,
 local snapshots, tokenizer packages or models.
 Real network verification is run separately with the explicit `download-source`
 command; the four saved snapshots were also checked through the offline parser CLI.
+
+Three opt-in storage tests require the local DB and applied revision `0001`:
+
+```sh
+PYTHONPATH=src RAG_LAB_TEST_DB=1 uv run --offline --no-project --env-file .env --python .venv/bin/python python -m unittest discover -s tests/integration -v
+```
+
+They use temporary tables cloned from the schema, close without committing,
+and verify round trips, identical/conflicting repeats and transaction rollback.
 
 ## First milestone
 

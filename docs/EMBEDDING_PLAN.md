@@ -1,6 +1,6 @@
 # Embedding model — initial pilot decision
 
-**Updated:** 2026-11-08. **Status:** Following the Nomic recommendation, the
+**Updated:** 2026-11-12. **Status:** Following the Nomic recommendation, the
 owner authorized its first local embedding step. Nomic Embed Text v1.5 is
 selected for the initial pilot; weights are cached locally and one document/
 query runtime check plus an offline repeat passed. Retrieval quality is not
@@ -102,9 +102,9 @@ tokens with that tokenizer. Nomic was then selected for the initial pilot;
 the [local adapter check](EMBEDDING_SETUP.md) verified one complete 822-token
 chunk and one 25-token query, producing finite, normalized 768-dimensional
 vectors without truncation or inference network access. Offline replay matched.
-Next, implement snapshot/chunk import into the existing PostgreSQL tables,
-then embed/index the corpus and inspect retrieval on P01–P06. Their evidence
-mapping is already source-verified. The service was stopped at the 2026-11-08
-runtime check; see [HANDOFF.md](HANDOFF.md) before live DB work.
+Snapshot/chunk import code is now prepared and verified with rollback. Next run
+the importer for a committed import, then embed/index the corpus and inspect
+retrieval on P01–P06. Their evidence mapping is already source-verified. The
+service was healthy on 2026-11-12; see [HANDOFF.md](HANDOFF.md) before live DB work.
 Use broader development evidence before making a model-quality comparison;
 do not select models based on held-out test outcomes.

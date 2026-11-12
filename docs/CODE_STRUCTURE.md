@@ -1,11 +1,12 @@
 # Code structure — implemented and planned components
 
-**Last updated:** 2026-11-08. **Status:** The owner requested the planned
+**Last updated:** 2026-11-12. **Status:** The owner requested the planned
 files while preserving existing files and folders; the scaffold now exists.
 CLI help/version, config and source-manifest loading/validation work.
 Unimplemented modules contain responsibility docstrings, and prompts remain
 scaffolds. Raw-SQL Alembic revision `0001` created the four retrieval tables;
-`store.py` currently implements only the read-only connection check.
+`store.py` implements the read-only connection check and raw-SQL snapshot/chunk
+save functions. `scripts/import_corpus.py` coordinates their transaction.
 PostgreSQL + pgvector Compose and the extension bootstrap are configured and
 verified. The source allowlist was
 populated with four PostgreSQL 18 records on 2026-11-02. Loading/validation,
@@ -14,7 +15,7 @@ parser/`parse-source` command and section-aware chunking are implemented.
 The initial local Nomic embedding adapter is also implemented and passed a
 document/query runtime check. The full corpus and experimental protocol remain
 open. See [HANDOFF.md](HANDOFF.md) for local inputs and the next import step;
-the service was stopped at the 2026-11-08 runtime check.
+the service was healthy at the 2026-11-12 check, with all tables empty after rollback.
 
 ## Core approach
 
@@ -230,12 +231,19 @@ bring the total to 69. The subsequent `check-db` command in `cli.py` calls
 `store.check_database()` for read-only raw-SQL connectivity/version/extension
 checks. Eleven fake-driver/CLI tests bring the total to 80; the explicit live
 command passed against PostgreSQL 18.6 + pgvector 0.8.7. Corpus-wide
-embedding/indexing, application storage/search, generator calls and LangGraph
+embedding/indexing, vector search, generator calls and LangGraph
 remain later stages. Alembic is now installed and configured through
 `alembic.ini` and `migrations/env.py`. Manual raw-SQL revisions belong under
 `migrations/versions/`. Revision `0001_create_retrieval_tables.py` was applied
-on 2026-11-07 and its four empty retrieval tables were verified. Raw-SQL store
-operations and corpus import remain next steps.
+on 2026-11-07 and its four empty retrieval tables were verified.
+
+On 2026-11-12, `save_snapshots(connection, snapshots)` and
+`save_chunks(connection, chunks)` were added. The standalone importer reads
+saved artifacts, validates snapshot/provenance links and owns one transaction.
+Matching records can be repeated; conflicting IDs raise an error. All chunk
+fields outside dedicated columns are preserved in JSONB metadata. The step
+passed 86 offline tests, three opt-in DB tests and a full-corpus round trip
+with rollback. Committed corpus import and vector search remain next steps.
 
 Related plans: [Pilot scope](PILOT_SCOPE.md), [method](METHOD_DESIGN.md),
 [evaluation](EVALUATION_PLAN.md) and [roadmap](ROADMAP.md).

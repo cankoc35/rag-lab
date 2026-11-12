@@ -122,6 +122,7 @@ they do not measure retrieval or answer quality.
 
 P01–P06 now have [source-verified reference answers and chunk evidence](../data/evaluation/dev/README.md).
 The local adapter's document/query smoke check has passed, and Alembic revision
-`0001` created the retrieval tables. Raw-SQL snapshot/chunk import and corpus
-indexing are next; see [HANDOFF.md](HANDOFF.md) for runtime state and inputs.
+`0001` created the retrieval tables. Raw-SQL snapshot/chunk import code is
+prepared and verified with rollback. Committed import and corpus indexing
+are next; see [HANDOFF.md](HANDOFF.md) for runtime state and inputs.
 Keep this chunking configuration versioned and shared across later comparisons.

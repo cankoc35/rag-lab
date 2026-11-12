@@ -1,6 +1,6 @@
 # Local PostgreSQL + pgvector Compose setup
 
-**Last updated:** 2026-11-08. **Status:** Compose configuration and extension bootstrap
+**Last updated:** 2026-11-12. **Status:** Compose configuration and extension bootstrap
 are implemented. Startup, health, vector SQL and volume persistence were
 verified in a temporary, separate Compose project, which was then removed.
 The persistent project service is started explicitly using the owner's `.env`.
@@ -9,10 +9,10 @@ PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only transaction.
 Alembic revision `0001` was applied on 2026-11-07; all four retrieval tables
 were verified and empty at that check.
 
-**Runtime check, 2026-11-08:** The project container is `exited`, and `check-db`
-returned exit code 2. The service was not started in this documentation session.
-Start the existing service and inspect its revision before resuming DB work;
-the historical verification below does not establish current availability.
+**Runtime check, 2026-11-12:** The project service is healthy and `check-db`
+passed with revision `0001` confirmed separately. Snapshot/chunk import code
+passed real-data round-trip/repeat checks with rollback; all four retrieval
+tables remain empty. The next step is the committed import described below.
 
 ## Configuration
 
@@ -36,8 +36,8 @@ the historical verification below does not establish current availability.
 
 Python and the local embedding model run on the Mac. This Docker bootstrap
 creates only the `vector` extension; Alembic subsequently creates retrieval
-tables. The Psycopg connection check is implemented; corpus store operations,
-sandbox fixtures and MLflow remain separate steps.
+tables. The Psycopg connection check and snapshot/chunk storage are implemented;
+committed corpus import, sandbox fixtures and MLflow remain separate steps.
 
 ## Python driver and environment settings
 
@@ -85,7 +85,7 @@ This reads configuration only, without opening a DB connection. Existing
 ingestion/config commands continue to work without DB credentials. URL-style
 retrieval/sandbox settings remain reserved; the current loader reads only the
 six variables above. `check-db` uses these settings for the explicit connection
-check below; application storage/search remain future work.
+check below; the importer uses the same settings. Vector search remains future work.
 
 ## Start the project service
 
@@ -239,9 +239,20 @@ public table list unchanged at zero tables during setup. Revision `0001` was
 subsequently applied on 2026-11-07. Catalog checks confirmed its four empty
 retrieval tables, primary/foreign keys, CHECK constraints and `vector(768)`.
 
-Next implement raw-SQL snapshot/chunk import into the existing tables, then
-corpus embedding/indexing and retrieval. See [HANDOFF.md](HANDOFF.md) for the
-existing local inputs and resume checks.
+The [prepared importer](../scripts/import_corpus.py) uses `save_snapshots()` and
+`save_chunks()` in `store.py`, sharing one transaction. Run it to commit the
+four saved snapshots and 49 chunks:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py
+```
+
+Identical repeats are accepted; conflicting existing IDs or any other failure
+roll back the whole transaction. This preparation step passed 86 offline unit
+tests, three temporary-table integration tests and a full 4/49 round trip with
+rollback. No corpus records have been committed. Next commit the import, then
+implement corpus embedding/indexing and retrieval. See [HANDOFF.md](HANDOFF.md)
+for the local inputs and resume checks.
 
 Upstream references: [pgvector Docker images](https://github.com/pgvector/pgvector#docker),
 [Postgres image data paths and initialization](https://hub.docker.com/_/postgres),

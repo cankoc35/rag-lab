@@ -5,7 +5,7 @@ This file helps a new session understand **why** the project exists and
 and the next task, [ROADMAP.md](ROADMAP.md) for stages, and
 [README.md](../README.md) for a brief overview. The
 [session handoff](HANDOFF.md) maps the current code, local artifacts and resume
-checks. Last updated: **2026-11-08**.
+checks. Last updated: **2026-11-12**.
 
 ## Purpose and boundaries
 
@@ -162,7 +162,7 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   persistent project service uses the owner's `.env`. The Python `check-db`
   command has also verified PostgreSQL 18.6 and pgvector 0.8.7 in a read-only
   transaction. Revision `0001` subsequently created the application tables;
-  corpus storage operations remain pending.
+  snapshot/chunk storage is now implemented, with committed import still pending.
   See [POSTGRES_SETUP.md](POSTGRES_SETUP.md).
 - **Confirmed (owner, 2026-11-06):** Use raw SQL for application database
   access, without an ORM. Psycopg 3 is the PostgreSQL driver;
@@ -176,7 +176,7 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   `check-db` is now implemented in `cli.py`, calling `store.check_database()`
   for bounded, read-only connectivity/version/extension checks. Psycopg loads
   only when called; output omits credentials and raw driver errors.
-  Application corpus storage/search remain unimplemented.
+  Raw-SQL snapshot/chunk storage is now implemented; vector search remains unimplemented.
 - **Confirmed/implemented (owner, 2026-11-06):** Alembic is selected for
   migrations. The optional `migrations` dependencies pin Alembic 1.20.1 and
   SQLAlchemy 2.1.8, installed in `.venv`. SQLAlchemy is used only by
@@ -192,7 +192,15 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   retained. The owner explicitly authorized application on 2026-11-07,
   lifting the earlier preparation-only hold. Revision `0001` is applied;
   all four tables, keys and vector dimensions were verified. The tables are
-  initially empty; no corpus import or embedding/indexing has occurred.
+  initially empty. Later import verification used rollback; no corpus rows
+  or embeddings have been committed.
+- **Implemented (owner, 2026-11-12):** Prepared `save_snapshots()` and
+  `save_chunks()` in `store.py` plus `scripts/import_corpus.py`. One connection/
+  transaction imports the saved source records and exact chunk inputs/metadata.
+  Identical records can be repeated; conflicting existing IDs fail. All four
+  snapshots and 49 chunks passed a full DB round trip and repeat check, then
+  rollback left every retrieval table empty. Next run the prepared importer
+  for a committed import before corpus embedding/indexing.
 - **Confirmed, not installed:** LangGraph for the agentic workflow and
   self-hosted MLflow tracing with PostgreSQL as its backend store. PostgreSQL
   may hold both retrieval data and MLflow metadata, but their schema/database

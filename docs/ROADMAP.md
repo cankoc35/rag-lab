@@ -48,8 +48,9 @@ draft exist; the source/fixture verification work is not done yet.
 - Python package/CLI and module/data/test directory scaffolds now exist. The
   owner requested all planned file paths together; component behavior is still
   implemented in the stages below. Source/download/parser/chunking code, local
-  embedding inference and the DB connection check work. Corpus import, indexing
-  and retrieval are the next integration steps.
+  embedding inference and the DB connection check work. Raw-SQL storage/import
+  code is prepared; committed import, indexing and retrieval are the next
+  integration steps.
 - Follow the [code structure and staged implementation plan](CODE_STRUCTURE.md)
   when filling in the scaffold modules.
 - Run PostgreSQL with `pgvector` locally in Docker.
@@ -147,11 +148,11 @@ implemented. The command passed on the persistent project service with
 PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only transaction.
 Alembic setup and its live connection check have also passed.
 Revision `0001` was applied on 2026-11-07; the four retrieval tables are verified
-and were empty at that check. On 2026-11-08 the project container was stopped;
-start the existing service and inspect its state before a live import.
-Next implement raw-SQL snapshot/chunk store operations, then embed/index the
-corpus and inspect P01–P06 retrieval. The [session handoff](HANDOFF.md) maps
-the inputs and existing code for this step.
+and were empty at that check. On 2026-11-12 the service was healthy and the
+prepared raw-SQL importer passed full-corpus round-trip/repeat checks with
+rollback. All tables remain empty. Next run `scripts/import_corpus.py` for a
+committed import, then embed/index the corpus and inspect P01–P06 retrieval.
+The [session handoff](HANDOFF.md) maps the inputs and existing code for this step.
 Prepare the synthetic sources/evidence listed in
 [PILOT_SCOPE.md](PILOT_SCOPE.md) and build retrieval.
 Keep the embedding model/settings fixed across workflow comparisons and select

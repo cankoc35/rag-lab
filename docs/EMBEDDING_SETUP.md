@@ -119,9 +119,10 @@ Safetensors 0.8.0, on Python 3.11.15 / macOS arm64.
 The saved corpus, chunks and six-question annotations were unchanged by the
 smoke check, which performed no ranking, answer generation or DB operations.
 
-**Follow-up, 2026-11-08:** PostgreSQL + pgvector setup and Alembic revision
-`0001` are now complete; the four retrieval tables were verified empty on
-2026-11-07. Next implement snapshot/chunk import, then embed/index the corpus
-and use P01–P06 to inspect retrieval. The service is currently stopped; see
-[HANDOFF.md](HANDOFF.md) for resume checks. Keep the selected model/revision
-and embedding settings shared across later workflow comparisons.
+**Follow-up, 2026-11-12:** PostgreSQL + pgvector setup and revision `0001` are
+complete. Snapshot/chunk import code is prepared and passed a full-corpus round
+trip with rollback; the service is healthy and the tables remain empty. Next
+run the importer for a committed import, then embed/index the corpus and use
+P01–P06 to inspect retrieval. See [HANDOFF.md](HANDOFF.md) for resume checks.
+Keep the selected model/revision and embedding settings shared across later
+workflow comparisons.
