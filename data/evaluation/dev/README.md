@@ -81,7 +81,8 @@ No retrieval/model-answer run was performed and the evaluation runner, scoring
 metrics and final thesis protocol remain unimplemented or open. The
 [local Nomic adapter](../../../docs/EMBEDDING_SETUP.md) has since passed a
 document/query runtime check. PostgreSQL + pgvector and the four retrieval
-tables now exist. Snapshot/chunk import code is prepared and verified with
-rollback; committed import and corpus indexing are next before using these
-questions for retrieval checks. See the
+tables now exist. Four snapshots and 49 chunks are imported and field-verified;
+the indexing script has passed full real-model repeat checks with rollback.
+The owner's subsequent indexing run committed one index and 49 verified vectors.
+Retriever implementation comes before using these questions for retrieval checks. See the
 [session handoff](../../../docs/HANDOFF.md) for current state and local inputs.

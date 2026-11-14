@@ -1,6 +1,6 @@
 # Current status
 
-**Last updated:** 2026-11-12
+**Last updated:** 2026-11-13
 
 **Stage:** Section-aware chunking is implemented. The four PostgreSQL snapshots
 produce 49 verified chunks. P01–P06 have source-verified reference answers and
@@ -8,14 +8,23 @@ chunk evidence. Local Nomic document/query embeddings work. PostgreSQL +
 pgvector Compose and the Psycopg driver/environment settings are implemented.
 The `check-db` command passed against local PostgreSQL 18.6 + pgvector 0.8.7
 with a verified read-only transaction. Alembic is installed and configured;
-revision `0001` is applied and the four empty retrieval tables are verified.
-Raw-SQL snapshot/chunk storage and the import script are implemented and
-verified with rollback. Committed corpus import, indexing and retrieval remain
-next stages.
+revision `0001` is applied. The import script has committed four snapshots and
+49 chunks; independent field checks and a second run confirmed unchanged
+contents and counts. Embedding index/vector save functions are implemented
+and tested. The owner ran the corpus indexer; one index and 49 document vectors
+are now committed and match the earlier real-model verification. The script
+now reports immediate phase/chunk progress. Retrieval remains the next stage.
 **Confirmed:** According to the owner, the supervisor liked the Agentic RAG
 subject; the project will continue in this direction.
 **Proposed:** Compare three RAG workflows and an adaptive router. The precise
 thesis question and experimental protocol remain open.
+**Owner decision, 2026-11-13:** Initial Simple/Enhanced definitions are approved.
+Simple uses dense retrieval; Enhanced uses dense + PostgreSQL full-text search,
+RRF merge/deduplication and reranking. Both document paths use one shared
+final-answer setup and context budget. Enhanced tools follow predefined Python
+steps; Agentic's detailed design is deferred. Models, numeric parameters and
+exact tool conditions remain open, and later additions are possible. See
+[METHOD_DESIGN.md](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 **Owner approval, 2026-11-01:** The initial pilot uses PostgreSQL docs,
 synthetic local runbooks and frozen DB state. Include LLM-only, source-specific,
 changed-evidence and abstention controls.
@@ -32,9 +41,11 @@ the earlier preparation-only hold. Application and catalog checks passed.
 
 **Current runtime check, 2026-11-12:** The project PostgreSQL service is healthy.
 `check-db` passed with PostgreSQL 18.6, pgvector 0.8.7 and a read-only transaction;
-revision `0001` is applied. Full-corpus import verification was rolled back.
-All four retrieval tables were verified empty afterward. This supersedes the
-stopped-service observation from 2026-11-08.
+revision `0001` is applied. The committed counts are four source snapshots,
+49 chunks, one embedding index and 49 vectors. The owner-initiated indexer
+process finished. Read-only checks confirmed exact input hashes, 768 finite
+values/unit norms per vector and a fingerprint identical to the earlier
+rollback-only model check. This supersedes the earlier empty-embedding state.
 The [session handoff](HANDOFF.md) gives the reading order, code/artifact map
 and resume commands for another AI or developer.
 
@@ -407,6 +418,87 @@ earlier proposals, missing features and preparation-only holds.
   reference checker also passed with its pinned inputs unchanged. No committed
   import, model inference, new migration or dependency change occurred.
 
+- **2026-11-12, committed corpus import:** On the owner's instruction, ran
+  `scripts/import_corpus.py` against the project DB. It committed four snapshots
+  and 49 chunks. A fresh read-only connection verified every stored snapshot
+  field and every chunk field, including exact embedding inputs and JSONB
+  metadata. Counts by source are PG-EXPLAIN 37, PG-MULTI 3, PG-PARTIAL 5 and
+  PG-STATS 4. Ran the script again and verified the same counts and content
+  fingerprint from another connection. Embedding indexes/vectors remain empty.
+  Record: `outputs/validation/corpus-import-committed-2026-11-12.json`.
+  The six-question reference checker passed; code hashes matched the previously
+  tested version. No code, dependency or schema changes were needed; the
+  earlier 86-unit/3-integration-test suite was not repeated for this data-only
+  step. No embedding, retrieval or model-answer run occurred.
+
+- **2026-11-12, embedding storage:** Added `save_embedding_index(connection,
+  index)` and `save_embeddings(connection, index_id, embeddings)` to `store.py`.
+  The latter accepts `(chunk_id, EmbeddingResult)` pairs. Index metadata is
+  immutable; document vectors must match the index model/revision/dimensions
+  and the stored chunk input SHA-256. Nonfinite JSON values, missing chunks,
+  stale hashes and conflicting vectors are rejected. Parameters use raw SQL;
+  vector text is cast to `vector` without adding a pgvector adapter dependency.
+- **89 offline unit tests and 8 opt-in PostgreSQL tests passed**. New tests
+  cover validation, float32 round trips, identical/conflicting repeats, separate
+  index scopes and rollback of an index plus earlier vectors after a batch
+  failure. Tests use synthetic vectors and temporary tables, with no model
+  inference. A read-only check confirmed `(4, 49, 0, 0)` public row counts and
+  the same corpus fingerprint as the committed-import report. Record:
+  `outputs/validation/embedding-store-2026-11-12.json`. No schema/dependency
+  changes or production embedding writes occurred.
+
+- **2026-11-12, corpus indexing script:** Added `scripts/index_corpus.py` and
+  its dependency lockfile. It reads all chunk rows from the configured retrieval
+  DB, preserves exact embedding inputs/counts and creates a deterministic index
+  ID from sorted chunk/input hashes, model/revision and runtime settings.
+  Metadata records prefixes, normalization, device/dtype, budget, library
+  versions, model-manifest/lock hashes and code hashes. Index metadata and vectors
+  share one transaction. The script loads only cached local model assets;
+  the lockfile retains all existing smoke-environment versions and adds Psycopg,
+  its binary package and the Windows-only timezone dependency.
+- **92 offline unit tests and 11 opt-in DB tests passed**. New checks cover
+  order-independent identity, changed inputs/configuration, DB-driven indexing,
+  identical repeats, empty corpus and token-count mismatch. A separate check
+  called the complete CLI twice with real local Nomic inference and blocked
+  Python network access, inside a forced-rollback transaction. Both runs
+  produced the same index ID and all 49 stored float32 vectors. Input hashes,
+  768 finite values and unit norms were verified for every vector. Public
+  counts returned to `(4, 49, 0, 0)`. Record:
+  `outputs/validation/corpus-indexing-2026-11-12.json`. No committed indexing,
+  retrieval or generation occurred; application dependencies/migrations were unchanged.
+
+- **2026-11-12, committed indexing and progress visibility:** The owner ran
+  the indexing command, then reported a blank terminal while it was working.
+  Initial inspection found an active Python process; the later check confirmed
+  it had finished with public counts `(4, 49, 1, 49)`. All committed vector/input
+  hashes, dimensions and norms passed read-only validation. The index and
+  vector fingerprint match the earlier real-model rollback verification.
+  Record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
+- Added flushed stderr messages before model loading, for each chunk, before
+  saving and after commit. Stdout remains the final JSON result. **93 offline
+  unit tests and 11 opt-in DB tests passed**, including a new CLI test that
+  checks progress appears before model loading and leaves stdout parseable.
+  These tests used fake inference/temporary tables; no committed re-indexing
+  was performed. The existing index retains its original code provenance;
+  the logging edit changes the source hash for future index identities.
+
+- **2026-11-13, initial fixed-workflow design approved:** The owner accepted
+  Simple = dense retrieval + one answer call; Enhanced = dense/full-text hybrid
+  retrieval + RRF merge/deduplication + reranking + the same answer setup.
+  Shared controls include corpus/chunks, dense embedding configuration,
+  generator/settings, answer prompt and maximum context token budget. Relevant
+  Enhanced tool steps will be predefined in Python, without a model-directed
+  loop or a requirement for native LLM function calling. Agentic keeps the
+  shared-tool/dynamic-control direction, with detailed design deferred.
+- Recorded development ablations (dense-only → hybrid-only → hybrid + reranking)
+  and the scope for later additions. Reranker/generator models, candidate/context
+  limits, fusion parameters and exact tool conditions remain open. Updated
+  method/evaluation/context/roadmap/handoff/public-entry/code-structure notes.
+  This was documentation-only: no code, DB, corpus or dependency changes and
+  no new model/evaluation run. The next implementation step remains dense
+  `search_chunks()` followed by query retrieval; hybrid/reranking come after
+  that baseline. The DB counts above were last checked on 2026-11-12.
+
 ### Saved official-documentation snapshots
 
 Each directory is under `data/local/snapshots/` and contains
@@ -447,7 +539,8 @@ general web/PDF/Markdown and nested content tables are not supported.
   is PostgreSQL 18; the full corpus snapshot is not frozen.
 - All four official HTML/manifest pairs are ready. Synthetic documents and
   DB fixtures remain unwritten. HTML is parsed and chunked; a local embedding
-  adapter works, while corpus-wide embedding/indexing and retrieval are not implemented.
+  adapter and corpus indexing script work; one index/49 vectors are committed,
+  while retrieval remains pending.
   P01–P06 have verified document answers/evidence; P07–P20 still need their
   answers verified against synthetic documents, saved sources or tool outputs.
 - Supervisor feedback on the method draft, expected format and detail level
@@ -455,8 +548,9 @@ general web/PDF/Markdown and nested content tables are not supported.
 - Beyond source loading, downloads, HTML parsing, chunking and local embedding,
   retrieval, generator LLM, tracing, tools, workflows and evaluation runners are
   not implemented. PostgreSQL Compose and the Python connection check work,
-  and the retrieval tables and snapshot/chunk storage exist. The committed
-  corpus import and vector search are pending;
+  and the retrieval tables and snapshot/chunk storage exist. Four snapshots
+  and 49 chunks are imported; indexing is committed and field-verified,
+  while vector search is pending;
   MLflow is not configured. No generator or
   RAG/evaluation run has been executed.
 - There is no finalized three-workflow protocol or frozen test set; no
@@ -496,7 +590,8 @@ general web/PDF/Markdown and nested content tables are not supported.
   Psycopg 3.3.8 is installed locally and environment settings are implemented;
   pgvector-python remains an optional adapter proposal. `check-db` has passed
   on the local service. Alembic revision `0001` is applied and verified;
-  snapshot/chunk storage is prepared; committed import and vector search remain pending.
+  snapshot/chunk storage is implemented and the corpus is imported. Corpus
+  indexing is committed and verified; vector search remains pending.
   Add the chosen LangGraph orchestration after a baseline built from simple
   Python functions; use MLflow to trace initial end-to-end runs.
   [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview),
@@ -510,22 +605,23 @@ general web/PDF/Markdown and nested content tables are not supported.
   synthetic local runbooks/DB states, changed-evidence sensitivity and
   insufficient-evidence abstention. Retain LLM-only-correct questions. This
   approval does not finalize the whole protocol; sample size/rubric remain
-  open and there are no model runs or a runnable evaluation dataset.
-- **Next concrete task:** Run the prepared `scripts/import_corpus.py` for a
-  committed import of the saved four snapshots and 49 chunks, then verify DB
-  records and repeat-run counts. The current code has only been exercised with
-  rollback, so the tables remain empty.
+  open and there are no generator/evaluation runs or a runnable evaluation dataset.
+- **Next concrete task:** Add dense `search_chunks()` to `store.py`, then
+  compose query embedding and index-scoped vector search in `retrieval.py`
+  using the existing committed index. Inspect the expected evidence for
+  P01–P06 before adding a generator. Committed indexing is complete; no rerun
+  is needed for the logging update.
   `sql/retrieval/001_initial.sql` is still a comment-only scaffold, not an
-  applied migration. Then embed/index the
-  [49 verified chunks](CHUNKING.md) with the selected Nomic adapter. Use P01–P06
-  for the first retrieval checks afterward. Generator selection and retrieval
+  applied migration. Use P01–P06 for the first retrieval checks against the
+  indexed [49 verified chunks](CHUNKING.md). Generator selection and retrieval
   quality remain open; the smoke check establishes local execution only.
 
 ## First steps when returning
 
-1. Revision `0001` is applied and the retrieval tables are empty. Run the
-   prepared raw-SQL snapshot/chunk importer, then embed/index the corpus with
-   the pinned Nomic adapter. Keep P01–P06 reference answers outside ingestion;
+1. Revision `0001` is applied; four snapshots, 49 chunks, one index and 49 vectors
+   are committed. Implement retrieval with the pinned Nomic adapter and
+   index-scoped vector SQL against the existing index.
+   Keep P01–P06 reference answers outside ingestion;
    use them to inspect retrieval. P07–P20 remain drafts, and the held-out
    thesis test set is still separate and unprepared.
 2. Write synthetic runbooks and add Markdown ingestion. Keep gold answers and

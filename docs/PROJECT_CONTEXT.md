@@ -5,7 +5,7 @@ This file helps a new session understand **why** the project exists and
 and the next task, [ROADMAP.md](ROADMAP.md) for stages, and
 [README.md](../README.md) for a brief overview. The
 [session handoff](HANDOFF.md) maps the current code, local artifacts and resume
-checks. Last updated: **2026-11-12**.
+checks. Last updated: **2026-11-13**.
 
 ## Purpose and boundaries
 
@@ -82,11 +82,25 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   components: naive RAG, enhanced RAG and Agentic RAG. Share ingestion,
   retrieval, model calls, appropriate tools and measurement infrastructure
   without unnecessary duplication.
-- **Proposed:** Naive RAG is a fixed retrieval → answer baseline. Enhanced
-  uses improved retrieval and/or predefined conditional tool steps. Agentic
-  chooses its next tool/retrieval action dynamically from observations,
-  within iteration and cost limits. Define all three operationally and ensure
-  fair tool access before the experiment.
+- **Approved initial design (owner, 2026-11-13):** Simple uses one dense
+  retrieval pass and one final-answer call, without hybrid search, reranking
+  or sandbox tools. Enhanced uses dense + PostgreSQL full-text retrieval,
+  RRF merge/deduplication, reranking and the same final-answer setup. Both share
+  corpus/chunks, dense embedding settings, generator/settings, answer prompt
+  and maximum context token budget. Both cite evidence and may abstain.
+- **Approved control principle (owner, 2026-11-13):** Enhanced's relevant
+  sandbox tool steps follow predefined Python conditions/order; native LLM
+  function calling is not required and no model-directed loop is planned in
+  this first version. Agentic will have comparable relevant tool access and
+  dynamic model decisions, but its detailed design is deferred until that
+  stage. Exact tools/conditions still need definition. The earlier runbook/
+  frozen-DB-state plans remain active.
+- **Approved development approach (owner, 2026-11-13):** Measure dense-only,
+  hybrid-only and hybrid-plus-reranking variants to separate component effects.
+  These are ablations, not extra main workflows. This is an extensible initial
+  design; reranker/generator choices, numeric budgets and the final thesis
+  protocol remain open. No workflows are implemented by this decision. Details
+  are in [METHOD_DESIGN.md](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 - **Proposed:** An intent/source router could route questions to conversation,
   documents, live data or combinations. Tool retrieval/reranking may help if
   a large catalog becomes necessary; it adds unnecessary complexity for one
@@ -116,7 +130,7 @@ Observability and Enron/privacy are not active thesis directions in this repo.
 - The [pilot scope and 20 questions](PILOT_SCOPE.md) define the development
   direction. P01–P06 now form a [source-verified subset](../data/evaluation/dev/README.md)
   with reference answers and pinned snapshot/block/chunk evidence. P07–P20
-  remain drafts; no model/retrieval result or verified tool output exists yet.
+  remain drafts; no generator/retrieval result or verified tool output exists yet.
 
 ## Technical choices and open selections
 
@@ -162,7 +176,7 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   persistent project service uses the owner's `.env`. The Python `check-db`
   command has also verified PostgreSQL 18.6 and pgvector 0.8.7 in a read-only
   transaction. Revision `0001` subsequently created the application tables;
-  snapshot/chunk storage is now implemented, with committed import still pending.
+  snapshot/chunk storage is implemented and four snapshots/49 chunks are imported.
   See [POSTGRES_SETUP.md](POSTGRES_SETUP.md).
 - **Confirmed (owner, 2026-11-06):** Use raw SQL for application database
   access, without an ORM. Psycopg 3 is the PostgreSQL driver;
@@ -192,15 +206,41 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   retained. The owner explicitly authorized application on 2026-11-07,
   lifting the earlier preparation-only hold. Revision `0001` is applied;
   all four tables, keys and vector dimensions were verified. The tables are
-  initially empty. Later import verification used rollback; no corpus rows
-  or embeddings have been committed.
+  initially empty. The later committed corpus import and indexing populated
+  all four tables.
 - **Implemented (owner, 2026-11-12):** Prepared `save_snapshots()` and
   `save_chunks()` in `store.py` plus `scripts/import_corpus.py`. One connection/
   transaction imports the saved source records and exact chunk inputs/metadata.
   Identical records can be repeated; conflicting existing IDs fail. All four
   snapshots and 49 chunks passed a full DB round trip and repeat check, then
-  rollback left every retrieval table empty. Next run the prepared importer
-  for a committed import before corpus embedding/indexing.
+  rollback left every retrieval table empty at that preparation step.
+- **Imported (owner, 2026-11-12):** The owner requested execution of the
+  prepared script. It committed four snapshots and 49 chunks. Independent
+  read-only checks verified every stored field against the saved artifacts;
+  a second committed run left counts and contents unchanged. Corpus
+  indexing had not yet been implemented at that import step; retrieval remains pending.
+- **Implemented (owner, 2026-11-12):** `save_embedding_index()` and
+  `save_embeddings()` now provide raw-SQL storage for index metadata and
+  `(chunk_id, EmbeddingResult)` pairs. They share the caller's transaction,
+  accept identical repeats and reject changed records. Vector writes check
+  model/revision/dimensions, document task and the hash of the stored chunk's
+  exact embedding input. Tests use synthetic vectors in temporary tables;
+  public counts remain four snapshots, 49 chunks and zero indexes/vectors.
+  Corpus indexing was the next step after these storage functions.
+- **Implemented (owner, 2026-11-12):** `scripts/index_corpus.py` reads all stored
+  corpus chunks, creates an index identity from exact inputs/model/runtime
+  metadata, generates document vectors and saves everything in one transaction.
+  Its lockfile preserves existing ML dependency versions and adds Psycopg.
+  Two complete CLI runs with real cached Nomic inference, blocked network and
+  forced rollback produced identical index IDs and all 49 vectors. Public
+  counts remained `(4, 49, 0, 0)` after that preparation check.
+- **Indexed (owner, 2026-11-12):** The owner ran the indexing command; a
+  subsequent read-only check confirmed one committed index and 49 vectors,
+  matching the prior verified vectors and exact chunk inputs. The process had
+  finished by the second inspection. Added immediate stderr phase/chunk progress
+  after the owner reported a blank terminal. The index keeps its creation
+  provenance; no re-indexing was needed. Retrieval remains unimplemented and
+  no retrieval-quality result has been established.
 - **Confirmed, not installed:** LangGraph for the agentic workflow and
   self-hosted MLflow tracing with PostgreSQL as its backend store. PostgreSQL
   may hold both retrieval data and MLflow metadata, but their schema/database
@@ -228,8 +268,9 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   The English-only decision removed the earlier multilingual rationale for
   BGE-M3. Nomic is now selected and locally tested for the initial pilot;
   generation-model selection and embedding/retrieval quality remain open.
-- **Open:** Exact enhanced-workflow steps, router design, corpus count, model
-  count and final metric/benchmark protocol. Method, evaluation and literature
+- **Open:** Enhanced tool conditions, reranker/generator choices, candidate/
+  context budgets, detailed Agentic and router design, final corpus/model
+  count and metric/benchmark protocol. Method, evaluation and literature
   drafts are working documents, not approved findings.
 
 ## Where to find the literature

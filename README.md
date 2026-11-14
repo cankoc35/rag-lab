@@ -29,11 +29,17 @@ and passed temporary live checks. The optional Psycopg 3 driver, environment
 settings and `check-db` command are implemented. The command passed against
 the local service with PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only
 transaction. Application tables and raw-SQL snapshot/chunk storage now exist.
-The [import script](scripts/import_corpus.py) is prepared and verified with
-rollback; a committed corpus import remains pending.
+The [import script](scripts/import_corpus.py) has committed four snapshots and
+49 chunks. Independent field checks and a second import confirmed unchanged
+contents and counts.
 Alembic is now installed and configured for manually written raw-SQL
 migrations. Revision `0001` was applied on 2026-11-07, creating the four
-retrieval tables; their initial contents are empty.
+retrieval tables. The DB contains four snapshots, 49 chunks, one embedding
+index and 49 vectors.
+Embedding index/vector save functions and the [indexing script](scripts/index_corpus.py)
+are implemented. Two full 49-chunk runs with real local Nomic inference passed
+with identical index IDs/vectors, then rolled back. The owner subsequently
+ran the script for a committed index; its vectors match the verification run.
 Retrieval, generator calls and workflow/evaluation runners are not implemented.
 The [source allowlist](data/corpus/sources.json) now selects four PostgreSQL 18
 documentation pages; the statistics page is scoped to `pg_stat_replication`.
@@ -58,7 +64,7 @@ For a new session, read the [project context](docs/PROJECT_CONTEXT.md) and
 next concrete step. Follow the reading order in [AGENTS.md](AGENTS.md), then
 use the [session handoff](docs/HANDOFF.md) for code paths, local artifacts and
 resume commands. On 2026-11-12 PostgreSQL was healthy with revision `0001`;
-all four retrieval tables remained empty after import verification was rolled back.
+the corpus and its 49 document embeddings are committed. Retrieval is next.
 
 The [papers reading list](docs/papers/rag-papers/README.md) contains background literature,
 not a retrieval corpus or evaluation dataset. The proposed implementation
@@ -73,6 +79,16 @@ sequence is documented in the [development roadmap](docs/ROADMAP.md).
 5. Compare the three workflows on answer quality, evidence use, tool behavior, latency, and cost. Use the failures to guide improvements such as hybrid search or reranking.
 
 The pilot questions are for development; keep any eventual thesis test set separate.
+
+**Initial workflow design approved by the owner, 2026-11-13:** Simple uses
+dense retrieval followed by one answer call. Enhanced uses dense + PostgreSQL
+full-text retrieval, RRF merge/deduplication, reranking and the same answer
+setup. Its relevant tool calls follow predefined Python steps. Corpus,
+embedding settings, generator/prompt and maximum context token budget are
+shared. Agentic details, reranker/generator choices and numeric budgets remain
+open; further additions can be considered later. These are design decisions,
+not implemented workflows. See the
+[operational definitions](docs/METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 
 ## Thesis direction
 
@@ -146,7 +162,7 @@ document is a finished review or approved protocol.
   locally. Environment settings and read-only connection checks are implemented;
   Alembic 1.20.1 handles migrations with SQLAlchemy 2.1.8 used only for migration
   connections. Revision `0001` is applied; snapshot/chunk storage is implemented,
-  while committed corpus import and vector search remain pending.
+  and both corpus and embeddings are imported. Vector search remains pending.
 - A local embedding model for indexing and retrieval.
 - Initial pilot embedding model: `nomic-ai/nomic-embed-text-v1.5`, pinned revision,
   768-dimensional output through Sentence Transformers, CPU float32 initially.
@@ -263,7 +279,7 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 Missing credentials, a missing driver/extension or a DB failure produce exit
 code 2; credentials and raw driver errors are omitted from output. The command
 does not require the pilot TOML file. Application tables and snapshot/chunk
-storage exist; corpus import has not been committed and search remains pending.
+storage exist; the corpus is imported and vector search remains pending.
 MLflow is not configured.
 
 Alembic reads the same environment settings. Check the current schema revision:
@@ -292,6 +308,25 @@ whole import. Printed counts describe processed records, including existing
 matches. The command does not generate embeddings or read evaluation data.
 Use `--chunks-dir PATH` to select another saved chunk run.
 
+Create the embedding index from **all chunks currently stored in the retrieval DB**:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
+```
+
+This command **commits** index metadata and document vectors in one transaction.
+The current corpus has 49 chunks. It loads cached Nomic weights locally and
+uses each exact `embedding_text`, checking its token count before saving.
+The chunk/input fingerprint, model revision, normalization/prefix settings,
+library versions, model-manifest/lock hashes and code hashes determine the index ID.
+Identical repeats reuse that ID and must preserve vectors/counts. The script
+has its own [dependency lockfile](scripts/index_corpus.py.lock), retaining the
+smoke environment's ML versions and adding Psycopg. Cached dependencies/model
+files are required for this offline command. There is no retrieval or generation.
+The current pilot index is already committed; no rerun is needed for it.
+Progress messages are flushed to stderr during startup, model loading,
+each chunk and saving/commit. The final JSON result remains on stdout.
+
 Offline unit tests use the Python standard library:
 
 ```sh
@@ -303,19 +338,25 @@ DocBook fixture; chunking tests use synthetic blocks and a test token counter.
 Database settings tests cover defaults, environment overrides, validation and
 password handling. DB-check tests use a fake driver for SQL results, resource
 cleanup, CLI output and safe failures. Import-input tests verify source checks,
-provenance, duplicate IDs and allowlist boundaries. All 86 unit tests run offline without a database, driver,
+provenance, duplicate IDs and allowlist boundaries. Embedding-storage validation
+checks model/revision/dimensions, task and nonfinite values. Index identity tests
+cover ordering, exact inputs, configuration changes and visible CLI progress
+with a separate JSON result. All 93 unit tests run offline without a database, driver,
 local snapshots, tokenizer packages or models.
 Real network verification is run separately with the explicit `download-source`
 command; the four saved snapshots were also checked through the offline parser CLI.
 
-Three opt-in storage tests require the local DB and applied revision `0001`:
+Eleven opt-in storage/indexing tests require the local DB and applied revision `0001`:
 
 ```sh
 PYTHONPATH=src RAG_LAB_TEST_DB=1 uv run --offline --no-project --env-file .env --python .venv/bin/python python -m unittest discover -s tests/integration -v
 ```
 
 They use temporary tables cloned from the schema, close without committing,
-and verify round trips, identical/conflicting repeats and transaction rollback.
+and verify corpus/index/vector round trips, identical/conflicting repeats,
+input hashes, index isolation and transaction rollback. Embedding tests use
+synthetic vectors and perform no model inference. They also exercise the indexer
+with a fake embedder, including empty-corpus and stale-token-count failures.
 
 ## First milestone
 

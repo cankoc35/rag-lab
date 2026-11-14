@@ -145,10 +145,11 @@ renaming these questions; keep related scenario families within one split.
    Section-aware chunking produced 49 verified chunks. Nomic is selected and
    its local adapter works; PostgreSQL + pgvector and retrieval revision `0001`
    are set up. See [HANDOFF.md](HANDOFF.md) for runtime state and local inputs.
-2. **Next small step:** Run the prepared raw-SQL snapshot/chunk importer for a
-   committed import. Its code passed full-corpus checks with rollback, so the
-   tables remain empty. Then embed/index the corpus with the pinned Nomic adapter
-   and inspect P01–P06 retrieval. This first check does not require generation.
+2. **Import completed:** Four snapshots and 49 chunks are committed, field-verified
+   and unchanged after a second import. The indexing script passed two complete
+   real-Nomic runs with rollback, followed by the owner's committed run.
+   One index and 49 vectors are verified. **Next small step:** Implement and
+   inspect P01–P06 retrieval. This first check does not require generation.
 3. Write two synthetic documents and add Markdown ingestion. These tasks do
    not require a model or orchestration framework.
 4. Select the generator, add LLM-only/Simple RAG answer runs with citations

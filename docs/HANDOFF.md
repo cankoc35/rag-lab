@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-12. Resume guide for another AI or developer.
+**Updated:** 2026-11-13. Resume guide for another AI or developer.
 Use [STATUS.md](STATUS.md) for dated verification records. Plans and scaffold
 files do not imply working features.
 
@@ -32,14 +32,31 @@ adaptive router later. The exact thesis question and protocol remain open.
   frozen sandbox state, an LLM-only control, changed-evidence checks and
   insufficient-evidence cases. Most of these are still preparation work.
 
+## Approved initial workflow decisions
+
+**Owner, 2026-11-13:** Simple = one dense retrieval pass + one answer call.
+Enhanced = dense + PostgreSQL full-text retrieval, RRF merge/deduplication,
+reranking + the same answer setup. Share corpus/chunks, dense embedding
+settings, generator/settings, answer prompt and maximum context token budget.
+Both cite evidence and may abstain. Relevant Enhanced tools follow predefined
+Python conditions/order; native LLM function calling is not required.
+
+Agentic retains the shared-tool/dynamic-control direction, with detailed design
+deferred until that stage. Reranker/generator choices, numeric budgets and exact
+tool conditions remain open. Future additions are possible; this is an initial
+working design, not a frozen thesis protocol. Development ablations are
+dense-only → hybrid-only → hybrid + reranking. See the
+[method definitions](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
+These decisions do not implement the scaffold workflows.
+
 ## Actual stopping point
 
 | Area                   | Implemented / verified                                                                             | Still missing                                                                   |
 | ---------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Sources                | Four PostgreSQL 18 HTML snapshots; allowlist, downloader and parser                                | Synthetic runbooks, Markdown ingestion and sandbox fixtures                     |
 | Chunking               | 184 parsed blocks become 49 chunks; target 512, ceiling 1024 tokens; intact SQL/tables, no overlap | No new chunking work required for the current four sources                      |
-| Embedding              | Local Nomic adapter; one chunk and one query embedded, with an identical offline repeat            | Corpus-wide embedding and indexing; no retrieval-quality result                 |
-| Database               | Compose, Psycopg settings, `check-db`, revision `0001`, raw-SQL snapshot/chunk storage and import script | Committed corpus import and vector search |
+| Embedding              | Local Nomic; 49 committed document vectors match the earlier verification | Query retrieval and retrieval-quality measurement |
+| Database               | Revision `0001`; four snapshots, 49 chunks, one index and 49 vectors committed | Vector search |
 | Questions              | 20 pilot records; P01–P06 have verified answers/evidence                                          | P07–P20 remain drafts; held-out set is empty                                   |
 | Answering / evaluation | Planning documents and module paths                                                                | Generator selection, answer runs, tools, workflows, traces, metrics and runners |
 
@@ -49,22 +66,38 @@ with explicit owner authorization on 2026-11-07. Catalog checks verified
 empty, with `vector(768)`. The local record is
 `outputs/validation/retrieval-schema-0001/applied-2026-11-07.json`.
 On 2026-11-12, the service was healthy, `check-db` passed and revision `0001`
-was confirmed. The full four-snapshot/49-chunk import passed a round trip and
-repeat-run check, then was rolled back. All four tables remain empty.
-Record: `outputs/validation/corpus-import-2026-11-12.json`. The earlier stopped
-service observation from 2026-11-08 is historical, not the current check.
+was confirmed. After initial preparation checks with rollback, the owner
+requested a committed import. The script committed four snapshots and 49
+chunks. Fresh read-only connections verified every stored field; a second
+script run left counts and contents unchanged. The owner later ran indexing,
+committing one index and 49 vectors. Read-only checks confirmed input hashes,
+finite 768-dimensional unit vectors and an exact match to the rollback-tested
+vectors. Record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
+The rollback-only, empty-embedding and stopped-service observations are historical.
 
 ## Code and local artifacts
 
 The prepared import consists of:
 
 - [store.py](../src/rag_workflow_lab/store.py): `check_database()`,
-  `save_snapshots()` and `save_chunks()`. The save functions accept an existing
+  `save_snapshots()`, `save_chunks()`, `save_embedding_index()` and
+  `save_embeddings()`. The save functions accept an existing
   connection; their caller owns the transaction. They preserve exact records
   and reject changed payloads under existing IDs. There is no vector search.
+  Embedding writes accept `(chunk_id, EmbeddingResult)` pairs, check index
+  model/revision/dimensions and document task, and match input hashes against
+  stored `embedding_text`. Vectors use parameterized text-to-vector casting.
 - [import_corpus.py](../scripts/import_corpus.py): reads saved artifacts from
   the pilot allowlist, checks snapshots/provenance, then saves all records in
   one connection/transaction. It reads no gold data and generates no embeddings.
+- [index_corpus.py](../scripts/index_corpus.py) and its
+  [lockfile](../scripts/index_corpus.py.lock): embed all chunks in the configured
+  retrieval DB using cached local Nomic, then save one index in the caller's
+  transaction. Index identity includes sorted chunk/input hashes, model/revision,
+  runtime settings, library versions and model/code fingerprints. Tests verified
+  two complete real-model runs with rollback; the command commits when run normally.
+  It now emits flushed phase/chunk progress to stderr while keeping the final
+  JSON on stdout. The current corpus is already indexed; no rerun is needed.
 - [config.py](../src/rag_workflow_lab/config.py) and
   [contracts.py](../src/rag_workflow_lab/contracts.py): environment settings and
   source/snapshot/parsed-block/chunk data contracts. These are not ORM entities.
@@ -97,24 +130,26 @@ The embedding model is `nomic-ai/nomic-embed-text-v1.5`, revision
 `e9b6763023c676ca8431644204f50c2b100d9aab`: CPU float32, 768 dimensions,
 1024-token application ceiling. Keep the existing `search_document: ` input
 and `search_query: ` query conventions and normalization.
-Database/migration packages are in `.venv`; ML dependencies use the isolated
-`embedding_smoke.py` environment and lockfile. Setup guides cover installation.
+Database/migration packages are in `.venv`; the smoke and corpus-indexing scripts
+use isolated `uv` environments with separate lockfiles. Setup guides cover installation.
 
 ## Next small step
 
-Run the prepared importer for a **committed** import of the four saved
-snapshot manifests and 49 existing chunks. Preparation/testing is complete,
-but no corpus import has been committed. The command is documented in README:
+First add dense `search_chunks()` to `store.py`, then compose query embedding
+and index-scoped search in `retrieval.py` for P01–P06. Build the Simple baseline
+before the approved Enhanced hybrid/RRF/reranking and fixed tool steps.
+Four snapshots, 49 chunks, one index and 49 vectors are
+already committed. The selected index is
+`nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
+Use its stored model/settings; do not recreate the index just for progress output.
+The logging edit changes the indexer source hash, so a future indexing run
+would produce a different index identity while the existing index retains
+its original creation provenance.
 
-```sh
-PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py
-```
-
-Inspect service/revision before running and verify four snapshots and 49 chunks
-afterward. Identical repeats must leave the same contents and counts. Preserve
-the volume and pinned inputs. Then implement corpus embedding/indexing and
-inspect P01–P06 retrieval. Generation, LangGraph, synthetic tools and the router
-come in later steps.
+Preserve the volume and pinned inputs. Inspect P01–P06 retrieval after indexing
+and the retriever are implemented. Generation, LangGraph, synthetic tools and
+the router come in later steps. The existing importer can be repeated as
+documented in README; the committed repeat check already passed.
 
 ## Checks and resume commands
 
@@ -125,11 +160,23 @@ PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 python3.11 scripts/check_document_questions.py
 ```
 
-On 2026-11-12, **86 offline unit tests and 3 opt-in DB integration tests passed**.
+On 2026-11-12, **93 offline unit tests and 11 opt-in DB integration tests passed**.
 The latter use temporary tables and close without committing; the explicit
 `RAG_LAB_TEST_DB=1` command is in README. The six-question reference checker
-also passed. It checks artifact integrity, not retrieval or answer quality.
+passed during the committed import. It checks artifact integrity, not retrieval or answer quality.
 No RAG evaluation result exists.
+
+The embedding-storage check used synthetic vectors in temporary tables and no
+model inference. Public counts were `(4, 49, 0, 0)` after that preparation
+check, with the corpus unchanged.
+Record: `outputs/validation/embedding-store-2026-11-12.json`.
+
+The later real-model check ran the indexing CLI twice with network access
+blocked and a forced transaction rollback. All 49 vectors were finite,
+768-dimensional, unit-normalized and identical across repeats. Public counts
+returned to `(4, 49, 0, 0)` after that check; record:
+`outputs/validation/corpus-indexing-2026-11-12.json`. The owner's later committed
+run is separately verified at `(4, 49, 1, 49)` in the committed-indexing record.
 
 Inspect the service first; when resuming DB work, start it with its existing volume:
 
@@ -141,9 +188,9 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 ```
 
 Load `.env` explicitly without printing credentials. Inspect `git status`
-before editing. The checkout was clean at the start of the 2026-11-12 import
-preparation (HEAD `481e8b6`); this session's code/tests/docs are uncommitted.
-Preserve existing changes. No commit or push was made in this session.
+before editing and preserve existing changes; use the live Git state rather
+than an earlier session's commit/status snapshot. The assistant made no commit
+or push during the import preparation or execution sessions.
 
 Suggested opening request for a new session:
 

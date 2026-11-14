@@ -1,7 +1,8 @@
 # Agentic RAG Development Roadmap
 
 **Status:** Agentic RAG direction confirmed by the owner after a positive
-supervisor discussion; method details and experiments remain proposed.
+supervisor discussion. Initial Simple/Enhanced definitions were approved on
+2026-11-13; detailed Agentic design and the final experiment protocol remain open.
 
 The working study compares three RAG workflows and an adaptive router. The
 owner approved a PostgreSQL docs + synthetic-runbook pilot with frozen sandbox
@@ -49,8 +50,8 @@ draft exist; the source/fixture verification work is not done yet.
   owner requested all planned file paths together; component behavior is still
   implemented in the stages below. Source/download/parser/chunking code, local
   embedding inference and the DB connection check work. Raw-SQL storage/import
-  code is prepared; committed import, indexing and retrieval are the next
-  integration steps.
+  code is implemented and four snapshots/49 chunks are imported. Indexing is
+  committed; retrieval is the next integration step.
 - Follow the [code structure and staged implementation plan](CODE_STRUCTURE.md)
   when filling in the scaffold modules.
 - Run PostgreSQL with `pgvector` locally in Docker.
@@ -74,7 +75,8 @@ starter checks.
 ## 3. Build fixed RAG first
 
 - Clean, chunk, embed, and index the documents.
-- Implement local document retrieval.
+- Implement the approved Simple baseline: local dense document retrieval,
+  followed by one final-answer call. Build and inspect retrieval first.
 - Generate answers from retrieved evidence with source citations.
 - Allow an insufficient-evidence response.
 - Trace inputs, retrievals, outputs, latency, token usage, and estimated cost.
@@ -82,12 +84,20 @@ starter checks.
 **Done when:** the baseline answers the development questions through an
 end-to-end CLI and its runs are visible in the selected tracing platform.
 
-## 4. Add enhanced and Agentic RAG workflows
+## 4. Add Enhanced RAG, then design Agentic RAG
 
 - Share the baseline's ingestion, retrieval, model, and tool components across
   the three workflows where their behavior is the same.
-- Define the enhanced workflow's bounded, predesigned steps separately from
-  the agent's dynamic tool decisions; keep tool access comparable where needed.
+- Implement the approved Enhanced document path: dense + PostgreSQL full-text
+  retrieval, RRF merge/deduplication and reranking, then one shared answer call.
+  Keep corpus/chunks, embedding and generator settings, answer prompt and maximum
+  context token budget comparable with Simple. Measure component ablations on
+  development data; model choices and numeric budgets are still open.
+- Define bounded Enhanced tool steps in Python with explicit conditions/order;
+  native LLM function calling is not required. Preserve the approved synthetic
+  runbook/frozen-DB-state scope and comparable relevant tool access for the
+  eventual fixed-versus-dynamic comparison.
+- Defer detailed Agentic design until this stage after the fixed workflows.
 - Use LangGraph for agentic orchestration.
 - Expose document retrieval and the additional capability as tools.
 - Let the agent select tools and decide whether more information is needed.
@@ -149,9 +159,17 @@ PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only transaction.
 Alembic setup and its live connection check have also passed.
 Revision `0001` was applied on 2026-11-07; the four retrieval tables are verified
 and were empty at that check. On 2026-11-12 the service was healthy and the
-prepared raw-SQL importer passed full-corpus round-trip/repeat checks with
-rollback. All tables remain empty. Next run `scripts/import_corpus.py` for a
-committed import, then embed/index the corpus and inspect P01–P06 retrieval.
+owner requested the committed import: four snapshots and 49 chunks are now
+stored and field-verified. A second script run left contents/counts unchanged.
+Embedding index/vector save functions now pass validation and temporary-table
+DB tests. The corpus indexing script is now implemented and passed two full
+real-Nomic runs with identical results and rollback. The owner subsequently
+ran committed indexing; one index and 49 verified vectors now exist. Next
+implement/inspect P01–P06 retrieval using that index. Progress messages have
+been added; no indexing rerun is needed for that change.
+Start with dense `search_chunks()` and the shared query retrieval path. The
+Simple/Enhanced designs are now approved, but hybrid/RRF/reranking and tool
+steps are implemented after the baseline; Agentic details come later.
 The [session handoff](HANDOFF.md) maps the inputs and existing code for this step.
 Prepare the synthetic sources/evidence listed in
 [PILOT_SCOPE.md](PILOT_SCOPE.md) and build retrieval.

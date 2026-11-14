@@ -1,8 +1,9 @@
 # Method-level design — first draft
 
-**Status:** Working draft, 2026-11-01. The owner approved the PostgreSQL
-docs/synthetic-runbook pilot and prior-knowledge controls. The exact workflow,
-router, and final thesis protocol remain proposed. The supervisor liked the
+**Status:** Working draft, updated 2026-11-13. The owner approved the initial
+Simple/Enhanced design below, PostgreSQL docs/synthetic-runbook pilot and
+prior-knowledge controls. Agentic details, the router and final thesis protocol
+remain open. The supervisor liked the
 Agentic RAG direction and requested a method-level design; this diagram has
 not been reviewed by the supervisor. See [project context](PROJECT_CONTEXT.md)
 for confirmed decisions and [status](STATUS.md) for completed work.
@@ -25,11 +26,11 @@ The wording, quality margin, dataset, and primary comparison remain TBD.
 ```mermaid
 flowchart LR
     Q["User question"] --> R["Router: choose workflow"]
-    R -->|simple| S["Simple RAG: retrieve once, answer"]
-    R -->|enhanced| E["Enhanced RAG: fixed improved steps"]
+    R -->|simple| S["Simple RAG: dense retrieval, answer"]
+    R -->|enhanced| E["Enhanced RAG: hybrid + reranking, fixed tool steps"]
     R -->|agentic| A["Agentic RAG: choose tools and iterate"]
 
-    D["Versioned PostgreSQL docs + synthetic runbooks"] --> RET["Shared document retrieval"]
+    D["Versioned PostgreSQL docs + synthetic runbooks"] --> RET["Shared retrieval components"]
     RET --> S
     RET --> E
     RET --> A
@@ -43,14 +44,52 @@ flowchart LR
     A --> O
 ```
 
-**Definitions to fix before implementation:**
-
-| Workflow | Proposed behavior | Relevant boundary |
+| Workflow | Initial behavior | Decision status |
 | --- | --- | --- |
-| Simple | One document retrieval, then answer or abstain. | No live-data tool; its failures on tool-only questions are a capability limit. |
-| Enhanced | Predetermined retrieval improvements and conditional tool steps; no open-ended loop. | Must have the same relevant tool interface as agentic for the fixed-versus-dynamic comparison. Exact steps TBD. |
-| Agentic | LLM chooses document/tool calls and may iterate after observations. | Set call, latency, and stopping limits before testing. |
-| Router | Uses only information available when choosing a workflow. | Its cost, latency, and routing mistakes count in the routed policy. Algorithm TBD. |
+| Simple | One dense retrieval pass, then answer or abstain. No hybrid search, reranking or sandbox tools in the initial baseline. | Approved by the owner, 2026-11-13; not implemented yet. |
+| Enhanced | Dense + PostgreSQL full-text retrieval, RRF merge/deduplication, reranking, then answer. Relevant tool steps follow predefined Python conditions/order. | Initial design approved, 2026-11-13; models, budgets and exact tool conditions remain open. |
+| Agentic | Shared relevant tool access; the model chooses actions from observations within limits. | General direction retained; detailed design deferred until that stage. |
+| Router | Chooses a workflow using permitted input signals. | Proposed; designed after fixed workflows and Agentic. |
+
+## Approved initial Simple and Enhanced design
+
+**Owner decision, 2026-11-13:** These are the project's initial operational
+definitions, not universal meanings of the labels or a frozen thesis protocol.
+Further additions can be considered explicitly later.
+
+- **Simple document path:** question → Nomic dense retrieval using cosine
+  distance → context → one final-answer LLM call.
+- **Enhanced document path:** question → dense retrieval and PostgreSQL
+  full-text search → merge ranks with Reciprocal Rank Fusion (RRF),
+  deduplicating by chunk ID → rerank candidates → context → one final-answer
+  LLM call. The sequence is predefined rather than selected by an LLM.
+- **Shared controls:** same corpus/snapshots, chunks, dense embedding
+  model/revision/settings, selected generator/settings, answer prompt and
+  maximum context token budget. Both return source citations and may report
+  insufficient evidence. Retrieved passages can differ; the shared budget
+  does not imply identical actual context lengths.
+- **Enhanced tools:** relevant sandbox operations are planned in addition to
+  document retrieval. Python workflow code determines their conditions and
+  order. Native LLM function calling is not required for this initial design;
+  there is no model-directed tool loop. Tool contracts, arguments and branch
+  conditions still need definition and must use permitted runtime inputs,
+  never evaluation gold labels. Existing synthetic-runbook/DB-state plans remain.
+- **Agentic later:** retain comparable relevant tool interfaces for the future
+  fixed-versus-dynamic comparison, but defer graph, planning and loop details.
+  No tool/workflow is implemented by recording this design.
+
+During development, measure dense-only, hybrid-only and hybrid-plus-reranking
+conditions in sequence to distinguish component contributions. These are
+development ablations, not additional primary RAG workflows. Reranker model,
+candidate counts, fusion parameters, final context limits and generator
+selection remain open; choose/version them on development data before final testing.
+
+Technical basis: pgvector documents combining dense retrieval with PostgreSQL
+full-text search and [rank fusion](https://github.com/pgvector/pgvector#hybrid-search).
+Sentence Transformers describes the subsequent
+[retrieve-and-rerank stage](https://www.sbert.net/examples/sentence_transformer/applications/retrieve_rerank/README.html).
+These capabilities support implementation; they establish no quality result
+for this corpus and no novelty claim.
 
 ## Proposed experiment method
 
@@ -126,6 +165,7 @@ with a document/query smoke check. This does not finalize the study's generator,
 judges or model-quality comparisons.
 
 PostgreSQL documentation version/coverage, sandbox fixtures and tool contracts,
-exact enhanced workflow, router implementation, models, final question counts,
+Enhanced tool conditions/budgets and reranker choice, detailed Agentic design,
+router implementation, generator/judge models, final question counts,
 quality margin, metric definitions, and the supervisor's preferred diagram
 format. The 20-question pilot draft does not fix the final sample size.

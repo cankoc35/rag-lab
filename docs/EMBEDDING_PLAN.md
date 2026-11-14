@@ -5,7 +5,9 @@ owner authorized its first local embedding step. Nomic Embed Text v1.5 is
 selected for the initial pilot; weights are cached locally and one document/
 query runtime check plus an offline repeat passed. Retrieval quality is not
 measured. PostgreSQL + pgvector is configured and revision `0001` created the
-retrieval tables; corpus import/indexing remain pending. See
+retrieval tables; four snapshots and 49 chunks are imported. Corpus
+indexing is committed and all 49 vectors match the earlier real-model check.
+Retrieval remains pending. See
 [EMBEDDING_SETUP.md](EMBEDDING_SETUP.md) for the exact revision/settings.
 
 ## Language decision and starting proposal
@@ -102,9 +104,12 @@ tokens with that tokenizer. Nomic was then selected for the initial pilot;
 the [local adapter check](EMBEDDING_SETUP.md) verified one complete 822-token
 chunk and one 25-token query, producing finite, normalized 768-dimensional
 vectors without truncation or inference network access. Offline replay matched.
-Snapshot/chunk import code is now prepared and verified with rollback. Next run
-the importer for a committed import, then embed/index the corpus and inspect
-retrieval on P01–P06. Their evidence mapping is already source-verified. The
+Snapshot/chunk import is committed and verified: four snapshots, 49 chunks,
+unchanged after a second run. The corpus indexing script subsequently produced
+all 49 vectors twice with identical results and rollback. The owner then
+completed committed indexing; one index and 49 vectors were verified. Next
+implement/inspect retrieval on P01–P06. Their evidence
+mapping is already source-verified. The
 service was healthy on 2026-11-12; see [HANDOFF.md](HANDOFF.md) before live DB work.
 Use broader development evidence before making a model-quality comparison;
 do not select models based on held-out test outcomes.

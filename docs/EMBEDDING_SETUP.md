@@ -120,9 +120,35 @@ The saved corpus, chunks and six-question annotations were unchanged by the
 smoke check, which performed no ranking, answer generation or DB operations.
 
 **Follow-up, 2026-11-12:** PostgreSQL + pgvector setup and revision `0001` are
-complete. Snapshot/chunk import code is prepared and passed a full-corpus round
-trip with rollback; the service is healthy and the tables remain empty. Next
-run the importer for a committed import, then embed/index the corpus and use
-P01–P06 to inspect retrieval. See [HANDOFF.md](HANDOFF.md) for resume checks.
+complete. The snapshot/chunk importer has committed four snapshots and 49
+chunks; read-only field checks and a second run confirmed unchanged contents
+and counts. The corpus indexing script is now implemented; two complete
+49-chunk runs with real Nomic inference produced identical vectors in a
+forced-rollback check. The owner subsequently ran committed indexing; one index
+and 49 vectors were verified against those earlier results.
+See [HANDOFF.md](HANDOFF.md) for resume checks.
 Keep the selected model/revision and embedding settings shared across later
 workflow comparisons.
+
+## Corpus indexing command
+
+The [indexing script](../scripts/index_corpus.py) reads every stored chunk's
+exact `embedding_text` and token count from the retrieval DB, using the same
+cached Nomic adapter. Its [lockfile](../scripts/index_corpus.py.lock) retains
+the smoke environment's versions and adds Psycopg for storage.
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
+```
+
+This command **commits** one index and its vectors together. It records a
+sorted chunk/input fingerprint, model revision, prefixes, normalization,
+device/dtype/budget, dependency versions and code/model-manifest/lock hashes.
+The same inputs and metadata produce the same index ID. A repeat must preserve
+the existing vectors and counts. The current 49-chunk, real-model repeat check
+passed with network blocked and rollback; record:
+`outputs/validation/corpus-indexing-2026-11-12.json`. This verifies execution
+and reproducibility, not retrieval quality. Committed indexing is now complete;
+record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
+The script emits flushed phase/chunk progress on stderr and final JSON on
+stdout. The current index needs no rerun. P01–P06 checks follow retriever implementation.

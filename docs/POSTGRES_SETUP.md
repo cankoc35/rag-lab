@@ -10,9 +10,12 @@ Alembic revision `0001` was applied on 2026-11-07; all four retrieval tables
 were verified and empty at that check.
 
 **Runtime check, 2026-11-12:** The project service is healthy and `check-db`
-passed with revision `0001` confirmed separately. Snapshot/chunk import code
-passed real-data round-trip/repeat checks with rollback; all four retrieval
-tables remain empty. The next step is the committed import described below.
+passed with revision `0001` confirmed separately. The owner requested the
+committed import: four snapshots and 49 chunks are now stored. Fresh read-only
+connections verified all fields and unchanged contents/counts after a second
+script run. The owner later completed indexing; one index and 49 finite,
+unit-normalized 768-dimensional vectors are committed and match the earlier
+verification run. Vector retrieval is next.
 
 ## Configuration
 
@@ -36,8 +39,9 @@ tables remain empty. The next step is the committed import described below.
 
 Python and the local embedding model run on the Mac. This Docker bootstrap
 creates only the `vector` extension; Alembic subsequently creates retrieval
-tables. The Psycopg connection check and snapshot/chunk storage are implemented;
-committed corpus import, sandbox fixtures and MLflow remain separate steps.
+tables. The Psycopg connection check and snapshot/chunk storage are implemented,
+and the corpus is imported. Embedding/indexing, sandbox fixtures and MLflow
+remain separate steps.
 
 ## Python driver and environment settings
 
@@ -212,6 +216,24 @@ Alembic revisions under `migrations/versions/` are the schema history.
 Docker's extension bootstrap remains separate. The old comment-only
 `sql/retrieval/001_initial.sql` scaffold is preserved and is not executed by Alembic.
 
+## Embedding storage functions
+
+[store.py](../src/rag_workflow_lab/store.py) now provides
+`save_embedding_index(connection, index)` for model/revision, dimensions,
+chunk-set hash and settings, and `save_embeddings(connection, index_id, embeddings)`
+for `(chunk_id, EmbeddingResult)` pairs. The caller owns the connection and
+transaction, including rollback of an index and its vectors on failure.
+
+The functions accept identical repeats and reject conflicting payloads.
+Vector writes check model/revision/dimensions, document task, finite values
+and the SHA-256 of the stored `embedding_text`. Vector text is passed as a
+bound parameter and cast to `vector`, using the existing Psycopg dependency.
+The checks passed with synthetic vectors in temporary tables: 89 offline tests
+and eight opt-in DB tests. Public tables still contain four snapshots, 49 chunks
+and zero embedding indexes/vectors after those checks. The corpus indexing
+script is now implemented and the owner completed its committed run. One index
+and 49 vectors are present. The next step is vector retrieval.
+
 ## Verification and next step
 
 Compose schema validation passed, including the loopback binding, PG18 volume
@@ -250,9 +272,26 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 Identical repeats are accepted; conflicting existing IDs or any other failure
 roll back the whole transaction. This preparation step passed 86 offline unit
 tests, three temporary-table integration tests and a full 4/49 round trip with
-rollback. No corpus records have been committed. Next commit the import, then
-implement corpus embedding/indexing and retrieval. See [HANDOFF.md](HANDOFF.md)
-for the local inputs and resume checks.
+rollback. The owner subsequently requested a committed run; four snapshots
+and 49 chunks are now stored, field-verified and unchanged after a second run.
+Record: `outputs/validation/corpus-import-committed-2026-11-12.json`.
+The [indexing script](../scripts/index_corpus.py) is also ready. Run it from
+the repository root, with cached model assets/dependencies, to **commit** one
+index for all currently stored chunks:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
+```
+
+Its own lockfile includes both ML dependencies and Psycopg. It uses the existing
+write functions and one transaction, checks complete input token counts, and
+records model/runtime/code/model-manifest/lock identity. The current 49 chunks
+passed two real-model runs with identical vectors in a forced-rollback check;
+the owner subsequently completed its committed run, and read-only checks
+confirmed one index/49 vectors matching those results. Progress now appears
+on stderr during loading, per chunk and saving/commit; no rerun is needed
+for that display change. Next implement retrieval. See
+[HANDOFF.md](HANDOFF.md) for the local inputs and resume checks.
 
 Upstream references: [pgvector Docker images](https://github.com/pgvector/pgvector#docker),
 [Postgres image data paths and initialization](https://hub.docker.com/_/postgres),

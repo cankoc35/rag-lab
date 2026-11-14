@@ -1,12 +1,14 @@
 # Code structure — implemented and planned components
 
-**Last updated:** 2026-11-12. **Status:** The owner requested the planned
+**Last updated:** 2026-11-13. **Status:** The owner requested the planned
 files while preserving existing files and folders; the scaffold now exists.
 CLI help/version, config and source-manifest loading/validation work.
 Unimplemented modules contain responsibility docstrings, and prompts remain
 scaffolds. Raw-SQL Alembic revision `0001` created the four retrieval tables;
-`store.py` implements the read-only connection check and raw-SQL snapshot/chunk
-save functions. `scripts/import_corpus.py` coordinates their transaction.
+`store.py` implements the read-only connection check and raw-SQL snapshot,
+chunk, embedding-index and vector save functions. `scripts/import_corpus.py`
+coordinates snapshot/chunk writes; `scripts/index_corpus.py` now coordinates
+local embedding and index/vector writes.
 PostgreSQL + pgvector Compose and the extension bootstrap are configured and
 verified. The source allowlist was
 populated with four PostgreSQL 18 records on 2026-11-02. Loading/validation,
@@ -14,8 +16,8 @@ shared source/snapshot types, single-source downloading and the offline HTML
 parser/`parse-source` command and section-aware chunking are implemented.
 The initial local Nomic embedding adapter is also implemented and passed a
 document/query runtime check. The full corpus and experimental protocol remain
-open. See [HANDOFF.md](HANDOFF.md) for local inputs and the next import step;
-the service was healthy at the 2026-11-12 check, with all tables empty after rollback.
+open. See [HANDOFF.md](HANDOFF.md) for local inputs and the next indexing step;
+the service was healthy on 2026-11-12, with four snapshots and 49 chunks imported.
 
 ## Core approach
 
@@ -24,6 +26,16 @@ storage, retrieval, LLM calls and database tools. Workflow files compose these
 components without copying retrieval/model code into each workflow. Build the
 first baseline from small Python functions; add the LangGraph dependency when
 implementing the agentic workflow.
+
+**Initial workflow design approved, 2026-11-13:** `simple.py` will compose
+dense retrieval and one answer call. `enhanced.py` will compose dense/full-text
+hybrid retrieval, RRF merge/deduplication and reranking with the same answer
+setup, plus relevant tool steps controlled by predefined Python conditions.
+Native LLM function calling is not required for that initial Enhanced design.
+Agentic details are deferred. Reranker/generator selection, numeric budgets
+and exact tool conditions remain open. These are planned module responsibilities;
+the implementations are still scaffolds. See
+[METHOD_DESIGN.md](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 
 The tree below was initially a staged file-creation plan. At the owner's later
 explicit request, scaffold files were created together; functional implementation
@@ -243,7 +255,29 @@ saved artifacts, validates snapshot/provenance links and owns one transaction.
 Matching records can be repeated; conflicting IDs raise an error. All chunk
 fields outside dedicated columns are preserved in JSONB metadata. The step
 passed 86 offline tests, three opt-in DB tests and a full-corpus round trip
-with rollback. Committed corpus import and vector search remain next steps.
+with rollback. The owner subsequently requested execution of the importer;
+four snapshots and 49 chunks are now committed, with exact field checks and
+an unchanged second-run fingerprint. Corpus embedding/indexing and vector
+search remain next steps. Subsequently, `save_embedding_index(connection, index)`
+and `save_embeddings(connection, index_id, embeddings)` were added, accepting
+index dictionaries and `(chunk_id, EmbeddingResult)` pairs. They reject
+conflicting records and mismatched model/revision/dimensions, task or chunk
+input hashes. The caller owns the transaction. The step passed 89 offline
+tests and eight opt-in DB tests with synthetic vectors; public corpus contents
+were unchanged and no production embeddings were stored in that step.
+
+The subsequent `scripts/index_corpus.py` reads all stored chunk inputs,
+verifies their token counts with the local Nomic adapter and creates a stable
+index identity from sorted chunk/input hashes and model/runtime metadata.
+The metadata includes code/model/lock hashes and library versions. The script
+owns one DB transaction; repeat runs must reproduce the existing vectors.
+Its separate lockfile retains the smoke environment's ML versions and adds
+Psycopg. Checks passed: 92 offline tests, 11 opt-in DB tests and two complete
+real-Nomic CLI runs with identical results and forced rollback. The owner later
+ran committed indexing; one index and 49 vectors match those verified results.
+The indexer now emits immediate phase/chunk progress to stderr and final JSON
+to stdout (93 offline tests and 11 DB tests passed). The next step is shared
+vector retrieval using the existing index.
 
 Related plans: [Pilot scope](PILOT_SCOPE.md), [method](METHOD_DESIGN.md),
 [evaluation](EVALUATION_PLAN.md) and [roadmap](ROADMAP.md).

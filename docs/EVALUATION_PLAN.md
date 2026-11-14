@@ -1,7 +1,8 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, 2026-11-01. The owner approved the prior-knowledge
-controls and PostgreSQL docs/synthetic-runbook pilot. Metrics, thresholds,
+**Status:** Working draft, updated 2026-11-13. The owner approved the initial
+Simple/Enhanced design, prior-knowledge controls and PostgreSQL
+docs/synthetic-runbook pilot. Metrics, thresholds,
 sample sizes, and the complete final protocol remain open. This is a planning
 artifact, not a result. Read the [method design](METHOD_DESIGN.md) first.
 
@@ -23,6 +24,33 @@ part of the required scope. The remaining protocol choices are still open.
   failures in the tool-dependent groups.
 - Run all three arms offline on each question. The router must choose from
   allowed input signals only; it cannot inspect gold answers or arm outputs.
+
+## Approved initial fixed-workflow comparison
+
+**Owner decision, 2026-11-13:** Simple uses dense retrieval; Enhanced uses
+dense + PostgreSQL full-text retrieval, RRF merge/deduplication and reranking.
+Both document paths use one final-answer call. Enhanced's relevant tool calls
+are controlled by predefined Python steps/conditions. Agentic details are
+deferred; the full study's final protocol is still open. See the
+[operational definitions](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
+
+Hold corpus/snapshot/chunk state, dense embedding settings, generator/settings,
+answer prompt and maximum context token budget constant across the fixed arms.
+Measure the actual context tokens, retrieval/reranking latency and final-answer
+quality; do not assume the extra retrieval stages improve quality or cost.
+
+Use dense-only → hybrid-only → hybrid + reranking as development ablations.
+The primary Simple/Enhanced comparison measures the combined enhancement;
+component-level claims require the corresponding ablation. These conditions
+do not create extra primary workflows. P01–P06 are initial development checks,
+not a sufficient final benchmark or a held-out set.
+
+Record retrieval variant, candidate/context counts, fusion settings and
+reranker identifier/settings with the existing per-run records. Reranker,
+generator and numeric budgets/parameters remain unselected. Future additions
+must be versioned and assessed on development data before freezing final tests.
+Tool-dependent cases still need fixtures/contracts and their separate reporting;
+the document-path decision does not finalize the future tool workflow.
 
 ## Candidate metrics and definitions to finalize
 

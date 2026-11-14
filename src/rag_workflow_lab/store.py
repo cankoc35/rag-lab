@@ -1,8 +1,10 @@
-"""Raw-SQL database checks and immutable snapshot/chunk storage."""
+"""Raw-SQL database checks and immutable corpus/embedding storage."""
 
 from dataclasses import dataclass
+import json
 
 from rag_workflow_lab.config import DatabaseSettings
+from rag_workflow_lab.embeddings import DIMENSIONS, EmbeddingResult
 
 
 class DatabaseCheckError(RuntimeError):
@@ -119,3 +121,56 @@ def save_chunks(connection, chunks: list[dict]) -> None:
                   chunk["embedding_text"], chunk["token_count"], Jsonb(metadata)))
             if cursor.rowcount != 1:
                 raise ValueError(f"Stored chunk differs: {chunk['chunk_id']}")
+
+
+def save_embedding_index(connection, index: dict) -> None:
+    """Save immutable model/corpus settings; the caller owns the transaction."""
+    from psycopg.types.json import Jsonb
+
+    if index["dimensions"] != DIMENSIONS:
+        raise ValueError("Embedding indexes must use 768 dimensions.")
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            INSERT INTO embedding_indexes
+                (index_id, model_id, model_revision, dimensions, chunk_set_sha256, settings)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (index_id) DO UPDATE
+            SET index_id = EXCLUDED.index_id
+            WHERE (embedding_indexes.model_id, embedding_indexes.model_revision,
+                   embedding_indexes.dimensions, embedding_indexes.chunk_set_sha256,
+                   embedding_indexes.settings)
+                = (EXCLUDED.model_id, EXCLUDED.model_revision, EXCLUDED.dimensions,
+                   EXCLUDED.chunk_set_sha256, EXCLUDED.settings)
+        """, (index["index_id"], index["model_id"], index["model_revision"],
+              index["dimensions"], index["chunk_set_sha256"], Jsonb(index["settings"])))
+        if cursor.rowcount != 1:
+            raise ValueError(f"Stored embedding index differs: {index['index_id']}")
+
+
+def save_embeddings(connection, index_id: str, embeddings: list[tuple[str, EmbeddingResult]]) -> None:
+    """Save (chunk_id, document result) pairs without changing existing records.
+
+    Input hashes must match stored chunk inputs. The caller owns the transaction.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT model_id, model_revision, dimensions FROM embedding_indexes WHERE index_id = %s", (index_id,))
+        index = cursor.fetchone()
+        if index is None:
+            raise ValueError(f"Unknown embedding index: {index_id}")
+        for chunk_id, result in embeddings:
+            if result.task != "document" or (result.model_id, result.model_revision, len(result.vector)) != index:
+                raise ValueError(f"Embedding model, revision, dimensions or task mismatch: {chunk_id}")
+            # Text casting avoids an extra pgvector adapter dependency.
+            vector = json.dumps(result.vector, allow_nan=False)
+            cursor.execute("""
+                INSERT INTO chunk_embeddings (index_id, chunk_id, input_sha256, embedding)
+                SELECT %s, chunk_id, %s, %s::vector FROM chunks
+                WHERE chunk_id = %s
+                  AND encode(sha256(convert_to(embedding_text, 'UTF8')), 'hex') = %s
+                ON CONFLICT (index_id, chunk_id) DO UPDATE
+                SET chunk_id = EXCLUDED.chunk_id
+                WHERE chunk_embeddings.input_sha256 = EXCLUDED.input_sha256
+                  AND chunk_embeddings.embedding = EXCLUDED.embedding
+            """, (index_id, result.input_sha256, vector, chunk_id, result.input_sha256))
+            if cursor.rowcount != 1:
+                raise ValueError(f"Missing chunk, input hash mismatch or conflicting embedding: {chunk_id}")
