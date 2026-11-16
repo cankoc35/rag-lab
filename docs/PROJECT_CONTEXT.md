@@ -288,12 +288,15 @@ Observability and Enron/privacy are not active thesis directions in this repo.
 - **Proposed:** Start with a local embedding model and a simple CLI. Establish
   a working retrieval-and-answer baseline before enhanced/agentic behavior.
 - **Owner decision, 2026-11-17:** Use an inexpensive paid hosted API for the
-  initial generator. The provider and exact model are still open. GPT-6 Luna
-  is a recommendation, not an approved model or a measured quality result.
+  initial generator. The owner subsequently authorized the first Luna client
+  step: OpenAI Responses API, `gpt-6-luna`, reasoning `none`, maximum 1000
+  output tokens. SDK `3.51.0`, `llm.generate_text()` and a locked opt-in smoke
+  script are implemented. Offline checks passed; a live call awaits the API
+  key. This is not a measured quality result or a final thesis model selection.
   Keep generator settings shared across workflow comparisons; local models
   may be evaluated later.
 - **Open:** The full PostgreSQL snapshot/coverage, sandbox data model, precise
-  DB tool contracts, generator/LLM provider and exact generator model IDs.
+  DB tool contracts and final experimental generator settings.
   Do not send private corpus content to a hosted API without an explicit decision.
 - **Hardware (owner, 2026-11-05):** The MacBook Air M3 has 24 GB RAM or more;
   the exact capacity above that threshold was not specified. The

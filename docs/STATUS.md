@@ -3,13 +3,16 @@
 **Last updated:** 2026-11-17
 
 **Generator direction (owner, 2026-11-17):** Use an inexpensive paid hosted
-API. Provider/model selection remains open; GPT-6 Luna is the current
-recommendation. Official [standard pricing](https://developers.openai.com/api/docs/models/gpt-6-luna)
+API. The owner then authorized the first client step with OpenAI Responses
+API and `gpt-6-luna`, reasoning `none` and maximum 1000 output tokens.
+Official [standard pricing](https://developers.openai.com/api/docs/models/gpt-6-luna)
 was checked on this date: $0.10 per million input tokens and $0.50 per million
 output tokens. A single call with 4,000 uncached input tokens and 1,000 total
 billed output tokens would cost $0.0009 before taxes and extra services.
 This is an estimate, not observed usage or a model-quality result. No hosted
-inference was run. Next: agree the model and evidence-context/answer-prompt contract.
+inference was run. The client/smoke are ready; `OPENAI_API_KEY` is not yet
+configured. Next: run the explicit smoke, then prepare the evidence-context/
+answer-prompt contract.
 
 **Stage:** Section-aware chunking is implemented. The four PostgreSQL snapshots
 produce 49 verified chunks. P01–P06 have source-verified reference answers and
@@ -34,7 +37,8 @@ PostgreSQL trace/span layer uses the existing raw-SQL approach. Its
 [migration and writers](TRACING_PLAN.md) are applied, with opt-in checker
 integration. The owner authorized application and a one-question test, lifting
 the review hold. DB/repository are `0002`; one P04 trace/span is committed and
-verified. Generator/provider and context/prompt selection are next.
+verified. The later Luna client step is recorded below; its live smoke and
+the evidence-context/answer-prompt contract are next.
 **Confirmed:** According to the owner, the supervisor liked the Agentic RAG
 subject; the project will continue in this direction.
 **Proposed:** Compare three RAG workflows and an adaptive router. The precise
@@ -677,10 +681,30 @@ The second PG-STATS heading is `Note`, nested under its section's heading
 path. This parser expects the pilot's explicitly closed DocBook HTML tags;
 general web/PDF/Markdown and nested content tables are not supported.
 
+## Luna client preparation — 2026-11-17
+
+- `GeneratorSettings` and `[generator]` config select Luna without loading
+  the SDK or making network calls. `llm.generate_text()` makes one Responses
+  API call and returns text, completion status, provider IDs and usage.
+- `scripts/llm_smoke.py` and its lock pin OpenAI `3.51.0`. The SDK is installed
+  locally and the locked script environment is prepared. An explicit
+  `--call-api` and `OPENAI_API_KEY` are required. The client uses Standard
+  processing, `store=False`, a 30-second timeout and zero automatic retries.
+- All **124 offline unit tests passed**, including ten new generator/smoke
+  tests. The six-question reference checker passed. Real-SDK mock-transport
+  checks passed for completed, incomplete and HTTP 429 responses, with one
+  intercepted request per case and socket networking blocked.
+- A live call was not possible: the API key is absent. No hosted inference,
+  DB writes, migration or LLM trace occurred. The smoke script reads no corpus. Record:
+  `outputs/validation/luna-client-2026-11-17.json`.
+- Next: set the key locally and run the documented opt-in smoke. Then prepare
+  the source-linked context/answer prompt and connect one P04 answer.
+
 ## Not yet completed
 
 - The exact thesis question/protocol, final corpus coverage, tool contracts
-  and generator model are undecided. Nomic is selected for the initial embedding
+  and final generator settings are undecided. Luna is selected for the first
+  generator client; Nomic is selected for the initial embedding
   pilot. The initial documentation allowlist
   is PostgreSQL 18; the full corpus snapshot is not frozen.
 - All four official HTML/manifest pairs are ready. Synthetic documents and
@@ -688,14 +712,13 @@ general web/PDF/Markdown and nested content tables are not supported.
   adapter and corpus indexing script work; one index/49 vectors are committed,
   and query retrieval works. The first six-question diagnostic exists; P05
   shows wording sensitivity in a follow-up ranking diagnosis. The repeatable
-  development cutoff sweep now exists; generator selection remains open.
+  development cutoff sweep now exists; the Luna client awaits a live smoke.
   P01–P06 have verified document answers/evidence; P07–P20 still need their
   answers verified against synthetic documents, saved sources or tool outputs.
 - Supervisor feedback on the method draft, expected format and detail level
   has not been obtained.
-- Beyond source loading, downloads, HTML parsing, chunking and local embedding,
-  generator LLM, tools, workflows and full evaluation runners are
-  not implemented. PostgreSQL Compose and the Python connection check work,
+- The generator client is implemented; context/prompt assembly, tools,
+  workflows and full evaluation runners are not implemented. PostgreSQL Compose and the Python connection check work,
   and the retrieval tables and snapshot/chunk storage exist. Four snapshots
   and 49 chunks are imported; indexing is committed and field-verified,
   and dense query retrieval is implemented;
@@ -757,8 +780,8 @@ general web/PDF/Markdown and nested content tables are not supported.
   insufficient-evidence abstention. Retain LLM-only-correct questions. This
   approval does not finalize the whole protocol; sample size/rubric remain
   open and there are no generator/evaluation runs or a runnable evaluation dataset.
-- **Next concrete task:** Select the initial generator/provider and agree
-  the evidence-context/answer-prompt contract. [Tracing](TRACING_PLAN.md) is now
+- **Next concrete task:** Set `OPENAI_API_KEY` and run the opt-in Luna smoke,
+  then prepare the evidence-context/answer-prompt contract. [Tracing](TRACING_PLAN.md) is now
   applied and verified with one P04 question; the six-question traced checker
   remains available as an opt-in diagnostic. Keep
   `limit=5` as the existing baseline. The cutoff sweep did not select a new
@@ -776,7 +799,8 @@ general web/PDF/Markdown and nested content tables are not supported.
    diagnostic, P05 wording diagnosis and repeatable 5/10/20 cutoff checker.
    Tracing migration and writers are applied and passed four DB tests plus one
    real P04 trace/span check. The prior hold is lifted by the owner's instruction.
-   Generator/provider and context/prompt work are next.
+   The Luna API client is prepared and checked offline. Set `OPENAI_API_KEY`
+   locally and run the opt-in smoke, then prepare the evidence-context/answer prompt.
    Keep P01–P06 reference answers outside ingestion;
    use them to inspect retrieval. P07–P20 remain drafts, and the held-out
    thesis test set is still separate and unprepared.

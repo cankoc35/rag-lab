@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-16. Resume guide for another AI or developer.
+**Updated:** 2026-11-17. Resume guide for another AI or developer.
 Use [STATUS.md](STATUS.md) for dated verification records. Plans and scaffold
 files do not imply working features.
 
@@ -59,10 +59,10 @@ These decisions do not implement the scaffold workflows.
 | ---------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Sources                | Four PostgreSQL 18 HTML snapshots; allowlist, downloader and parser                                | Synthetic runbooks, Markdown ingestion and sandbox fixtures                     |
 | Chunking               | 184 parsed blocks become 49 chunks; target 512, ceiling 1024 tokens; intact SQL/tables, no overlap | No new chunking work required for the current four sources                      |
-| Embedding              | Local Nomic; 49 vectors; P05 diagnosis and repeatable six-question 5/10/20 checker | Generator selection and broader answer evaluation |
+| Embedding              | Local Nomic; 49 vectors; P05 diagnosis and repeatable six-question 5/10/20 checker | Broader answer evaluation |
 | Database               | Revision `0002`; four snapshots, 49 chunks, one index/49 vectors; one committed P04 trace/span | No schema change needed for the current retrieval step |
 | Questions              | 20 pilot records; P01–P06 have verified answers/evidence                                          | P07–P20 remain drafts; held-out set is empty                                   |
-| Answering / evaluation | Planning documents and module paths; retrieval tracing is verified                               | Generator selection, answer runs, tools, workflows, LLM/tool spans, metrics and runners |
+| Answering / evaluation | Luna Responses API client and locked opt-in smoke; retrieval tracing is verified | API key/live smoke, context/prompt, answer runs, tools, workflows, LLM/tool spans and runners |
 
 **Database history versus current availability:** Revision `0001` was applied
 with explicit owner authorization on 2026-11-07. Catalog checks verified
@@ -122,6 +122,17 @@ ranked 1/2. Corpus/index fingerprints are unchanged. Trace ID:
 `outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
 
 ## Code and local artifacts
+
+The initial generator uses `gpt-6-luna` through OpenAI Responses API with
+reasoning `none` and maximum 1000 output tokens. `llm.generate_text()` accepts
+a caller-owned SDK client and returns text/status/IDs/usage without DB I/O.
+`scripts/llm_smoke.py` and its lock pin SDK `3.51.0`; `--call-api` and an
+environment key are mandatory. It sends a fixed short test, with no automatic
+retries and a 30-second timeout. On 2026-11-17, 124 unit tests and three real-SDK
+mock-transport checks passed offline; the six-question reference checker passed.
+No hosted call ran because `OPENAI_API_KEY` is absent. Use the
+[README smoke command](../README.md#check-the-luna-api-client), then build
+the evidence-context/answer-prompt contract. No LLM DB tracing is connected yet.
 
 The prepared import consists of:
 
@@ -212,13 +223,14 @@ use isolated `uv` environments with separate lockfiles. Setup guides cover insta
 
 ## Next small step
 
-The owner chose an inexpensive paid hosted API on 2026-11-17. Select the
-provider/model and agree the evidence-context/answer-prompt contract.
-GPT-6 Luna is recommended but not approved or tested; see STATUS for the
-dated price estimate. [Tracing](TRACING_PLAN.md) is applied and verified for one P04
+The initial Luna client is implemented and checked offline. Set
+`OPENAI_API_KEY` locally and run `scripts/llm_smoke.py --call-api` through its
+locked uv command in README. Then agree the evidence-context/answer-prompt
+contract and connect one P04 answer. See STATUS for the dated price estimate.
+[Tracing](TRACING_PLAN.md) is applied and verified for one P04
 question, and DB/repository are `0002`. The full P01–P06 `--trace` batch is
 available but has not been run; the requested one-question smoke is complete.
-Generator selection and the evidence-context/answer-prompt contract follow.
+The evidence-context/answer-prompt contract and workflow/LLM tracing follow.
 The repeatable 5/10/20 checker is implemented and run; its diagnostic coverage
 does not select a new production cutoff. Keep raw questions, snapshots, chunks
 and the index fixed; review equivalent evidence when judging future answers.

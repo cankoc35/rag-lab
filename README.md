@@ -46,8 +46,10 @@ The first six-question diagnostic found annotated evidence in the top five
 for five questions; P05's follow-up showed strong query-wording sensitivity.
 The repeatable [retrieval checker](scripts/check_retrieval.py) now records
 full ranks and annotated evidence hits at 5/10/20. Two real-model runs matched;
-P05 has no annotated hits at 5/10 and two of three at 20. Generator calls and
-full workflow/evaluation runners remain pending.
+P05 has no annotated hits at 5/10 and two of three at 20. A small OpenAI
+Responses API client and an opt-in Luna smoke script are implemented; hosted
+inference has not run because the API key is not configured. Full
+workflow/evaluation runners remain pending.
 The [source allowlist](data/corpus/sources.json) now selects four PostgreSQL 18
 documentation pages; the statistics page is scoped to `pg_stat_replication`.
 The [pilot scope](docs/PILOT_SCOPE.md) contains 20 question records: P01–P06
@@ -75,7 +77,8 @@ the corpus and its 49 document embeddings are committed. Dense SQL search
 and query retrieval passed live checks on 2026-11-14. P05's full ranks and
 wording probes and the development cutoff sweep are recorded. Trace/span code
 and migration `0002` are applied and verified with one real P04 question.
-Generator selection and the evidence-context/answer-prompt contract are next.
+The Luna client passed offline checks. Run its explicit API smoke after setting
+the key, then prepare the evidence-context/answer-prompt contract.
 See the [development diagnostic](data/evaluation/dev/README.md#p05-wording-diagnosis).
 
 The [papers reading list](docs/papers/rag-papers/README.md) contains background literature,
@@ -179,17 +182,41 @@ document is a finished review or approved protocol.
 - A local embedding model for indexing and retrieval.
 - Initial pilot embedding model: `nomic-ai/nomic-embed-text-v1.5`, pinned revision,
   768-dimensional output through Sentence Transformers, CPU float32 initially.
-- An inexpensive paid hosted API for the initial generator (owner decision,
-  2026-11-17). The provider/model remains open; local generation may be compared later.
+- OpenAI Responses API with `gpt-6-luna` for the initial generator (owner-approved
+  implementation, 2026-11-17): reasoning `none`, maximum 1000 output tokens.
+  The pinned SDK and smoke script are prepared; no hosted response is verified yet.
 - LangGraph for the agentic workflow (chosen; start with the simplest working baseline).
 - Project-owned PostgreSQL tracing through Psycopg/raw SQL (owner decision,
   2026-11-16). MLflow is no longer selected. The
   [trace/span code and migration `0002`](docs/TRACING_PLAN.md) are applied.
   A real P04 query committed one verified trace/span; LLM/tool logging follows later.
 
-The corpus snapshot/coverage, LLM provider/models, and exact experimental
-protocol remain open; a local embedding model is installed, while the generator remains unselected. Using a hosted model may send
-prompts and retrieved text to its provider; choose the corpus accordingly.
+The corpus snapshot/coverage and exact experimental protocol remain open;
+Nomic and Luna are the initial embedding/generator choices. Hosted calls send
+prompts and retrieved text to the provider; choose the corpus accordingly.
+
+## Check the Luna API client
+
+Set your own `OPENAI_API_KEY` in the existing Git-ignored `.env`; the empty
+entry in `.env.example` documents its name. The SDK reads the environment.
+Generator settings live in `configs/pilot.toml`. OpenAI SDK `3.51.0` is pinned
+in the optional `generation` extra and the script's separate dependency lock.
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/llm_smoke.py --call-api
+```
+
+On a fresh machine, omit `--offline` once to download the locked dependencies.
+The script requires `--call-api` and a key before creating a client. It sends
+one fixed English test message, with a 30-second timeout, no automatic
+retries, Standard processing and `store=False`. The provider's response
+storage is disabled; this is not a zero-data-retention guarantee.
+The JSON output includes the answer, model/response IDs, completion status,
+reported usage, settings, SDK version and elapsed time. Partial or empty
+responses exit with code 2; provider errors print only their type.
+This checks connectivity, not RAG answer quality. It reads no corpus/dataset
+and writes no DB records. Retrieval context, the answer prompt, Simple RAG
+and LLM tracing are the next steps.
 
 ## Run the scaffold
 
@@ -296,7 +323,7 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 Missing credentials, a missing driver/extension or a DB failure produce exit
 code 2; credentials and raw driver errors are omitted from output. The command
 does not require the pilot TOML file. Application tables and snapshot/chunk
-storage and dense query retrieval exist; generator calls remain pending.
+storage and dense query retrieval exist; hosted generator inference remains pending.
 Trace persistence is implemented; migration `0002` and a real retrieval trace are verified.
 
 Alembic reads the same environment settings. Check the current schema revision:

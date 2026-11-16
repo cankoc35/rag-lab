@@ -57,7 +57,9 @@ draft exist; the source/fixture verification work is not done yet.
   committed and dense query retrieval is implemented. The first P01–P06
   diagnostic, P05 wording diagnosis and repeatable 5/10/20 checker exist.
   Custom trace/span code and migration `0002` are applied, with one real query
-  trace verified. Generator/answer work is next.
+  trace verified. The owner approved the initial Luna API client on 2026-11-17;
+  its locked smoke and offline checks are ready. A live call awaits the key;
+  evidence-context/answer-prompt and Simple workflow work follow.
 - Follow the [code structure and staged implementation plan](CODE_STRUCTURE.md)
   when filling in the scaffold modules.
 - Run PostgreSQL with `pgvector` locally in Docker.

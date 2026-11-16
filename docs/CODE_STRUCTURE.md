@@ -1,6 +1,6 @@
 # Code structure — implemented and planned components
 
-**Last updated:** 2026-11-16. **Status:** The owner requested the planned
+**Last updated:** 2026-11-17. **Status:** The owner requested the planned
 files while preserving existing files and folders; the scaffold now exists.
 CLI help/version, config and source-manifest loading/validation work.
 Unimplemented modules contain responsibility docstrings, and prompts remain
@@ -326,4 +326,15 @@ checker has opt-in `--trace`, linked question/batch IDs and an independent write
 checker preserved baseline results and DB records during preparation. After
 application, all four tracing DB tests passed and one real P04 query persisted
 one verified `ok` trace/span. DB/repository are `0002`; corpus/index contents
-are unchanged. Generator/context/prompt work is next. See [TRACING_PLAN.md](TRACING_PLAN.md).
+are unchanged. See [TRACING_PLAN.md](TRACING_PLAN.md).
+
+On 2026-11-17, the owner approved the initial Luna client step.
+`config.GeneratorSettings` and `[generator]` in `configs/pilot.toml` select
+`gpt-6-luna`, reasoning `none` and maximum 1000 output tokens. `llm.generate_text()`
+uses a caller-owned OpenAI SDK client and returns text/status/IDs/usage, with
+no DB access. `scripts/llm_smoke.py` and its lock pin SDK `3.51.0`; the script
+requires `--call-api` and an environment key for one fixed English request.
+124 unit tests and three real-SDK mock-transport checks passed offline.
+The API key is absent, so no hosted inference is verified. Next: run the
+[explicit smoke](../README.md#check-the-luna-api-client), then prepare the
+context/answer prompt and Simple workflow with LLM tracing.
