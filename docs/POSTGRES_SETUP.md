@@ -1,28 +1,12 @@
 # Local PostgreSQL + pgvector Compose setup
 
-**Last updated:** 2026-11-16. **Status:** Compose configuration and extension bootstrap
-are implemented. Startup, health, vector SQL and volume persistence were
-verified in a temporary, separate Compose project, which was then removed.
-The persistent project service is started explicitly using the owner's `.env`.
-The Python `check-db` command has also passed against that service with
-PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only transaction.
-Alembic revision `0001` was applied on 2026-11-07; all four retrieval tables
-were verified and empty at that check.
-
-**Runtime check, 2026-11-12:** The project service is healthy and `check-db`
-passed with revision `0001` confirmed separately. The owner requested the
-committed import: four snapshots and 49 chunks are now stored. Fresh read-only
-connections verified all fields and unchanged contents/counts after a second
-script run. The owner later completed indexing; one index and 49 finite,
-unit-normalized 768-dimensional vectors are committed and match the earlier
-verification run. Vector retrieval is next.
-
-**SQL search check, 2026-11-14:** The service is healthy and `check-db` passed
-again. Dense SQL search passed temporary-table tests and a read-only stored-
-vector self-search. Public records/counts are unchanged at `(4, 49, 1, 49)`.
-Query embedding/search orchestration and a first real-model P01–P06 check now
-exist. Five questions had annotated chunks in the top five; P05's follow-up
-showed wording-sensitive ranking with valid stored data and SQL distances.
+**Updated:** 2026-11-17. Compose, extension bootstrap and raw-SQL Alembic
+migrations are implemented. The current service passed read-only `check-db`
+with PostgreSQL 18.6 + pgvector 0.8.7; revision is `0002`. Four snapshots,
+49 chunks, one index and 49 vectors are committed. Dense query retrieval and
+retrieval tracing are verified; the Luna client awaits its live smoke.
+See [STATUS](STATUS.md) for checks and [history](STATUS_HISTORY.md) for earlier
+setup, import, rollback and indexing records. Recheck service state when resuming.
 
 ## Configuration
 
@@ -286,63 +270,18 @@ and local report `outputs/validation/query-retrieval-2026-11-14.json`.
 
 ## Verification and next step
 
-Compose schema validation passed, including the loopback binding, PG18 volume
-path, read-only init mount and rejection of a missing/empty password. A live
-check with disposable credentials and a unique project name verified:
+On 2026-11-17, all 19 DB integration tests passed using temporary tables and
+synthetic vectors; no model inference or production writes are part of them.
+The public counts/fingerprints are checked in the general review record linked
+from STATUS. Initial Compose checks separately verified startup, vector SQL
+and volume persistence in a temporary project; the detailed records remain
+in STATUS_HISTORY.
 
-1. Healthy PostgreSQL 18 and installed pgvector 0.8.7.
-2. A cosine-distance SQL expression using the `vector` type.
-3. A test row surviving container recreation with the same named volume.
-4. Cleanup of the temporary project's container, network and test volume.
-
-Local verification record:
-`outputs/validation/compose-20261106T180311247594Z.json`.
-No application chunks, embeddings or evaluation records were imported. Python
-code was unchanged in this step; the previous 59-unit-test result is recorded
-in STATUS, while this step used Compose and live database checks.
-
-The Python connection/extension check subsequently passed on the persistent
-project service with PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only
-transaction. All 80 offline unit tests passed, including 11 fake-driver/CLI
-checks added for this command. Alembic 1.20.1 and SQLAlchemy 2.1.8 are now
-installed and configured. A temporary revision generated valid offline
-raw-SQL upgrade/downgrade output. Live `alembic current` passed and left the
-public table list unchanged at zero tables during setup. Revision `0001` was
-subsequently applied on 2026-11-07. Catalog checks confirmed its four empty
-retrieval tables, primary/foreign keys, CHECK constraints and `vector(768)`.
-
-The [prepared importer](../scripts/import_corpus.py) uses `save_snapshots()` and
-`save_chunks()` in `store.py`, sharing one transaction. Run it to commit the
-four saved snapshots and 49 chunks:
-
-```sh
-PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py
-```
-
-Identical repeats are accepted; conflicting existing IDs or any other failure
-roll back the whole transaction. This preparation step passed 86 offline unit
-tests, three temporary-table integration tests and a full 4/49 round trip with
-rollback. The owner subsequently requested a committed run; four snapshots
-and 49 chunks are now stored, field-verified and unchanged after a second run.
-Record: `outputs/validation/corpus-import-committed-2026-11-12.json`.
-The [indexing script](../scripts/index_corpus.py) is also ready. Run it from
-the repository root, with cached model assets/dependencies, to **commit** one
-index for all currently stored chunks:
-
-```sh
-PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
-```
-
-Its own lockfile includes both ML dependencies and Psycopg. It uses the existing
-write functions and one transaction, checks complete input token counts, and
-records model/runtime/code/model-manifest/lock identity. The current 49 chunks
-passed two real-model runs with identical vectors in a forced-rollback check;
-the owner subsequently completed its committed run, and read-only checks
-confirmed one index/49 vectors matching those results. Progress now appears
-on stderr during loading, per chunk and saving/commit; no rerun is needed
-for that display change. Dense query retrieval is implemented and its first
-P01–P06 diagnostic is recorded. See
-[HANDOFF.md](HANDOFF.md) for the local inputs and resume checks.
+Run the [Luna smoke](../README.md#check-the-luna-api-client), then connect
+source-linked context and one answer. The existing corpus/index need no rerun
+for this step. Import/index/retrieval commands are in
+[README](../README.md#postgresql-and-corpus); local paths and model settings
+are in [HANDOFF](HANDOFF.md).
 
 Upstream references: [pgvector Docker images](https://github.com/pgvector/pgvector#docker),
 [Postgres image data paths and initialization](https://hub.docker.com/_/postgres),

@@ -99,7 +99,8 @@ the overall report has `read_only: false`, `retrieval_read_only: true` and
   P04-E1/E2 chunks are ranked 1/2. Usage, cost and final answer remain SQL NULL
   because this was retrieval only. The corpus/index fingerprints are unchanged.
 - The full six-question `--trace` checker batch has not been executed yet.
-  Initial generator/provider selection and context/prompt work are next.
+  The Luna client is checked offline; its live smoke, context/prompt and LLM
+  instrumentation follow. See [STATUS](STATUS.md) for the current boundary.
 
 Application/test record: `outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
 Trace ID: `db808e0d-76ed-4148-9996-2a8988cc4ce7`.

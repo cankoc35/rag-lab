@@ -112,9 +112,8 @@ vectors without truncation or inference network access. Offline replay matched.
 Snapshot/chunk import is committed and verified: four snapshots, 49 chunks,
 unchanged after a second run. The corpus indexing script subsequently produced
 all 49 vectors twice with identical results and rollback. The owner then
-completed committed indexing; one index and 49 vectors were verified. Next
-implement/inspect retrieval on P01–P06. Their evidence
-mapping is already source-verified. The
-service was healthy on 2026-11-12; see [HANDOFF.md](HANDOFF.md) before live DB work.
+completed committed indexing; one index and 49 vectors were verified. Dense
+query retrieval and the P01–P06 diagnostic now work; evidence references are
+source-verified. See [HANDOFF.md](HANDOFF.md) for resume checks and the next step.
 Use broader development evidence before making a model-quality comparison;
 do not select models based on held-out test outcomes.

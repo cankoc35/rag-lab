@@ -30,7 +30,7 @@ from unittest.mock import patch
 from check_document_questions import validate
 from rag_workflow_lab.config import load_settings
 from rag_workflow_lab.embeddings import (
-    ADAPTER_VERSION, DOCUMENT_PREFIX, MODEL_FILES, MODEL_ID, MODEL_REVISION,
+    ADAPTER_VERSION, MODEL_FILES, MODEL_ID, MODEL_REVISION,
     NORMALIZATION, QUERY_PREFIX, EmbeddingError, NomicEmbedder, file_sha256,
 )
 

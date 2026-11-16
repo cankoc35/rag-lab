@@ -18,7 +18,7 @@ and hash-verified, with their IDs recorded in STATUS.md. The offline HTML
 parser is implemented and all four snapshots have source-linked block outputs.
 Section-aware chunking now produces 49 verified chunks with preserved code/tables.
 A pinned local Nomic adapter passed a document/query runtime check and offline repeat.
-The complete corpus snapshot, generator model, tools, and
+The complete corpus snapshot, final generator settings, tools, and
 the final corpus/evaluation protocol remain open.
 
 ## 1. Define the minimum testbed
@@ -71,8 +71,8 @@ draft exist; the source/fixture verification work is not done yet.
   installed locally; environment settings and the explicit read-only
   connection/extension check are implemented. Alembic is selected, installed
   and configured for manually written raw-SQL revisions. The owner authorized
-  application on 2026-11-07; revision `0001` is applied and its four empty
-  retrieval tables are verified.
+  application on 2026-11-07; `0001` created the retrieval tables and `0002`
+  subsequently added tracing. The corpus/index are populated.
 - Configure model, embedding and DB connections as needed. Review the small
   applied PostgreSQL trace/span migration and writers.
 - Start with a command-line interface rather than a web UI.
@@ -157,45 +157,15 @@ margin before final testing. Adaptive routing itself is not claimed as novel.
 
 ## Immediate next step
 
-The [512/1024-token chunker](CHUNKING.md) is implemented and verified on all
-four saved sources. P01–P06 have verified answers and chunk evidence.
-The [local Nomic adapter](EMBEDDING_SETUP.md) passed its first document/query
-check. PostgreSQL + pgvector Compose is configured and temporarily verified.
-The Psycopg dependency, environment settings and `check-db` command are now
-implemented. The command passed on the persistent project service with
-PostgreSQL 18.6, pgvector 0.8.7 and a verified read-only transaction.
-Alembic setup and its live connection check have also passed.
-Revision `0001` was applied on 2026-11-07; the four retrieval tables are verified
-and were empty at that check. On 2026-11-12 the service was healthy and the
-owner requested the committed import: four snapshots and 49 chunks are now
-stored and field-verified. A second script run left contents/counts unchanged.
-Embedding index/vector save functions now pass validation and temporary-table
-DB tests. The corpus indexing script is now implemented and passed two full
-real-Nomic runs with identical results and rollback. The owner subsequently
-ran committed indexing; one index and 49 verified vectors now exist. The first
-P01–P06 retrieval check now uses that index. Progress messages have
-been added; no indexing rerun is needed for that change.
-Dense `search_chunks()` passed SQL checks on 2026-11-14 with unchanged public
-data. `retrieval.retrieve()` now composes query embedding and search after
-index compatibility checks. Its first six-question real-model diagnostic found
-annotated evidence in the top five for five questions; P05 has no reference hit.
-P05's follow-up found E1/E2/E3 at ranks 17/11/46. Explicit `multicolumn` wording
-raised E1/E2 to 1/2; SQL and stored data checks passed. The owner-approved
-`scripts/check_retrieval.py` now reports full ranks and evidence hits at
-5/10/20; two real-model runs matched with unchanged public data. P05 improves
-from 0/3 annotated hits at 5/10 to 2/3 at 20; this does not select a production
-context budget or demonstrate answer quality. The custom trace/span migration
-and writers are applied, including checker `--trace` integration. Four tracing
-DB tests passed and one real P04 trace/span is committed and verified. The
-owner's one-question test is complete; a full traced batch remains optional.
-The owner rejected MLflow on 2026-11-16. Generator selection and the evidence-
-context/answer-prompt contract follow the first tracing increment. The
-Simple/Enhanced designs are now approved, but hybrid/RRF/reranking and tool
-steps are implemented after the baseline; Agentic details come later.
-The [session handoff](HANDOFF.md) maps the inputs and existing code for this step.
-Prepare the synthetic sources/evidence listed in
-[PILOT_SCOPE.md](PILOT_SCOPE.md) and build retrieval.
-Keep the embedding model/settings fixed across workflow comparisons and select
-the generator before answer runs. Review the method
-design with the supervisor and continue literature work in parallel; keep the
-final thesis protocol open until its remaining choices are resolved.
+The Luna client is prepared and checked offline. Set the API key and run the
+[explicit smoke](../README.md#check-the-luna-api-client), then prepare the
+evidence-context/answer prompt and connect one P04 answer with LLM tracing.
+The corpus/index, dense retrieval and retrieval tracing are already verified;
+no re-indexing or schema change is needed for this step.
+
+Preserve the P01–P06 questions and five-result baseline. Build Simple before
+hybrid/RRF/reranking and fixed tools; Agentic details come later. Use
+[HANDOFF](HANDOFF.md) for code/local inputs, [STATUS](STATUS.md) for checks and
+[PROJECT_CONTEXT](PROJECT_CONTEXT.md) for decisions. Synthetic sources and the
+final protocol still need work; review the method design with the supervisor
+and continue literature research in parallel.

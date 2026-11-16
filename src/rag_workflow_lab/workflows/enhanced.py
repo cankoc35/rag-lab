@@ -1,4 +1,4 @@
 """Bounded, predefined steps with tool access comparable to the agentic arm.
 
-Scaffold only: exact enhanced steps must be defined before implementation.
+Scaffold only: approved hybrid retrieval, reranking and fixed tool steps are not implemented.
 """

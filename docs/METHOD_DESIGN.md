@@ -1,6 +1,6 @@
 # Method-level design — first draft
 
-**Status:** Working draft, updated 2026-11-13. The owner approved the initial
+**Status:** Working draft, updated 2026-11-17. The owner approved the initial
 Simple/Enhanced design below, PostgreSQL docs/synthetic-runbook pilot and
 prior-knowledge controls. Agentic details, the router and final thesis protocol
 remain open. The supervisor liked the
@@ -81,8 +81,9 @@ Further additions can be considered explicitly later.
 During development, measure dense-only, hybrid-only and hybrid-plus-reranking
 conditions in sequence to distinguish component contributions. These are
 development ablations, not additional primary RAG workflows. Reranker model,
-candidate counts, fusion parameters, final context limits and generator
-selection remain open; choose/version them on development data before final testing.
+candidate counts, fusion parameters, final context limits and final generator
+settings remain open. Luna is the initial client; choose/version final settings
+on development data before final testing.
 
 Technical basis: pgvector documents combining dense retrieval with PostgreSQL
 full-text search and [rank fusion](https://github.com/pgvector/pgvector#hybrid-search).
@@ -138,7 +139,8 @@ flowchart LR
 ```
 
 This is an **offline study design**, so running all three arms is part of the
-experiment. A deployed router would execute only the selected arm. The
+experiment, outside live user traffic; it may call hosted APIs. A deployed
+router would execute only the selected arm. The
 routed-policy calculation must include its real decision overhead.
 
 ## Evaluation rules to specify before the frozen test

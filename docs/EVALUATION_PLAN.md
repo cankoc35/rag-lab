@@ -1,6 +1,6 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-16. The owner approved the initial
+**Status:** Working draft, updated 2026-11-17. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
 sample sizes, and the complete final protocol remain open. This is a planning
@@ -22,7 +22,9 @@ part of the required scope. The remaining protocol choices are still open.
 - **Question-type reporting:** direct document, multi-document, live-tool,
   document-plus-tool, and unanswerable. A single overall average can hide
   failures in the tool-dependent groups.
-- Run all three arms offline on each question. The router must choose from
+- Run all three arms on each frozen question in the evaluation runner; hosted
+  APIs may be used. Here "offline evaluation" means outside live user traffic.
+  The router must choose from
   allowed input signals only; it cannot inspect gold answers or arm outputs.
 
 ## Approved initial fixed-workflow comparison
@@ -46,8 +48,9 @@ do not create extra primary workflows. P01–P06 are initial development checks,
 not a sufficient final benchmark or a held-out set.
 
 Record retrieval variant, candidate/context counts, fusion settings and
-reranker identifier/settings with the existing per-run records. Reranker,
-generator and numeric budgets/parameters remain unselected. Future additions
+reranker identifier/settings with the existing per-run records. Luna is the
+initial generator client; reranker and final experimental budgets/settings
+remain open. Future additions
 must be versioned and assessed on development data before freezing final tests.
 Tool-dependent cases still need fixtures/contracts and their separate reporting;
 the document-path decision does not finalize the future tool workflow.

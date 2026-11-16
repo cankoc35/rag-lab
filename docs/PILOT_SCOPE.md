@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-16. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-17. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -11,7 +11,8 @@ verified dataset.
 source-grounded reference answers and exact snapshot/block/chunk evidence in
 [document_questions.json](../data/evaluation/dev/document_questions.json).
 The [development-data guide](../data/evaluation/dev/README.md) explains the
-annotations. P07–P20 remain drafts; no retrieval/model evaluation has run.
+annotations and later retrieval diagnostics. P07–P20 remain drafts; no
+generated-answer or held-out evaluation has run.
 
 **Language decision (owner, 2026-11-05):** All repository content and RAG
 artifacts use English: corpus/synthetic documents, questions/datasets, prompts,
@@ -151,8 +152,9 @@ renaming these questions; keep related scenario families within one split.
    One index and 49 vectors are verified. Dense query retrieval and its first
    P01–P06 diagnostic, P05 wording diagnosis and repeatable 5/10/20 checker now
    exist. Trace/span code and migration `0002` are applied and verified with
-   one real P04 trace/span. **Next small step:** Generator/provider selection
-   and context/prompt work. Keep gold and source/index state fixed.
+   one real P04 trace/span. The Luna client is checked offline. **Next small step:**
+   Set the API key, run its smoke, then prepare context/prompt assembly.
+   Keep gold and source/index state fixed.
    The cutoff sweep alone does not choose a production context budget. See the
    [development results](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
 3. Write two synthetic documents and add Markdown ingestion. These tasks do
