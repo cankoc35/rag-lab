@@ -48,6 +48,15 @@ class EmbeddingSettings:
 
 
 @dataclass(frozen=True)
+class GeneratorSettings:
+    """Settings for one OpenAI Responses API call; the key stays in the environment."""
+
+    model_id: str
+    reasoning_effort: str = "none"
+    max_output_tokens: int = 1000
+
+
+@dataclass(frozen=True)
 class Settings:
     """Paths and project identity for the first development stage."""
 
@@ -56,6 +65,7 @@ class Settings:
     sources_manifest: Path
     local_data_dir: Path
     embedding: EmbeddingSettings | None = None
+    generator: GeneratorSettings | None = None
 
 
 def load_database_settings(environ: Mapping[str, str] | None = None) -> DatabaseSettings:
@@ -138,10 +148,27 @@ def load_settings(config_path: str | Path) -> Settings:
         except (KeyError, TypeError, AttributeError) as exc:
             raise ValueError("Config embedding section requires model_id, revision and models_dir.") from exc
 
+    generator = None
+    if "generator" in data:
+        section = data["generator"]
+        if not isinstance(section, dict):
+            raise ValueError("generator must be a TOML table.")
+        model_id = section.get("model_id")
+        effort = section.get("reasoning_effort", "none")
+        max_output = section.get("max_output_tokens", 1000)
+        if not isinstance(model_id, str) or not model_id.strip():
+            raise ValueError("generator.model_id must be a non-empty string.")
+        if effort not in ("none", "low", "medium", "high", "xhigh", "max"):
+            raise ValueError("generator.reasoning_effort is not supported by Luna.")
+        if type(max_output) is not int or not 16 <= max_output <= 128000:
+            raise ValueError("generator.max_output_tokens must be an integer from 16 to 128000.")
+        generator = GeneratorSettings(model_id, effort, max_output)
+
     return Settings(
         project_name=project_name,
         config_path=path,
         sources_manifest=(path.parent / sources_manifest).resolve(),
         local_data_dir=(path.parent / local_data_dir).resolve(),
         embedding=embedding,
+        generator=generator,
     )

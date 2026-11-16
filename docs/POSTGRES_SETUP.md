@@ -1,6 +1,6 @@
 # Local PostgreSQL + pgvector Compose setup
 
-**Last updated:** 2026-11-12. **Status:** Compose configuration and extension bootstrap
+**Last updated:** 2026-11-16. **Status:** Compose configuration and extension bootstrap
 are implemented. Startup, health, vector SQL and volume persistence were
 verified in a temporary, separate Compose project, which was then removed.
 The persistent project service is started explicitly using the owner's `.env`.
@@ -16,6 +16,13 @@ connections verified all fields and unchanged contents/counts after a second
 script run. The owner later completed indexing; one index and 49 finite,
 unit-normalized 768-dimensional vectors are committed and match the earlier
 verification run. Vector retrieval is next.
+
+**SQL search check, 2026-11-14:** The service is healthy and `check-db` passed
+again. Dense SQL search passed temporary-table tests and a read-only stored-
+vector self-search. Public records/counts are unchanged at `(4, 49, 1, 49)`.
+Query embedding/search orchestration and a first real-model P01–P06 check now
+exist. Five questions had annotated chunks in the top five; P05's follow-up
+showed wording-sensitive ranking with valid stored data and SQL distances.
 
 ## Configuration
 
@@ -40,8 +47,10 @@ verification run. Vector retrieval is next.
 Python and the local embedding model run on the Mac. This Docker bootstrap
 creates only the `vector` extension; Alembic subsequently creates retrieval
 tables. The Psycopg connection check and snapshot/chunk storage are implemented,
-and the corpus is imported. Embedding/indexing, sandbox fixtures and MLflow
-remain separate steps.
+and the corpus and embeddings are imported. Project-owned trace tables are
+applied and one P04 trace/span is verified; sandbox fixtures remain separate work.
+MLflow was rejected by the
+owner on 2026-11-16; see [TRACING_PLAN.md](TRACING_PLAN.md).
 
 ## Python driver and environment settings
 
@@ -179,8 +188,11 @@ Check the connected database's current revision:
 PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python alembic current
 ```
 
-Repository `heads`/`history` and database `current` now report revision `0001`.
-It was applied on 2026-11-07 following the owner's explicit instruction.
+Repository head and database `current` are both `0002`.
+Revision `0001` was applied on 2026-11-07 following the owner's instruction.
+The owner authorized `0002` on 2026-11-16. It adds `traces`/`spans`; four tracing
+DB tests and one real P04 trace/span passed. The earlier review hold is lifted.
+The opt-in checker `--trace` mode is available. See [TRACING_PLAN.md](TRACING_PLAN.md).
 A successful `current` exits with code 0 and inspects the revision without
 applying migrations.
 
@@ -206,10 +218,11 @@ For a later schema change, create another revision:
 ```
 
 Write raw SQL using `op.execute()` inside its `upgrade()` and `downgrade()`
-functions. ORM metadata/autogeneration are not configured. Apply a prepared revision with:
+functions. ORM metadata/autogeneration are not configured. Revision `0002`
+was applied with the owner's authorization using:
 
 ```sh
-PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python alembic upgrade head
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python alembic upgrade 0002
 ```
 
 Alembic revisions under `migrations/versions/` are the schema history.
@@ -232,7 +245,44 @@ The checks passed with synthetic vectors in temporary tables: 89 offline tests
 and eight opt-in DB tests. Public tables still contain four snapshots, 49 chunks
 and zero embedding indexes/vectors after those checks. The corpus indexing
 script is now implemented and the owner completed its committed run. One index
-and 49 vectors are present. The next step is vector retrieval.
+and 49 vectors are present. Dense SQL search is now implemented below.
+
+## Dense search function
+
+`search_chunks(connection, index_id, query_vector, limit=5)` in
+[store.py](../src/rag_workflow_lab/store.py) runs a parameterized SELECT using
+pgvector's [cosine-distance operator](https://github.com/pgvector/pgvector#querying).
+Lower distance ranks first, with chunk ID breaking ties. It returns dictionaries
+containing chunk/snapshot/source IDs, text, token count, metadata, title/URL and
+`distance`. The caller supplies the selected index's query vector and owns the
+connection/transaction. The function neither writes nor commits. Empty/unknown
+indexes return no matches; invalid vector dimensions, zero/nonfinite vectors
+and nonpositive limits fail. The default limit is an API convenience, not a
+frozen experimental setting. No migration or new dependency is needed.
+
+All 96 offline unit tests and 14 opt-in DB tests passed on 2026-11-14. New checks
+cover ranking/limits, source metadata, index isolation and transaction ownership.
+The public corpus/index fingerprints were unchanged. A read-only self-search
+using an existing document vector also passed; no model inference or P01–P06
+evaluation was performed. Record: `outputs/validation/dense-search-2026-11-14.json`.
+The subsequent query retrieval step below uses this search.
+
+## Query retrieval
+
+`get_embedding_index(connection, index_id)` reads the chosen index metadata
+and raises `ValueError` for an unknown ID. `retrieve(connection, embedder,
+index_id, question, limit=5)` in [retrieval.py](../src/rag_workflow_lab/retrieval.py)
+uses it to check model/revision/dimensions and embedding settings before calling
+the existing query adapter and dense search. The caller loads the model once,
+reuses it across questions and owns the DB connection/transaction. No SQL writes,
+model loading or gold reads occur inside `retrieve()`.
+
+On 2026-11-14, 101 offline unit tests and 15 opt-in DB tests passed. A separate
+real-model P01–P06 diagnostic used read-only access to the existing index;
+public records/counts were unchanged. P05's annotated evidence is absent from
+the top five, so inspect its ranking before widening retrieval/answer tests.
+See the [diagnostic table](../data/evaluation/dev/README.md#first-dense-retrieval-check)
+and local report `outputs/validation/query-retrieval-2026-11-14.json`.
 
 ## Verification and next step
 
@@ -290,7 +340,8 @@ passed two real-model runs with identical vectors in a forced-rollback check;
 the owner subsequently completed its committed run, and read-only checks
 confirmed one index/49 vectors matching those results. Progress now appears
 on stderr during loading, per chunk and saving/commit; no rerun is needed
-for that display change. Next implement retrieval. See
+for that display change. Dense query retrieval is implemented and its first
+P01–P06 diagnostic is recorded. See
 [HANDOFF.md](HANDOFF.md) for the local inputs and resume checks.
 
 Upstream references: [pgvector Docker images](https://github.com/pgvector/pgvector#docker),

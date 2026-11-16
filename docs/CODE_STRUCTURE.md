@@ -1,14 +1,17 @@
 # Code structure — implemented and planned components
 
-**Last updated:** 2026-11-13. **Status:** The owner requested the planned
+**Last updated:** 2026-11-16. **Status:** The owner requested the planned
 files while preserving existing files and folders; the scaffold now exists.
 CLI help/version, config and source-manifest loading/validation work.
 Unimplemented modules contain responsibility docstrings, and prompts remain
 scaffolds. Raw-SQL Alembic revision `0001` created the four retrieval tables;
 `store.py` implements the read-only connection check and raw-SQL snapshot,
-chunk, embedding-index and vector save functions. `scripts/import_corpus.py`
+chunk, embedding-index and vector save functions, plus dense `search_chunks()`.
+`scripts/import_corpus.py`
 coordinates snapshot/chunk writes; `scripts/index_corpus.py` now coordinates
-local embedding and index/vector writes.
+local embedding and index/vector writes. `store.get_embedding_index()` reads
+index metadata, and `retrieval.retrieve()` composes compatibility checks, local
+query embedding and dense search with a caller-supplied model/connection.
 PostgreSQL + pgvector Compose and the extension bootstrap are configured and
 verified. The source allowlist was
 populated with four PostgreSQL 18 records on 2026-11-02. Loading/validation,
@@ -16,8 +19,8 @@ shared source/snapshot types, single-source downloading and the offline HTML
 parser/`parse-source` command and section-aware chunking are implemented.
 The initial local Nomic embedding adapter is also implemented and passed a
 document/query runtime check. The full corpus and experimental protocol remain
-open. See [HANDOFF.md](HANDOFF.md) for local inputs and the next indexing step;
-the service was healthy on 2026-11-12, with four snapshots and 49 chunks imported.
+open. See [HANDOFF.md](HANDOFF.md) for local inputs and P05's retrieval limitation;
+the service was healthy on 2026-11-14, with four snapshots, 49 chunks and 49 vectors.
 
 ## Core approach
 
@@ -48,12 +51,13 @@ entry point. Package `__init__.py` files are omitted from the tree for brevity.
 rag-workflow-lab/
 ├── pyproject.toml                 # Package, required dependencies, CLI entry
 ├── .env.example                   # Environment example without secret values
-├── compose.yaml                   # Local PostgreSQL; MLflow when needed
+├── compose.yaml                   # Local PostgreSQL + pgvector
 ├── alembic.ini                    # Migration configuration, no credentials
 ├── migrations/
 │   ├── env.py                    # Connection from existing POSTGRES_* settings
 │   └── versions/
-│       └── 0001_create_retrieval_tables.py  # Applied raw-SQL schema
+│       ├── 0001_create_retrieval_tables.py  # Applied raw-SQL schema
+│       └── 0002_create_tracing_tables.py   # Applied trace/span schema
 ├── configs/
 │   └── pilot.toml                 # Explicit experiment/model/retrieval settings
 ├── sql/
@@ -86,7 +90,7 @@ rag-workflow-lab/
 │   ├── tools/
 │   │   ├── retrieval.py          # Tool interface to the shared retriever
 │   │   └── database.py           # Read-only DB inspection and allowed EXPLAIN
-│   ├── tracing.py                # MLflow integration and shared span fields
+│   ├── tracing.py                # Prepared trace/span writers and retrieval wrapper
 │   └── evaluation/
 │       ├── dataset.py           # Question/gold loading, ID and split validation
 │       ├── runner.py            # Compared runs under fixed configuration
@@ -115,15 +119,15 @@ rag-workflow-lab/
 | --- | --- | --- |
 | `cli.py` | Parse the command, construct components and invoke the relevant pipeline/workflow. | Do not accumulate business logic or SQL here. |
 | `config.py` | Validate file/environment settings, corpus/index versions and model settings. | No model download, database or API call during import. Never include secrets in public run configuration. |
-| `contracts.py` | Define shared source/section, chunk, retrieved-evidence, answer, tool-result and usage fields. | Simple data types without LangGraph, SQL or MLflow dependencies. Add types as needed. |
+| `contracts.py` | Define shared source/section, chunk, retrieved-evidence, answer, tool-result and usage fields. | Simple data types without orchestration or database-driver dependencies. Add types as needed. |
 | `ingestion/` | Download/read, clean and split sources, then coordinate indexing steps. | Never scan gold answers, evaluation directories or the entire repository. HTML and Markdown should share a section contract. |
 | `embeddings.py` | Generate document/query embeddings with the same model/revision and compatible settings. | No database or workflow decisions; models may expose distinct query/document methods. |
 | `store.py` | Execute source/chunk upserts and metadata-filtered vector-search SQL. | No LLM calls. Reject queries with mismatched model/index identity or vector dimensions. |
 | `retrieval.py` | Embed questions, search the correct corpus/index scope and return scored evidence. | Does not generate answers; workflows and the retrieval tool share this implementation. |
 | `llm.py` and `prompts/` | Provider calls, selected model settings, usage/errors and versioned prompts. | Does not select a retriever or access gold data. One concrete adapter is sufficient initially; avoid a generic provider framework. |
 | `workflows/` | Determine the order of source access and model/tool calls. | Do not reimplement shared retrieval/storage. Simple and LLM-only do not require LangGraph. |
-| `tools/` | Expose retrieval and validated read-only operations on a separate sandbox. | Cannot open evaluation gold, other states or retrieval/MLflow databases. |
-| `tracing.py` | Record MLflow traces with shared trace/span fields. | Does not select workflows or hold the sole copy of measurement outputs. |
+| `tools/` | Expose retrieval and validated read-only operations on a separate sandbox. | Cannot open evaluation gold, other states, retrieval storage or trace records. |
+| `tracing.py` | Raw-SQL trace/span lifecycle writes and explicit traced retrieval. | Uses a caller-owned writer; the wrapper requires a separate autocommit connection. Migration `0002` and one real P04 trace/span are verified. |
 | `evaluation/` | Load separate questions, run workflows, preserve raw outputs and score afterward. | Pass only allowed questions/source access to workflows/models; gold/rubric is evaluation-only. |
 
 `workflows/agentic.py` may hold the initial graph's state and node definitions
@@ -166,10 +170,12 @@ router must not access gold labels or other arms' outputs.
 - Keep `data/evaluation/` and gold files outside the source allowlist. Separate
   development and future held-out sets; scenario-family A/B variants stay in
   one split. Never pass the dataset path to a model or tool.
-- Proposed: use separate databases/roles for retrieval, sandbox and MLflow
-  within one PostgreSQL service. `store.py` uses the retrieval role;
-  `tools/database.py` uses a sandbox read-only role. MLflow manages its own
-  backend. Final Compose isolation is an implementation decision.
+- Proposed: isolate retrieval, sandbox and trace access through database roles
+  and allowed schemas. The initial custom trace tables can use the application
+  database; a separate writer connection preserves read-only retrieval.
+  Sandbox tools must not access trace/corpus storage. Exact deployment isolation
+  remains open. The trace schema/writers are applied and verified;
+  see [TRACING_PLAN.md](TRACING_PLAN.md).
 - Label synthetic observation states separately from measured DB telemetry.
   The runner binds the state to the tool; the model cannot change states and
   read A/B results together. Keep sandbox setup/evaluation state-loading
@@ -186,7 +192,7 @@ router must not access gold labels or other arms' outputs.
 | --- | --- | --- |
 | 1 — Sources and ingestion | `pyproject.toml`, CLI/config/contracts, `ingestion/`, source allowlist and snapshot manifests; Markdown reading once synthetic documents exist | Correct section/text/code extraction, retained URLs/anchors and controlled repeat runs. Small offline parser/chunk checks cover real HTML structure and code blocks. |
 | 2 — Retrieval | `embeddings.py`, `store.py`, `retrieval.py`, retrieval SQL, database Compose and configuration | Inspect expected evidence for pilot document questions; verify corpus/index/model alignment and repeated indexing. Explicitly run embedding/DB checks; no model downloads in default tests. |
-| 3 — Answers and control | `llm.py`, answer prompt, `workflows/simple.py`, `workflows/llm_only.py`, `tracing.py`, `evaluation/` | Record cited answers/abstention and LLM-only outputs on the same questions; link raw records to MLflow traces. Model tests are opt-in. |
+| 3 — Answers and control | `llm.py`, answer prompt, `workflows/simple.py`, `workflows/llm_only.py`, `tracing.py`, `evaluation/` | Record cited answers/abstention and LLM-only outputs on the same questions; link raw records to project-owned traces. Model tests are opt-in. |
 | 4 — DB tools and enhanced/agentic | `tools/`, sandbox SQL/states, `enhanced.py`, `agentic.py`, agent prompt | Tool questions correctly label real/synthetic states; enhanced and agentic have comparable relevant tool access and loop limits. |
 | 5 — Router | `workflows/router.py` and routing config/prompt if needed | Add routing after fixed-workflow comparison works; record decision overhead and errors. |
 
@@ -276,8 +282,48 @@ Psycopg. Checks passed: 92 offline tests, 11 opt-in DB tests and two complete
 real-Nomic CLI runs with identical results and forced rollback. The owner later
 ran committed indexing; one index and 49 vectors match those verified results.
 The indexer now emits immediate phase/chunk progress to stderr and final JSON
-to stdout (93 offline tests and 11 DB tests passed). The next step is shared
-vector retrieval using the existing index.
+to stdout (93 offline tests and 11 DB tests passed at that step).
+
+On 2026-11-14, `store.search_chunks(connection, index_id, query_vector, limit=5)`
+added one parameterized SELECT for exact cosine ranking within one index.
+It returns source-linked dictionaries without committing; equal distances
+are ordered by chunk ID. Invalid dimensions, zero/nonfinite vectors and
+nonpositive limits are rejected. Checks passed: 96 offline unit tests and
+14 opt-in DB tests, with public contents unchanged. Query embedding/search
+orchestration in `retrieval.py` followed this SQL-only step.
+
+`retrieve(connection, embedder, index_id, question, limit=5)` is now implemented.
+It reads index metadata through the store and checks model/revision/dimensions,
+adapter, prefixes, normalization, device/dtype and token budget before inference.
+It then forwards raw question text to the existing query adapter and passes
+the vector to dense search. Model loading and transaction ownership remain
+with the caller. No new framework/dependency or retrieval CLI was added.
+Checks passed: 101 offline unit tests, 15 DB tests and a six-question real-model
+diagnostic with an identical P01 repeat and unchanged public records. P05 has
+no annotated evidence in the top five; see the
+[development results](../data/evaluation/dev/README.md#first-dense-retrieval-check).
+
+`scripts/check_retrieval.py` now makes the development check repeatable. It
+validates pinned P01–P06 references, reuses one local model, runs read-only
+retrieval once per question across the selected index, then records reference
+ranks and hits at 5/10/20. Every run writes JSON under `outputs/retrieval/` with
+dataset/index/model/runtime/code/lock provenance. It has an explicit `--index-id`
+and its own lock preserving existing dependency versions. Checks: 104 offline
+unit tests and two complete locked real-model runs with identical ranks/coverage
+and unchanged public data. The generator, answer prompt and Simple workflow
+follow the first custom retrieval-tracing increment. See the
+[checker guide](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
 
 Related plans: [Pilot scope](PILOT_SCOPE.md), [method](METHOD_DESIGN.md),
 [evaluation](EVALUATION_PLAN.md) and [roadmap](ROADMAP.md).
+
+On 2026-11-16, migration `0002` and the custom tracing code were prepared,
+then applied on the owner's explicit instruction.
+`tracing.py` provides start/finish writers plus `retrieve_with_trace()`, with
+safe ranked chunk payloads, immutable completion and fail-fast logging. The
+checker has opt-in `--trace`, linked question/batch IDs and an independent writer.
+114 offline tests passed; SQL rendered/parsed offline and the default real-model
+checker preserved baseline results and DB records during preparation. After
+application, all four tracing DB tests passed and one real P04 query persisted
+one verified `ok` trace/span. DB/repository are `0002`; corpus/index contents
+are unchanged. Generator/context/prompt work is next. See [TRACING_PLAN.md](TRACING_PLAN.md).

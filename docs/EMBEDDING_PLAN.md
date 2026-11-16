@@ -1,13 +1,15 @@
 # Embedding model — initial pilot decision
 
-**Updated:** 2026-11-12. **Status:** Following the Nomic recommendation, the
+**Updated:** 2026-11-14. **Status:** Following the Nomic recommendation, the
 owner authorized its first local embedding step. Nomic Embed Text v1.5 is
 selected for the initial pilot; weights are cached locally and one document/
-query runtime check plus an offline repeat passed. Retrieval quality is not
-measured. PostgreSQL + pgvector is configured and revision `0001` created the
+query runtime check plus an offline repeat passed. The first six-question
+retrieval diagnostic now exists; broader quality is not established.
+PostgreSQL + pgvector is configured and revision `0001` created the
 retrieval tables; four snapshots and 49 chunks are imported. Corpus
 indexing is committed and all 49 vectors match the earlier real-model check.
-Retrieval remains pending. See
+Dense query retrieval is implemented. P01–P06 ran with the real local model;
+P05 has no annotated evidence in the top five. See
 [EMBEDDING_SETUP.md](EMBEDDING_SETUP.md) for the exact revision/settings.
 
 ## Language decision and starting proposal
@@ -75,7 +77,10 @@ and a 1024-token input ceiling; extending native context is not tested.
 ## pgvector and multiple models
 
 The selected model's dense outputs fit the applied schema's `vector(768)`
-column. Cosine-distance search is planned but not implemented yet.
+column. Exact cosine-distance search is implemented in `store.search_chunks()`;
+the caller must supply a query vector from the selected index's model/settings.
+`retrieval.retrieve()` now checks that compatibility and composes query
+embedding with search, reusing the caller's loaded model.
 [pgvector](https://github.com/pgvector/pgvector) supports exact and approximate
 search. Its current HNSW `vector` limit is 2000 dimensions, so 768 fits.
 Start the small pilot with exact search; assess HNSW as the dataset grows.

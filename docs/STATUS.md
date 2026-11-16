@@ -1,6 +1,15 @@
 # Current status
 
-**Last updated:** 2026-11-13
+**Last updated:** 2026-11-17
+
+**Generator direction (owner, 2026-11-17):** Use an inexpensive paid hosted
+API. Provider/model selection remains open; GPT-6 Luna is the current
+recommendation. Official [standard pricing](https://developers.openai.com/api/docs/models/gpt-6-luna)
+was checked on this date: $0.10 per million input tokens and $0.50 per million
+output tokens. A single call with 4,000 uncached input tokens and 1,000 total
+billed output tokens would cost $0.0009 before taxes and extra services.
+This is an estimate, not observed usage or a model-quality result. No hosted
+inference was run. Next: agree the model and evidence-context/answer-prompt contract.
 
 **Stage:** Section-aware chunking is implemented. The four PostgreSQL snapshots
 produce 49 verified chunks. P01–P06 have source-verified reference answers and
@@ -8,12 +17,24 @@ chunk evidence. Local Nomic document/query embeddings work. PostgreSQL +
 pgvector Compose and the Psycopg driver/environment settings are implemented.
 The `check-db` command passed against local PostgreSQL 18.6 + pgvector 0.8.7
 with a verified read-only transaction. Alembic is installed and configured;
-revision `0001` is applied. The import script has committed four snapshots and
+revision `0002` is applied (retrieval plus tracing tables). The import script has committed four snapshots and
 49 chunks; independent field checks and a second run confirmed unchanged
 contents and counts. Embedding index/vector save functions are implemented
 and tested. The owner ran the corpus indexer; one index and 49 document vectors
 are now committed and match the earlier real-model verification. The script
-now reports immediate phase/chunk progress. Retrieval remains the next stage.
+now reports immediate phase/chunk progress. Dense SQL search is implemented
+and tested. `retrieval.retrieve()` now checks index compatibility, embeds the
+raw question and searches. P01–P06 ran with the real local model; five questions
+had annotated evidence in the top five. P05's follow-up diagnosis found strong
+query-wording sensitivity, with its original reference ranks at 17, 11 and 46.
+The repeatable `scripts/check_retrieval.py` now records full ranks and
+annotated hits at 5/10/20; two real-model runs matched with unchanged DB data.
+**Owner decision, 2026-11-16:** MLflow is rejected. A small project-owned
+PostgreSQL trace/span layer uses the existing raw-SQL approach. Its
+[migration and writers](TRACING_PLAN.md) are applied, with opt-in checker
+integration. The owner authorized application and a one-question test, lifting
+the review hold. DB/repository are `0002`; one P04 trace/span is committed and
+verified. Generator/provider and context/prompt selection are next.
 **Confirmed:** According to the owner, the supervisor liked the Agentic RAG
 subject; the project will continue in this direction.
 **Proposed:** Compare three RAG workflows and an adaptive router. The precise
@@ -35,17 +56,27 @@ Turkish. Multilingual support is not required.
 **Owner decision, 2026-11-06:** Application database access will use
 parameterized raw SQL without an ORM. Psycopg 3.3.8 and environment settings
 are available and the read-only connection check works. Snapshot/chunk storage
-is now implemented; vector search remains pending. Alembic revision `0001` is applied.
+and dense query retrieval are implemented. Alembic revision `0001` is applied.
 **Owner instruction, 2026-11-07:** Apply the prepared migration; this superseded
 the earlier preparation-only hold. Application and catalog checks passed.
 
-**Current runtime check, 2026-11-12:** The project PostgreSQL service is healthy.
+**Indexing verification, 2026-11-12:** The project PostgreSQL service was healthy.
 `check-db` passed with PostgreSQL 18.6, pgvector 0.8.7 and a read-only transaction;
 revision `0001` is applied. The committed counts are four source snapshots,
 49 chunks, one embedding index and 49 vectors. The owner-initiated indexer
 process finished. Read-only checks confirmed exact input hashes, 768 finite
 values/unit norms per vector and a fingerprint identical to the earlier
 rollback-only model check. This supersedes the earlier empty-embedding state.
+**Current runtime check, 2026-11-14:** The service is healthy and `check-db`
+passed with PostgreSQL 18.6 and pgvector 0.8.7. All 15 DB integration tests
+passed in temporary tables. Public table counts and full-record fingerprints
+were unchanged at `(4, 49, 1, 49)`. A read-only search using an existing document
+vector returned its own chunk first; this checks SQL execution, not question
+retrieval quality. Record: `outputs/validation/dense-search-2026-11-14.json`.
+The subsequent real-model P01–P06 check also kept public records unchanged.
+Query-model compatibility and deterministic repeat checks passed, with a P05
+annotated-evidence miss at five results. Record:
+`outputs/validation/query-retrieval-2026-11-14.json`.
 The [session handoff](HANDOFF.md) gives the reading order, code/artifact map
 and resume commands for another AI or developer.
 
@@ -499,6 +530,121 @@ earlier proposals, missing features and preparation-only holds.
   `search_chunks()` followed by query retrieval; hybrid/reranking come after
   that baseline. The DB counts above were last checked on 2026-11-12.
 
+- **2026-11-14, dense SQL search:** Added `search_chunks(connection, index_id,
+  query_vector, limit=5)` to `store.py`. It runs one parameterized SELECT,
+  filters by index, sorts by cosine distance then chunk ID, and returns chunk
+  text/token count, source/snapshot IDs, title/URL, metadata and distance.
+  Empty/unknown indexes return no matches; wrong dimensions, zero/nonfinite
+  query vectors and nonpositive limits fail. It neither connects nor commits.
+- **96 offline unit tests and 14 opt-in PostgreSQL integration tests passed**.
+  The three new DB tests cover cosine ranking versus vector magnitude, limits,
+  source metadata, index isolation/bound parameters and transaction ownership.
+  Before/after checks confirmed all public records unchanged, including the
+  existing index/49 vectors. A separate read-only stored-vector self-search
+  passed. No model inference, schema/dependency change, re-indexing or P01–P06
+  evaluation occurred. `retrieval.py` remains a scaffold; composing query
+  embedding and this search function is the next small step.
+
+- **2026-11-14, query retrieval:** Added `store.get_embedding_index()` and
+  `retrieve(connection, embedder, index_id, question, limit=5)` in `retrieval.py`.
+  Before inference, it checks model/revision/dimensions and adapter/prefix/
+  normalization/device/dtype/token-budget settings against the selected index.
+  It then calls the existing query adapter and dense search. The caller loads/
+  reuses the model and owns the connection/transaction; no gold data is read.
+- **101 offline unit tests and 15 opt-in DB tests passed**. The pinned dataset
+  reference checker also passed. A separate opt-in real-Nomic run loaded the
+  model once, retrieved P01–P06 at five results, and repeated P01 with identical
+  vectors/results. All public record hashes/counts matched the prior SQL check.
+  The [development diagnostic](../data/evaluation/dev/README.md#first-dense-retrieval-check)
+  records annotated-evidence ranks: P01/P02/P03/P04/P06 have reference hits;
+  P05 has none in the top five. This is an observed retrieval limitation, not
+  a failed SQL test or a correctness grade. Next inspect P05's ranking.
+  No corpus/gold changes, re-indexing, migration, new dependency, generation,
+  hosted API call or held-out evaluation occurred. The retrieval CLI,
+  generator/model selection and final evaluation protocol remain future work.
+
+- **2026-11-14, P05 diagnosis:** Retrieved all 49 ranks for the unchanged P05
+  and three exploratory wording probes. Original E1/E2/E3 rank at 17/11/46.
+  Adding only `multicolumn` moves E1/E2 to 1/2; replacing concrete column names
+  with first/second-column names gives 2/1. Removing the final EXPLAIN-path
+  request alone gives 16/11/49. These observations show dense-ranking wording
+  sensitivity, not an established internal model mechanism or a selected fix.
+- All 49 vectors/evidence chunks are present; input hashes, dimensions and norms
+  passed. SQL distances matched independent Python cosine calculations within
+  `1e-6`, and the original query vector/top five matched the prior report.
+  Public contents remained unchanged under read-only access. No application,
+  corpus/gold, index, dependency or schema changes occurred. Tests were not
+  repeated for this diagnostic-only session. Results and limits are in the
+  [development guide](../data/evaluation/dev/README.md#p05-wording-diagnosis)
+  and `outputs/validation/p05-retrieval-diagnostic-2026-11-14.json`.
+
+- **2026-11-14, repeatable retrieval checker:** Added
+  `scripts/check_retrieval.py` and its dependency lockfile, preserving all 66
+  existing indexer package records. The owner approved checking the original
+  P01–P06 at 5/10/20 as development diagnostics. The script validates pinned
+  references, loads the local model once, opens a read-only connection and
+  obtains full ranks once per question. It records annotated evidence ranks/
+  cutoff IDs and ranked source/chunk metadata with version/hash provenance in
+  a fresh `outputs/retrieval/dense-<UTC timestamp>.json`. It prints progress.
+- **104 offline unit tests passed**, including cutoff-boundary, missing-
+  evidence, raw-question-isolation and empty-index checks. `--help` and locked
+  dependency validation passed. Two actual locked CLI runs produced identical
+  ranks/coverage in distinct reports and matched the previous top-five baseline.
+  All public row counts/hashes remained unchanged at `(4, 49, 1, 49)`. P05 has
+  0/3, 0/3 and 2/3 annotated hits at 5/10/20; P06 stays at 2/4, with evidence
+  alternatives still applicable. These are annotation counts, not answer grades.
+  The production cutoff, corpus/gold, index, schema and generator are unchanged.
+  Report: `outputs/validation/check-retrieval-2026-11-14.json`. Earlier DB tests
+  were not repeated; the new checker was verified through real read-only CLI runs.
+
+- **2026-11-16, tracing direction changed:** The owner explicitly rejected
+  MLflow and requested handling logging in the project. Updated current stack,
+  roadmap, handoff and code responsibilities to use project-owned PostgreSQL
+  tracing via Psycopg/raw SQL. Added [TRACING_PLAN.md](TRACING_PLAN.md) with a
+  proposed two-table question-trace/operation-span structure, safe payloads,
+  ID relationships and a staged retrieval-first implementation sequence.
+  This supersedes the earlier MLflow selection; the schema proposal is not
+  approved DDL or implemented logging. No migration, dependency, DB/model run,
+  corpus/gold change or runtime behavior change occurred. Prior verification
+  results remain dated evidence; no live service check was run in this session.
+
+- **2026-11-16, tracing code/migration prepared only:** On the owner's request,
+  prepared raw-SQL revision `0002_create_tracing_tables.py` for `traces` and
+  `spans`, four lifecycle writers and `retrieve_with_trace()` in `tracing.py`.
+  The wrapper logs safe retrieval inputs, ranked source/chunk references and
+  success/error through a separate autocommit writer. Completed records cannot
+  be overwritten. Unknown usage/cost stay NULL; logging failures abort instead
+  of silently losing observations. Prompt/usage/tool fields exist, but those
+  workflows are not implemented. The checker now has opt-in `--trace`, with
+  per-question trace IDs linked to its batch ID and independent JSON report.
+- **114 offline unit tests passed**. Upgrade and downgrade rendered offline
+  and parsed with pglast 8.7. Four new tracing DB tests were discovered and
+  skipped because `0002` is not applied; no live tracing DDL/DML ran. A full
+  default locked checker run without `--trace` matched prior ranks/coverage and
+  preserved all public records at `(4, 49, 1, 49)`. Read-only checks confirmed
+  DB revision `0001` and absent `traces`/`spans`. Repository head is `0002`.
+  Verification: `outputs/validation/tracing-schema-0002/prepared-2026-11-16.json`.
+  SQL previews are in the same directory. **Stop for owner review before
+  applying migration or running `--trace`.** No dependency/model/corpus/gold
+  changes, generation or hosted API calls occurred.
+
+- **2026-11-16, tracing migration applied and one question tested:** The owner
+  explicitly requested applying `0002`, lifting the prior review hold. Verified
+  unchanged prepared-file hashes and baseline data, then ran `alembic upgrade 0002`.
+  DB revision is `0002`; `traces`/`spans`, their columns and constraints exist.
+  All four new tracing DB tests passed in temporary table clones, including
+  parent-trace isolation and logging surviving retrieval transaction rollback.
+- Ran only P04 with real local Nomic and `retrieve_with_trace()` at five results.
+  A fresh read-only connection confirmed one `ok` trace and one `ok` span,
+  exact query/source payloads, chunk ranks/distances and NULL answer/usage/cost.
+  P04-E1 and P04-E2 ranked 1 and 2. Trace ID:
+  `db808e0d-76ed-4148-9996-2a8988cc4ce7`. Corpus/index row counts and fingerprints
+  are unchanged at `(4, 49, 1, 49)`; only the authorized tracing tables/records
+  and revision metadata changed. No generated answer or hosted API call occurred.
+  Record: `outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
+  The full six-question traced checker batch has not run; the one-question
+  verification satisfies this step. Generator/context/prompt work is next.
+
 ### Saved official-documentation snapshots
 
 Each directory is under `data/local/snapshots/` and contains
@@ -540,18 +686,21 @@ general web/PDF/Markdown and nested content tables are not supported.
 - All four official HTML/manifest pairs are ready. Synthetic documents and
   DB fixtures remain unwritten. HTML is parsed and chunked; a local embedding
   adapter and corpus indexing script work; one index/49 vectors are committed,
-  while retrieval remains pending.
+  and query retrieval works. The first six-question diagnostic exists; P05
+  shows wording sensitivity in a follow-up ranking diagnosis. The repeatable
+  development cutoff sweep now exists; generator selection remains open.
   P01–P06 have verified document answers/evidence; P07–P20 still need their
   answers verified against synthetic documents, saved sources or tool outputs.
 - Supervisor feedback on the method draft, expected format and detail level
   has not been obtained.
 - Beyond source loading, downloads, HTML parsing, chunking and local embedding,
-  retrieval, generator LLM, tracing, tools, workflows and evaluation runners are
+  generator LLM, tools, workflows and full evaluation runners are
   not implemented. PostgreSQL Compose and the Python connection check work,
   and the retrieval tables and snapshot/chunk storage exist. Four snapshots
   and 49 chunks are imported; indexing is committed and field-verified,
-  while vector search is pending;
-  MLflow is not configured. No generator or
+  and dense query retrieval is implemented;
+  trace writers and migration are applied, with one real retrieval trace verified.
+  No generator or
   RAG/evaluation run has been executed.
 - There is no finalized three-workflow protocol or frozen test set; no
   performance result or thesis finding can be claimed.
@@ -591,14 +740,16 @@ general web/PDF/Markdown and nested content tables are not supported.
   pgvector-python remains an optional adapter proposal. `check-db` has passed
   on the local service. Alembic revision `0001` is applied and verified;
   snapshot/chunk storage is implemented and the corpus is imported. Corpus
-  indexing is committed and verified; vector search remains pending.
+  indexing is committed and verified; dense SQL search and query orchestration
+  are implemented. The first P01–P06 diagnostic exposes a P05 evidence miss.
   Add the chosen LangGraph orchestration after a baseline built from simple
-  Python functions; use MLflow to trace initial end-to-end runs.
+  Python functions; add project-owned PostgreSQL tracing to initial runs.
   [LangGraph](https://docs.langchain.com/oss/python/langgraph/overview),
   [Sentence Transformers](https://www.sbert.net/docs/sentence_transformer/usage/usage.html)
   and [MLflow LangGraph tracing](https://mlflow.org/docs/latest/genai/tracing/integrations/listing/langgraph/)
   capabilities were checked against official documentation. Embedding dependencies
-  are available in the isolated smoke environment; LangGraph and MLflow remain uninstalled.
+  are available in the isolated smoke environment. LangGraph remains uninstalled;
+  the earlier MLflow proposal is superseded by the owner's 2026-11-16 decision.
 - **Approved evaluation direction:** Include a retrieval-free LLM-only control
   to examine prior PostgreSQL knowledge. Details are in the
   [evaluation plan](EVALUATION_PLAN.md#candidate-controls-for-prior-knowledge--postgresql-corpus-option):
@@ -606,21 +757,26 @@ general web/PDF/Markdown and nested content tables are not supported.
   insufficient-evidence abstention. Retain LLM-only-correct questions. This
   approval does not finalize the whole protocol; sample size/rubric remain
   open and there are no generator/evaluation runs or a runnable evaluation dataset.
-- **Next concrete task:** Add dense `search_chunks()` to `store.py`, then
-  compose query embedding and index-scoped vector search in `retrieval.py`
-  using the existing committed index. Inspect the expected evidence for
-  P01–P06 before adding a generator. Committed indexing is complete; no rerun
-  is needed for the logging update.
+- **Next concrete task:** Select the initial generator/provider and agree
+  the evidence-context/answer-prompt contract. [Tracing](TRACING_PLAN.md) is now
+  applied and verified with one P04 question; the six-question traced checker
+  remains available as an opt-in diagnostic. Keep
+  `limit=5` as the existing baseline. The cutoff sweep did not select a new
+  context budget or an automatic query-rewriting policy. Preserve gold/index.
+  Committed indexing is complete; no rerun is needed.
   `sql/retrieval/001_initial.sql` is still a comment-only scaffold, not an
-  applied migration. Use P01–P06 for the first retrieval checks against the
-  indexed [49 verified chunks](CHUNKING.md). Generator selection and retrieval
-  quality remain open; the smoke check establishes local execution only.
+  applied migration. Keep P01–P06 as development checks against the indexed
+  [49 verified chunks](CHUNKING.md). Generator selection and broader retrieval
+  quality remain open; the first diagnostic is not a thesis-quality conclusion.
 
 ## First steps when returning
 
-1. Revision `0001` is applied; four snapshots, 49 chunks, one index and 49 vectors
-   are committed. Implement retrieval with the pinned Nomic adapter and
-   index-scoped vector SQL against the existing index.
+1. Revision `0002` is applied; four snapshots, 49 chunks, one index and 49 vectors
+   are committed. Dense query retrieval is implemented and P01–P06 have a first
+   diagnostic, P05 wording diagnosis and repeatable 5/10/20 cutoff checker.
+   Tracing migration and writers are applied and passed four DB tests plus one
+   real P04 trace/span check. The prior hold is lifted by the owner's instruction.
+   Generator/provider and context/prompt work are next.
    Keep P01–P06 reference answers outside ingestion;
    use them to inspect retrieval. P07–P20 remain drafts, and the held-out
    thesis test set is still separate and unprepared.
@@ -628,7 +784,7 @@ general web/PDF/Markdown and nested content tables are not supported.
    this plan out of the corpus.
 3. Check retrieval on pilot document questions using the selected local
    embedding model and PostgreSQL + pgvector. Generator selection, LLM-only/Simple
-   RAG answer runs and MLflow traces come afterward.
+   RAG answer runs and their model-call traces come afterward.
 4. Create DB fixtures/tools, verify their gold answers, then implement enhanced
    and agentic workflows. Supervisor/method feedback and literature work may
    proceed in parallel; the final thesis protocol remains open.

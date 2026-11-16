@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-13. Resume guide for another AI or developer.
+**Updated:** 2026-11-16. Resume guide for another AI or developer.
 Use [STATUS.md](STATUS.md) for dated verification records. Plans and scaffold
 files do not imply working features.
 
@@ -26,8 +26,12 @@ adaptive router later. The exact thesis question and protocol remain open.
   short, readable code without speculative features or unnecessary abstractions.
 - Use PostgreSQL + pgvector in Docker, parameterized raw SQL through Psycopg,
   and Alembic migrations. SQLAlchemy is migration infrastructure only; no ORM.
-- Start with one pinned local Nomic embedding model. LangGraph and self-hosted
-  MLflow are selected but not installed or implemented.
+- Start with one pinned local Nomic embedding model. LangGraph is selected
+  but not installed. The owner rejected MLflow on 2026-11-16; use project-owned
+  PostgreSQL tracing via Psycopg/raw SQL. [Migration `0002` and writers](TRACING_PLAN.md)
+  are applied and verified. The owner authorized application on 2026-11-16,
+  superseding the review hold. DB/repository are `0002`; one real P04 trace
+  and retrieval span are committed, with no generator/tool execution yet.
 - The approved pilot includes public PostgreSQL docs, synthetic local runbooks,
   frozen sandbox state, an LLM-only control, changed-evidence checks and
   insufficient-evidence cases. Most of these are still preparation work.
@@ -55,10 +59,10 @@ These decisions do not implement the scaffold workflows.
 | ---------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Sources                | Four PostgreSQL 18 HTML snapshots; allowlist, downloader and parser                                | Synthetic runbooks, Markdown ingestion and sandbox fixtures                     |
 | Chunking               | 184 parsed blocks become 49 chunks; target 512, ceiling 1024 tokens; intact SQL/tables, no overlap | No new chunking work required for the current four sources                      |
-| Embedding              | Local Nomic; 49 committed document vectors match the earlier verification | Query retrieval and retrieval-quality measurement |
-| Database               | Revision `0001`; four snapshots, 49 chunks, one index and 49 vectors committed | Vector search |
+| Embedding              | Local Nomic; 49 vectors; P05 diagnosis and repeatable six-question 5/10/20 checker | Generator selection and broader answer evaluation |
+| Database               | Revision `0002`; four snapshots, 49 chunks, one index/49 vectors; one committed P04 trace/span | No schema change needed for the current retrieval step |
 | Questions              | 20 pilot records; P01–P06 have verified answers/evidence                                          | P07–P20 remain drafts; held-out set is empty                                   |
-| Answering / evaluation | Planning documents and module paths                                                                | Generator selection, answer runs, tools, workflows, traces, metrics and runners |
+| Answering / evaluation | Planning documents and module paths; retrieval tracing is verified                               | Generator selection, answer runs, tools, workflows, LLM/tool spans, metrics and runners |
 
 **Database history versus current availability:** Revision `0001` was applied
 with explicit owner authorization on 2026-11-07. Catalog checks verified
@@ -75,18 +79,91 @@ finite 768-dimensional unit vectors and an exact match to the rollback-tested
 vectors. Record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
 The rollback-only, empty-embedding and stopped-service observations are historical.
 
+On 2026-11-14 the service was healthy and `check-db` passed again. All 14 DB
+integration tests passed using temporary tables; public counts/fingerprints
+were unchanged at `(4, 49, 1, 49)`. Read-only stored-vector self-search returned
+its own chunk first. This is a SQL check, not P01–P06 retrieval evaluation.
+Record: `outputs/validation/dense-search-2026-11-14.json`.
+
+Later on 2026-11-14, query retrieval passed real local Nomic checks with one
+model load and read-only DB access. P01–P06 ran at `limit=5`; annotated chunks
+appeared for five questions, while P05 had no annotated evidence in the top
+five. P01 repeated with identical vector/results. Public fingerprints/counts
+matched the prior SQL check. Report:
+`outputs/validation/query-retrieval-2026-11-14.json`. See the
+[diagnostic table](../data/evaluation/dev/README.md#first-dense-retrieval-check).
+This is a development observation, not a generated-answer or held-out result.
+
+The P05 follow-up found E1/E2/E3 at ranks 17/11/46 among all 49 chunks.
+Adding only `multicolumn` to the query moves E1/E2 to 1/2; generic column names
+give 2/1. Removing the final inspection request alone did not recover them.
+All input hashes/vectors were valid, SQL cosine matched independent Python
+calculations within `1e-6`, and public contents were unchanged. These are
+exploratory wording probes, not a production rewrite or an internal-cause proof.
+Report: `outputs/validation/p05-retrieval-diagnostic-2026-11-14.json`; see the
+[diagnostic interpretation](../data/evaluation/dev/README.md#p05-wording-diagnosis).
+
+The owner then approved a repeatable development checker at 5/10/20.
+`scripts/check_retrieval.py` passed two locked real-model CLI runs, each using
+one model load and read-only SQL. Ranks/cutoff IDs matched across runs and the
+previous top-five baseline; all public counts/hashes are unchanged. P05 has
+0/3, 0/3 and 2/3 annotated hits; P06 stays at 2/4, with annotation alternatives
+still valid. No production cutoff or gold data changed. See the
+[checker results](../data/evaluation/dev/README.md#repeatable-retrieval-checker)
+and `outputs/validation/check-retrieval-2026-11-14.json`.
+
+On 2026-11-16, the owner explicitly authorized applying tracing revision `0002`
+and testing one question, superseding the earlier review hold. The migration
+applied, all four tracing DB tests passed in temporary clones, and a real P04
+query committed one `ok` trace and one `ok` retrieval span. Fresh connections
+verified source/rank/distance payloads and NULL answer/usage/cost. P04-E1/E2
+ranked 1/2. Corpus/index fingerprints are unchanged. Trace ID:
+`db808e0d-76ed-4148-9996-2a8988cc4ce7`. Record:
+`outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
+
 ## Code and local artifacts
 
 The prepared import consists of:
 
 - [store.py](../src/rag_workflow_lab/store.py): `check_database()`,
-  `save_snapshots()`, `save_chunks()`, `save_embedding_index()` and
-  `save_embeddings()`. The save functions accept an existing
+  `save_snapshots()`, `save_chunks()`, `save_embedding_index()`,
+  `save_embeddings()`, `get_embedding_index()` and `search_chunks()`. The save functions accept an existing
   connection; their caller owns the transaction. They preserve exact records
-  and reject changed payloads under existing IDs. There is no vector search.
+  and reject changed payloads under existing IDs. `search_chunks(connection,
+  index_id, query_vector, limit=5)` runs a SELECT scoped to one index, ordered
+  by cosine distance then chunk ID. It returns dictionaries with chunk text,
+  token count, metadata, source/snapshot IDs, title/URL and distance. Invalid
+  dimensions, zero/nonfinite query vectors and nonpositive limits fail;
+  empty/unknown indexes return an empty list. It does not connect or commit.
   Embedding writes accept `(chunk_id, EmbeddingResult)` pairs, check index
   model/revision/dimensions and document task, and match input hashes against
   stored `embedding_text`. Vectors use parameterized text-to-vector casting.
+- [retrieval.py](../src/rag_workflow_lab/retrieval.py):
+  `retrieve(connection, embedder, index_id, question, limit=5)` loads index
+  metadata through the store, checks model/revision/dimensions and embedding
+  settings, then composes `embed_query(question)` with dense search. Unknown
+  indexes/mismatched settings fail before inference. It returns the search
+  dictionaries unchanged and reads no gold. The caller loads/reuses the model
+  and owns the connection/transaction. Use the separate development checker below.
+- [check_retrieval.py](../scripts/check_retrieval.py) and its
+  [lockfile](../scripts/check_retrieval.py.lock): explicit `--index-id`, pinned
+  reference validation, one cached model load, read-only full-index retrieval
+  per raw question and annotated evidence hits at 5/10/20. Fresh JSON reports
+  go to `outputs/retrieval/`; progress goes to stderr and stdout gives the path.
+  The lock preserves the indexer's 66 package records. It is a development
+  diagnostic, not a generator/evaluation runner or a selected new context budget.
+  Its `--trace` flag is available now that `0002` is applied. Default operation
+  remains read-only. Traced mode opens a
+  separate autocommit writer and adds each `trace_id` to its question record.
+- [tracing.py](../src/rag_workflow_lab/tracing.py): `start_trace()`, `finish_trace()`,
+  `start_span()`, `finish_span()` and `retrieve_with_trace()`. Writers use bound
+  raw SQL without owning connections/commits. The wrapper requires a separate
+  autocommit writer, records safe chunk/rank/distance payloads, reraises retrieval
+  errors after recording error status and aborts on logging failure. A live P04
+  trace/span is verified. See [TRACING_PLAN.md](TRACING_PLAN.md) for the exact contract.
+- [0002_create_tracing_tables.py](../migrations/versions/0002_create_tracing_tables.py):
+  applied upgrade for two tables and their lifecycle/parent constraints.
+  Offline previews and verification are in `outputs/validation/tracing-schema-0002/`.
 - [import_corpus.py](../scripts/import_corpus.py): reads saved artifacts from
   the pilot allowlist, checks snapshots/provenance, then saves all records in
   one connection/transaction. It reads no gold data and generates no embeddings.
@@ -135,8 +212,18 @@ use isolated `uv` environments with separate lockfiles. Setup guides cover insta
 
 ## Next small step
 
-First add dense `search_chunks()` to `store.py`, then compose query embedding
-and index-scoped search in `retrieval.py` for P01–P06. Build the Simple baseline
+The owner chose an inexpensive paid hosted API on 2026-11-17. Select the
+provider/model and agree the evidence-context/answer-prompt contract.
+GPT-6 Luna is recommended but not approved or tested; see STATUS for the
+dated price estimate. [Tracing](TRACING_PLAN.md) is applied and verified for one P04
+question, and DB/repository are `0002`. The full P01–P06 `--trace` batch is
+available but has not been run; the requested one-question smoke is complete.
+Generator selection and the evidence-context/answer-prompt contract follow.
+The repeatable 5/10/20 checker is implemented and run; its diagnostic coverage
+does not select a new production cutoff. Keep raw questions, snapshots, chunks
+and the index fixed; review equivalent evidence when judging future answers.
+Query retrieval is implemented and the first P01–P06 diagnostic is recorded.
+Use the selected index's model/revision/settings. Build the Simple baseline
 before the approved Enhanced hybrid/RRF/reranking and fixed tool steps.
 Four snapshots, 49 chunks, one index and 49 vectors are
 already committed. The selected index is
@@ -146,8 +233,8 @@ The logging edit changes the indexer source hash, so a future indexing run
 would produce a different index identity while the existing index retains
 its original creation provenance.
 
-Preserve the volume and pinned inputs. Inspect P01–P06 retrieval after indexing
-and the retriever are implemented. Generation, LangGraph, synthetic tools and
+Preserve the volume and pinned inputs. Inspect the recorded P01–P06 retrieval
+limitation before adding generation. LangGraph, synthetic tools and
 the router come in later steps. The existing importer can be repeated as
 documented in README; the committed repeat check already passed.
 
@@ -160,11 +247,25 @@ PYTHONPATH=src python3.11 -m unittest discover -s tests/unit -v
 python3.11 scripts/check_document_questions.py
 ```
 
-On 2026-11-12, **93 offline unit tests and 11 opt-in DB integration tests passed**.
-The latter use temporary tables and close without committing; the explicit
+On 2026-11-14, **104 offline unit tests passed**. The preceding storage/retrieval
+step passed **15 opt-in DB integration tests**; those were not repeated for the
+checker-only change. Two real-model locked checker runs separately passed with
+unchanged public data. DB tests use temporary tables and close without committing; the explicit
 `RAG_LAB_TEST_DB=1` command is in README. The six-question reference checker
 passed during the committed import. It checks artifact integrity, not retrieval or answer quality.
-No RAG evaluation result exists.
+The real-model six-question retrieval diagnostic above is separate. No
+generated-answer or held-out RAG evaluation result exists.
+
+On 2026-11-16, **114 offline unit tests passed** for the prepared tracing change.
+Four new tracing DB tests skipped at revision `0001`; live tracing is deferred
+under the owner's migration hold. Both SQL directions rendered/parsed offline.
+A new default checker run without `--trace` preserved ranks/coverage and public
+records. Revision `0001` and absent trace tables were independently confirmed.
+Record: `outputs/validation/tracing-schema-0002/prepared-2026-11-16.json`.
+
+After the owner authorized application, all four tracing DB tests passed and
+one real P04 trace/span was verified in public tables. See the `applied` record
+above; the preceding preparation-only observations are historical.
 
 The embedding-storage check used synthetic vectors in temporary tables and no
 model inference. Public counts were `(4, 49, 0, 0)` after that preparation

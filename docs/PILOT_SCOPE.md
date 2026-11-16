@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-12. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-16. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -148,12 +148,17 @@ renaming these questions; keep related scenario families within one split.
 2. **Import completed:** Four snapshots and 49 chunks are committed, field-verified
    and unchanged after a second import. The indexing script passed two complete
    real-Nomic runs with rollback, followed by the owner's committed run.
-   One index and 49 vectors are verified. **Next small step:** Implement and
-   inspect P01–P06 retrieval. This first check does not require generation.
+   One index and 49 vectors are verified. Dense query retrieval and its first
+   P01–P06 diagnostic, P05 wording diagnosis and repeatable 5/10/20 checker now
+   exist. Trace/span code and migration `0002` are applied and verified with
+   one real P04 trace/span. **Next small step:** Generator/provider selection
+   and context/prompt work. Keep gold and source/index state fixed.
+   The cutoff sweep alone does not choose a production context budget. See the
+   [development results](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
 3. Write two synthetic documents and add Markdown ingestion. These tasks do
    not require a model or orchestration framework.
 4. Select the generator, add LLM-only/Simple RAG answer runs with citations
-   and MLflow traces. Then create DB fixtures/tools, verify tool questions,
+   and project-owned PostgreSQL traces. Then create DB fixtures/tools, verify tool questions,
    and implement enhanced/agentic workflows.
 
 **Before the pilot is ready:** Verify each record's `question_id`, type,

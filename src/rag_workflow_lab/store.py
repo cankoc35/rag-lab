@@ -1,4 +1,4 @@
-"""Raw-SQL database checks and immutable corpus/embedding storage."""
+"""Raw-SQL database checks, immutable storage and dense chunk search."""
 
 from dataclasses import dataclass
 import json
@@ -174,3 +174,47 @@ def save_embeddings(connection, index_id: str, embeddings: list[tuple[str, Embed
             """, (index_id, result.input_sha256, vector, chunk_id, result.input_sha256))
             if cursor.rowcount != 1:
                 raise ValueError(f"Missing chunk, input hash mismatch or conflicting embedding: {chunk_id}")
+
+
+def get_embedding_index(connection, index_id: str) -> dict:
+    """Read the selected index metadata without committing or opening a connection."""
+    from psycopg.rows import dict_row
+
+    with connection.cursor(row_factory=dict_row) as cursor:
+        cursor.execute("""
+            SELECT index_id, model_id, model_revision, dimensions, chunk_set_sha256, settings
+            FROM embedding_indexes WHERE index_id = %s
+        """, (index_id,))
+        index = cursor.fetchone()
+    if index is None:
+        raise ValueError(f"Unknown embedding index: {index_id}")
+    return index
+
+
+def search_chunks(connection, index_id: str, query_vector: tuple[float, ...], limit: int = 5) -> list[dict]:
+    """Return source-linked chunks ordered by cosine distance (lower is closer).
+
+    Uses an existing connection without committing. An empty or unknown index
+    returns no matches. The caller must use the selected index's embedding model.
+    """
+    if limit < 1:
+        raise ValueError("Result limit must be positive.")
+    if len(query_vector) != DIMENSIONS or not any(query_vector):
+        raise ValueError("Query vector must have 768 dimensions and be nonzero.")
+    vector = json.dumps(query_vector, allow_nan=False)
+
+    from psycopg.rows import dict_row
+
+    with connection.cursor(row_factory=dict_row) as cursor:
+        cursor.execute("""
+            SELECT c.chunk_id, c.snapshot_id, c.text, c.token_count, c.metadata,
+                   s.source_id, s.title, s.url,
+                   e.embedding <=> %s::vector AS distance
+            FROM chunk_embeddings AS e
+            JOIN chunks AS c ON c.chunk_id = e.chunk_id
+            JOIN source_snapshots AS s ON s.snapshot_id = c.snapshot_id
+            WHERE e.index_id = %s
+            ORDER BY distance, c.chunk_id
+            LIMIT %s
+        """, (vector, index_id, limit))
+        return cursor.fetchall()

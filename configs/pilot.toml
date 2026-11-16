@@ -14,5 +14,10 @@ device = "cpu"
 dimensions = 768
 max_tokens = 1024
 
+[generator]
+model_id = "gpt-6-luna"
+reasoning_effort = "none"
+max_output_tokens = 1000
+
 # Database settings are read separately from POSTGRES_* environment variables.
-# Generator and retrieval settings remain separate future steps.
+# The generator API key is read separately from OPENAI_API_KEY.

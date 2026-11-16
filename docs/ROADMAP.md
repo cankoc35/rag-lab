@@ -3,6 +3,9 @@
 **Status:** Agentic RAG direction confirmed by the owner after a positive
 supervisor discussion. Initial Simple/Enhanced definitions were approved on
 2026-11-13; detailed Agentic design and the final experiment protocol remain open.
+The owner rejected MLflow on 2026-11-16. Project-owned PostgreSQL tracing is
+the new direction. Its [code and migration](TRACING_PLAN.md) were subsequently
+applied on the owner's instruction and verified with one real P04 query.
 
 The working study compares three RAG workflows and an adaptive router. The
 owner approved a PostgreSQL docs + synthetic-runbook pilot with frozen sandbox
@@ -51,7 +54,10 @@ draft exist; the source/fixture verification work is not done yet.
   implemented in the stages below. Source/download/parser/chunking code, local
   embedding inference and the DB connection check work. Raw-SQL storage/import
   code is implemented and four snapshots/49 chunks are imported. Indexing is
-  committed; retrieval is the next integration step.
+  committed and dense query retrieval is implemented. The first P01–P06
+  diagnostic, P05 wording diagnosis and repeatable 5/10/20 checker exist.
+  Custom trace/span code and migration `0002` are applied, with one real query
+  trace verified. Generator/answer work is next.
 - Follow the [code structure and staged implementation plan](CODE_STRUCTURE.md)
   when filling in the scaffold modules.
 - Run PostgreSQL with `pgvector` locally in Docker.
@@ -65,8 +71,8 @@ draft exist; the source/fixture verification work is not done yet.
   and configured for manually written raw-SQL revisions. The owner authorized
   application on 2026-11-07; revision `0001` is applied and its four empty
   retrieval tables are verified.
-- Add replaceable configuration for the model, embeddings, database, and
-  self-hosted MLflow tracing.
+- Configure model, embedding and DB connections as needed. Review the small
+  applied PostgreSQL trace/span migration and writers.
 - Start with a command-line interface rather than a web UI.
 
 **Done when:** a clean checkout can start the database and run the documented
@@ -82,7 +88,7 @@ starter checks.
 - Trace inputs, retrievals, outputs, latency, token usage, and estimated cost.
 
 **Done when:** the baseline answers the development questions through an
-end-to-end CLI and its runs are visible in the selected tracing platform.
+end-to-end CLI and its question/step records can be inspected in PostgreSQL.
 
 ## 4. Add Enhanced RAG, then design Agentic RAG
 
@@ -164,10 +170,24 @@ stored and field-verified. A second script run left contents/counts unchanged.
 Embedding index/vector save functions now pass validation and temporary-table
 DB tests. The corpus indexing script is now implemented and passed two full
 real-Nomic runs with identical results and rollback. The owner subsequently
-ran committed indexing; one index and 49 verified vectors now exist. Next
-implement/inspect P01–P06 retrieval using that index. Progress messages have
+ran committed indexing; one index and 49 verified vectors now exist. The first
+P01–P06 retrieval check now uses that index. Progress messages have
 been added; no indexing rerun is needed for that change.
-Start with dense `search_chunks()` and the shared query retrieval path. The
+Dense `search_chunks()` passed SQL checks on 2026-11-14 with unchanged public
+data. `retrieval.retrieve()` now composes query embedding and search after
+index compatibility checks. Its first six-question real-model diagnostic found
+annotated evidence in the top five for five questions; P05 has no reference hit.
+P05's follow-up found E1/E2/E3 at ranks 17/11/46. Explicit `multicolumn` wording
+raised E1/E2 to 1/2; SQL and stored data checks passed. The owner-approved
+`scripts/check_retrieval.py` now reports full ranks and evidence hits at
+5/10/20; two real-model runs matched with unchanged public data. P05 improves
+from 0/3 annotated hits at 5/10 to 2/3 at 20; this does not select a production
+context budget or demonstrate answer quality. The custom trace/span migration
+and writers are applied, including checker `--trace` integration. Four tracing
+DB tests passed and one real P04 trace/span is committed and verified. The
+owner's one-question test is complete; a full traced batch remains optional.
+The owner rejected MLflow on 2026-11-16. Generator selection and the evidence-
+context/answer-prompt contract follow the first tracing increment. The
 Simple/Enhanced designs are now approved, but hybrid/RRF/reranking and tool
 steps are implemented after the baseline; Agentic details come later.
 The [session handoff](HANDOFF.md) maps the inputs and existing code for this step.

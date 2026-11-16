@@ -24,6 +24,9 @@ embeddings = [
     "torch==2.10.0",
     "tokenizers==0.22.2",
 ]
+generation = [
+    "openai==3.51.0",
+]
 
 [project.scripts]
 rag-workflow-lab = "rag_workflow_lab.cli:main"

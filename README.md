@@ -40,7 +40,14 @@ Embedding index/vector save functions and the [indexing script](scripts/index_co
 are implemented. Two full 49-chunk runs with real local Nomic inference passed
 with identical index IDs/vectors, then rolled back. The owner subsequently
 ran the script for a committed index; its vectors match the verification run.
-Retrieval, generator calls and workflow/evaluation runners are not implemented.
+Dense retrieval is implemented: `retrieval.retrieve()` checks index/model
+compatibility, embeds a raw question and calls `store.search_chunks()`.
+The first six-question diagnostic found annotated evidence in the top five
+for five questions; P05's follow-up showed strong query-wording sensitivity.
+The repeatable [retrieval checker](scripts/check_retrieval.py) now records
+full ranks and annotated evidence hits at 5/10/20. Two real-model runs matched;
+P05 has no annotated hits at 5/10 and two of three at 20. Generator calls and
+full workflow/evaluation runners remain pending.
 The [source allowlist](data/corpus/sources.json) now selects four PostgreSQL 18
 documentation pages; the statistics page is scoped to `pg_stat_replication`.
 The [pilot scope](docs/PILOT_SCOPE.md) contains 20 question records: P01–P06
@@ -64,7 +71,12 @@ For a new session, read the [project context](docs/PROJECT_CONTEXT.md) and
 next concrete step. Follow the reading order in [AGENTS.md](AGENTS.md), then
 use the [session handoff](docs/HANDOFF.md) for code paths, local artifacts and
 resume commands. On 2026-11-12 PostgreSQL was healthy with revision `0001`;
-the corpus and its 49 document embeddings are committed. Retrieval is next.
+the corpus and its 49 document embeddings are committed. Dense SQL search
+and query retrieval passed live checks on 2026-11-14. P05's full ranks and
+wording probes and the development cutoff sweep are recorded. Trace/span code
+and migration `0002` are applied and verified with one real P04 question.
+Generator selection and the evidence-context/answer-prompt contract are next.
+See the [development diagnostic](data/evaluation/dev/README.md#p05-wording-diagnosis).
 
 The [papers reading list](docs/papers/rag-papers/README.md) contains background literature,
 not a retrieval corpus or evaluation dataset. The proposed implementation
@@ -162,13 +174,18 @@ document is a finished review or approved protocol.
   locally. Environment settings and read-only connection checks are implemented;
   Alembic 1.20.1 handles migrations with SQLAlchemy 2.1.8 used only for migration
   connections. Revision `0001` is applied; snapshot/chunk storage is implemented,
-  and both corpus and embeddings are imported. Vector search remains pending.
+  and both corpus and embeddings are imported. Dense SQL search is implemented;
+  query embedding/search orchestration is implemented and locally checked.
 - A local embedding model for indexing and retrieval.
 - Initial pilot embedding model: `nomic-ai/nomic-embed-text-v1.5`, pinned revision,
   768-dimensional output through Sentence Transformers, CPU float32 initially.
-- Local open-source and affordable hosted LLMs are both under consideration for generation and tool calling; providers and exact models are TBD. A weak local model should not obscure system-level improvements.
+- An inexpensive paid hosted API for the initial generator (owner decision,
+  2026-11-17). The provider/model remains open; local generation may be compared later.
 - LangGraph for the agentic workflow (chosen; start with the simplest working baseline).
-- Self-hosted MLflow for tracing, with PostgreSQL as its backend store (chosen; not set up yet). A tracing platform is not itself the research contribution.
+- Project-owned PostgreSQL tracing through Psycopg/raw SQL (owner decision,
+  2026-11-16). MLflow is no longer selected. The
+  [trace/span code and migration `0002`](docs/TRACING_PLAN.md) are applied.
+  A real P04 query committed one verified trace/span; LLM/tool logging follows later.
 
 The corpus snapshot/coverage, LLM provider/models, and exact experimental
 protocol remain open; a local embedding model is installed, while the generator remains unselected. Using a hosted model may send
@@ -279,8 +296,8 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 Missing credentials, a missing driver/extension or a DB failure produce exit
 code 2; credentials and raw driver errors are omitted from output. The command
 does not require the pilot TOML file. Application tables and snapshot/chunk
-storage exist; the corpus is imported and vector search remains pending.
-MLflow is not configured.
+storage and dense query retrieval exist; generator calls remain pending.
+Trace persistence is implemented; migration `0002` and a real retrieval trace are verified.
 
 Alembic reads the same environment settings. Check the current schema revision:
 
@@ -288,7 +305,10 @@ Alembic reads the same environment settings. Check the current schema revision:
 PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python alembic current
 ```
 
-The repository head and the applied database revision are both `0001`.
+The repository head and applied database revision are both `0002`.
+The owner authorized application on 2026-11-16; the two tracing tables and
+a real P04 trace/span passed verification. The
+[tracing guide](docs/TRACING_PLAN.md) links the migration, writers and results.
 The four retrieval tables were verified on 2026-11-07. See the
 [migration setup](docs/POSTGRES_SETUP.md#alembic-migrations) for installation
 and revision commands. Raw-SQL revisions belong in `migrations/versions/`.
@@ -341,22 +361,69 @@ cleanup, CLI output and safe failures. Import-input tests verify source checks,
 provenance, duplicate IDs and allowlist boundaries. Embedding-storage validation
 checks model/revision/dimensions, task and nonfinite values. Index identity tests
 cover ordering, exact inputs, configuration changes and visible CLI progress
-with a separate JSON result. All 93 unit tests run offline without a database, driver,
+with a separate JSON result. Search-input checks reject wrong dimensions, zero/
+nonfinite vectors and nonpositive result limits. Retrieval checks verify index/
+model compatibility and question/vector forwarding. Checker tests cover cutoff
+boundaries, missing evidence, raw-question isolation and empty indexes.
+All 114 unit tests run offline without a database, driver,
 local snapshots, tokenizer packages or models.
 Real network verification is run separately with the explicit `download-source`
 command; the four saved snapshots were also checked through the offline parser CLI.
 
-Eleven opt-in storage/indexing tests require the local DB and applied revision `0001`:
+Fifteen opt-in storage/indexing/search/retrieval tests require the local DB and applied revision `0001`:
 
 ```sh
 PYTHONPATH=src RAG_LAB_TEST_DB=1 uv run --offline --no-project --env-file .env --python .venv/bin/python python -m unittest discover -s tests/integration -v
 ```
+
+Four additional tracing tests require `0002` and passed after its application
+on 2026-11-16. They use temporary table clones; a separate one-question check
+committed the first trace/span to public tables.
 
 They use temporary tables cloned from the schema, close without committing,
 and verify corpus/index/vector round trips, identical/conflicting repeats,
 input hashes, index isolation and transaction rollback. Embedding tests use
 synthetic vectors and perform no model inference. They also exercise the indexer
 with a fake embedder, including empty-corpus and stale-token-count failures.
+Search checks verify cosine ranking, result limits, citation metadata, index
+isolation and caller-owned transactions. A fake-query-embedding check also
+exercises metadata loading and retrieval through real SQL.
+
+The Python API accepts an already loaded model and connection:
+
+```python
+from rag_workflow_lab.retrieval import retrieve
+
+matches = retrieve(connection, embedder, index_id, question, limit=5)
+```
+
+The caller loads `NomicEmbedder.from_local(settings.embedding)` once and reuses
+it. A separate opt-in real-model check ran P01–P06
+against the existing index without changing DB data. Its
+[diagnostic results](data/evaluation/dev/README.md#first-dense-retrieval-check)
+are development observations, not a held-out or answer-quality result.
+
+Repeat the development retrieval check using the existing index:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --index-id nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447
+```
+
+This checks pinned dataset references, loads the cached model once, opens a
+read-only connection and retrieves each original question once over the full
+selected index. It computes annotated evidence hits at 5/10/20 from those
+ranks and writes a new JSON report under `outputs/retrieval/`. Phase/question
+progress goes to stderr; stdout contains the report path. Its lockfile retains
+the indexer's package versions. Cached model/dependencies, source artifacts,
+the existing DB and `.env` settings are required. See the
+[results and interpretation](data/evaluation/dev/README.md#repeatable-retrieval-checker).
+
+The checker also accepts `--trace` to persist one question trace and retrieval
+span per question and link their IDs into the JSON report. Migration `0002` is
+now applied, so this mode is available. Without it, the
+checker keeps its existing read-only behavior and opens no trace writer. See
+[prepared tracing behavior](docs/TRACING_PLAN.md#checker-modes).
 
 ## First milestone
 

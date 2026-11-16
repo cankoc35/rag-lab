@@ -1,6 +1,6 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-13. The owner approved the initial
+**Status:** Working draft, updated 2026-11-16. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
 sample sizes, and the complete final protocol remain open. This is a planning
@@ -52,6 +52,18 @@ must be versioned and assessed on development data before freezing final tests.
 Tool-dependent cases still need fixtures/contracts and their separate reporting;
 the document-path decision does not finalize the future tool workflow.
 
+## Implemented development retrieval diagnostic
+
+The owner approved checking P01–P06 at 5/10/20 on 2026-11-14.
+[check_retrieval.py](../scripts/check_retrieval.py) now validates the pinned
+references, retrieves each unchanged raw question once across the selected
+index and records annotated evidence ranks/cutoff IDs with run provenance.
+Two locked real-model runs matched. These are annotation-ID diagnostics,
+not semantic correctness grades, finalized recall definitions or a held-out
+experiment. Valid alternative evidence remains relevant. The cutoff sweep
+does not choose a production context budget or change the five-result baseline.
+See the [development results](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
+
 ## Candidate metrics and definitions to finalize
 
 | Metric | Proposed measurement | Decision still open |
@@ -83,6 +95,15 @@ router, embedding, and judge model IDs/settings; prompt versions; code commit;
 source and tool IDs; raw answer; raw tool results; token usage; timings; prices;
 errors/retries; judgment; and timestamp. Store raw outputs unchanged and
 derive summary tables from them. Exact schema/storage location remains TBD.
+
+**Owner decision, 2026-11-16:** Use project-owned PostgreSQL tracing instead
+of MLflow. A question execution has a `trace_id` and its operations have
+`span_id`s; the existing `run_id` remains the batch link. The
+[two-table migration and writers](TRACING_PLAN.md) are applied following the
+owner's explicit instruction. One real P04 trace/span and four DB tests passed.
+The checker can link `--trace` executions to question records; default checks
+remain read-only. No generated-answer/tool traces or quality grades exist yet.
+Keep JSON experiment records and later judgments linked to those identities.
 
 ## Consistency checks before final testing
 

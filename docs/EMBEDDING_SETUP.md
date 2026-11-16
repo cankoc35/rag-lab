@@ -151,4 +151,17 @@ passed with network blocked and rollback; record:
 and reproducibility, not retrieval quality. Committed indexing is now complete;
 record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
 The script emits flushed phase/chunk progress on stderr and final JSON on
-stdout. The current index needs no rerun. P01–P06 checks follow retriever implementation.
+stdout. The current index needs no rerun.
+
+## Query retrieval check
+
+`retrieve(connection, embedder, index_id, question, limit=5)` now checks index/
+model compatibility and composes `embed_query()` with dense SQL search. Load
+the local model once with the same pinned settings and reuse it across calls.
+The first P01–P06 check ran on 2026-11-14 with Python network access blocked
+and read-only DB access. P01 repeated with identical vector/results; public
+records were unchanged. Annotated evidence appeared in the first five results
+for five questions, while P05 has no annotated hit. Inspect that limitation
+before changing retrieval. See the
+[development diagnostic](../data/evaluation/dev/README.md#first-dense-retrieval-check)
+and `outputs/validation/query-retrieval-2026-11-14.json`. No generator ran.

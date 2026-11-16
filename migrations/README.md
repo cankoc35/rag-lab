@@ -24,6 +24,15 @@ records adapter, prefix, normalization and runtime settings. Its
 Current vector storage is fixed at 768 dimensions.
 
 Application was explicitly authorized by the owner; database revision, tables,
-keys and vector dimensions were verified. The tables are initially empty.
+keys and vector dimensions were verified. The tables were initially empty;
+the later corpus import/indexing populated them.
+
+Revision [0002](versions/0002_create_tracing_tables.py) was applied on
+2026-11-16 following the owner's instruction, superseding the prior review hold.
+It adds question `traces` and operation `spans` with JSONB payloads, lifecycle
+checks and parent-span isolation. Repository/database revisions are both `0002`.
+Four tracing DB tests passed and one real P04 retrieval trace/span is committed
+and verified. Corpus/index records are unchanged. See the
+[tracing guide](../docs/TRACING_PLAN.md) for code, tests and verification details.
 
 See [the setup guide](../docs/POSTGRES_SETUP.md#alembic-migrations) for commands.

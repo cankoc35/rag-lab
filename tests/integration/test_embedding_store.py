@@ -1,4 +1,4 @@
-"""Opt-in embedding storage checks in temporary tables; no model inference."""
+"""Opt-in embedding storage/search checks in temporary tables; no inference."""
 
 from dataclasses import replace
 from hashlib import sha256
@@ -11,8 +11,9 @@ from unittest.mock import Mock
 
 from rag_workflow_lab.config import EmbeddingSettings, load_database_settings
 from rag_workflow_lab.embeddings import ADAPTER_VERSION, MODEL_ID, MODEL_REVISION, EmbeddingResult
-from rag_workflow_lab.store import save_chunks, save_embedding_index, save_embeddings, save_snapshots
-from scripts.index_corpus import index_corpus
+from rag_workflow_lab.retrieval import retrieve
+from rag_workflow_lab.store import get_embedding_index, save_chunks, save_embedding_index, save_embeddings, save_snapshots, search_chunks
+from scripts.index_corpus import build_index, index_corpus
 
 
 @unittest.skipUnless(os.environ.get("RAG_LAB_TEST_DB") == "1", "Set RAG_LAB_TEST_DB=1 for local DB tests.")
@@ -106,6 +107,72 @@ class EmbeddingStoreTests(unittest.TestCase):
         save_embedding_index(self.connection, {**self.index, "index_id": "other-index"})
         save_embeddings(self.connection, "other-index", [("chunk", replace(self.result, vector=(1.0,) + (0.0,) * 767))])
         self.assertEqual(self.counts(), (2, 2))
+
+    def test_search_orders_by_cosine_distance_and_preserves_source_metadata(self):
+        chunks = [{
+            "chunk_id": name, "snapshot_id": "snapshot", "text": "SELECT 'quoted';\n  -- Unicode: π",
+            "embedding_text": f"search_document: {name}", "token_count": 12,
+            "heading_path": ["SQL"], "anchors": ["example"],
+        } for name in ("z-nearest", "a-farthest")]
+        save_chunks(self.connection, chunks)
+        save_embedding_index(self.connection, self.index)
+        save_embeddings(self.connection, "index", [("chunk", self.result)])
+        for chunk, vector in zip(chunks, ((8.0, 0.0), (0.0, 1.0))):
+            result = replace(self.result,
+                             input_sha256=sha256(chunk["embedding_text"].encode()).hexdigest(),
+                             vector=vector + (0.0,) * 766)
+            save_embeddings(self.connection, "index", [(chunk["chunk_id"], result)])
+
+        matches = search_chunks(self.connection, "index", (1.0,) + (0.0,) * 767, limit=2)
+        self.assertEqual([match["chunk_id"] for match in matches], ["z-nearest", "chunk"])
+        self.assertAlmostEqual(matches[0]["distance"], 0.0)
+        self.assertAlmostEqual(matches[1]["distance"], 0.4, places=6)
+        self.assertEqual(matches[0], {
+            "chunk_id": "z-nearest", "snapshot_id": "snapshot", "text": chunks[0]["text"],
+            "token_count": 12, "metadata": {"heading_path": ["SQL"], "anchors": ["example"]},
+            "source_id": "fixture", "title": "Fixture", "url": "https://example.org", "distance": 0.0,
+        })
+
+    def test_search_keeps_indexes_separate_and_returns_no_missing_matches(self):
+        save_embedding_index(self.connection, self.index)
+        save_embedding_index(self.connection, {**self.index, "index_id": "other-index"})
+        query = (1.0,) + (0.0,) * 767
+        self.assertEqual(search_chunks(self.connection, "index", query), [])
+        save_embeddings(self.connection, "index", [("chunk", self.result)])
+        save_embeddings(self.connection, "other-index", [("chunk", replace(self.result, vector=query))])
+
+        matches = search_chunks(self.connection, "index", query)
+        self.assertEqual(len(matches), 1)
+        self.assertAlmostEqual(matches[0]["distance"], 0.4, places=6)
+        self.assertAlmostEqual(search_chunks(self.connection, "other-index", query)[0]["distance"], 0.0)
+        self.assertEqual(search_chunks(self.connection, "missing' OR TRUE --", query), [])
+
+    def test_search_does_not_commit_the_callers_transaction(self):
+        save_embedding_index(self.connection, self.index)
+        save_embeddings(self.connection, "index", [("chunk", self.result)])
+        self.assertEqual(len(search_chunks(self.connection, "index", self.result.vector)), 1)
+        self.connection.rollback()
+        with self.connection.cursor() as cursor:
+            cursor.execute("SELECT to_regclass('pg_temp.chunk_embeddings')")
+            self.assertIsNone(cursor.fetchone()[0])
+
+    def test_retrieval_reads_index_settings_and_searches_the_query_vector(self):
+        text = "search_document: SELECT 'quoted';\n  -- Unicode: π"
+        index = build_index([("chunk", text, 12)], self.embedder.settings, {})
+        save_embedding_index(self.connection, index)
+        save_embeddings(self.connection, index["index_id"], [("chunk", self.result)])
+        self.assertEqual(get_embedding_index(self.connection, index["index_id"]), index)
+        self.embedder.embed_query = Mock(return_value=replace(
+            self.result, task="query", vector=(1.0,) + (0.0,) * 767))
+
+        matches = retrieve(self.connection, self.embedder, index["index_id"], "Can replay_lag be NULL?")
+        self.embedder.embed_query.assert_called_once_with("Can replay_lag be NULL?")
+        self.assertEqual(matches[0]["chunk_id"], "chunk")
+        self.assertEqual(matches[0]["source_id"], "fixture")
+        self.assertAlmostEqual(matches[0]["distance"], 0.4, places=6)
+        with self.assertRaisesRegex(ValueError, "Unknown embedding index"):
+            retrieve(self.connection, self.embedder, "missing", "question")
+        self.assertEqual(self.embedder.embed_query.call_count, 1)
 
     def test_indexer_uses_stored_inputs_and_reuses_the_same_index(self):
         first = index_corpus(self.connection, self.embedder, {})

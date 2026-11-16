@@ -5,7 +5,7 @@ This file helps a new session understand **why** the project exists and
 and the next task, [ROADMAP.md](ROADMAP.md) for stages, and
 [README.md](../README.md) for a brief overview. The
 [session handoff](HANDOFF.md) maps the current code, local artifacts and resume
-checks. Last updated: **2026-11-13**.
+checks. Last updated: **2026-11-17**.
 
 ## Purpose and boundaries
 
@@ -130,7 +130,8 @@ Observability and Enron/privacy are not active thesis directions in this repo.
 - The [pilot scope and 20 questions](PILOT_SCOPE.md) define the development
   direction. P01–P06 now form a [source-verified subset](../data/evaluation/dev/README.md)
   with reference answers and pinned snapshot/block/chunk evidence. P07–P20
-  remain drafts; no generator/retrieval result or verified tool output exists yet.
+  remain drafts. A first six-question dense-retrieval diagnostic now exists;
+  no generator result or verified sandbox-tool output exists yet.
 
 ## Technical choices and open selections
 
@@ -190,7 +191,8 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   `check-db` is now implemented in `cli.py`, calling `store.check_database()`
   for bounded, read-only connectivity/version/extension checks. Psycopg loads
   only when called; output omits credentials and raw driver errors.
-  Raw-SQL snapshot/chunk storage is now implemented; vector search remains unimplemented.
+  Raw-SQL storage, dense SQL search and query embedding/search orchestration
+  are now implemented.
 - **Confirmed/implemented (owner, 2026-11-06):** Alembic is selected for
   migrations. The optional `migrations` dependencies pin Alembic 1.20.1 and
   SQLAlchemy 2.1.8, installed in `.venv`. SQLAlchemy is used only by
@@ -241,10 +243,39 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   after the owner reported a blank terminal. The index keeps its creation
   provenance; no re-indexing was needed. Retrieval remains unimplemented and
   no retrieval-quality result has been established.
-- **Confirmed, not installed:** LangGraph for the agentic workflow and
-  self-hosted MLflow tracing with PostgreSQL as its backend store. PostgreSQL
-  may hold both retrieval data and MLflow metadata, but their schema/database
-  separation has not been designed.
+- **Implemented (owner, 2026-11-14):** `store.search_chunks()` accepts a raw
+  query vector and index ID, runs a parameterized cosine-distance SELECT and
+  returns source-linked chunk dictionaries. The caller owns the connection/
+  transaction. SQL behavior passed temporary-table tests and read-only stored-
+  vector self-search; public contents are unchanged. Query-model orchestration
+  in `retrieval.py` and P01–P06 checks were still pending at that SQL-only step.
+- **Implemented/checked (owner, 2026-11-14):** `retrieval.retrieve()` validates
+  the selected index's model/revision/dimensions and embedding settings before
+  calling `embed_query()` and dense search. The caller reuses one loaded model.
+  The first real-Nomic P01–P06 diagnostic found annotated chunks in the top five
+  for five questions; P05 had no reference hit. This is a development finding,
+  not an answer-quality grade. DB contents and gold data are unchanged.
+  Follow-up full ranks (17/11/46) and exploratory wording probes show strong
+  sensitivity: adding `multicolumn` raises the two multicolumn references to
+  1/2. SQL distance and data checks passed. These findings motivate a controlled
+  development comparison; no query-rewriting policy or other fix is selected.
+- **Approved/implemented (owner, 2026-11-14):** A repeatable P01–P06 retrieval
+  checker now reports full ranks and annotated evidence hits at 5/10/20 using
+  the same original questions/model/index. These are development diagnostics;
+  the application's five-result baseline and final context budget remain
+  separate. Two locked real-model runs matched with unchanged public data.
+  The next task is initial generator selection and an evidence-context/prompt
+  contract, not adopting a cutoff from annotation counts alone.
+- **Confirmed, not installed:** LangGraph for the agentic workflow.
+- **Owner decision, 2026-11-16:** Do not use MLflow. Use a small project-owned
+  PostgreSQL tracing layer with Psycopg/parameterized raw SQL. The earlier
+  MLflow selection is superseded. Raw-SQL migration `0002`, lifecycle writers
+  and opt-in checker integration are implemented in [TRACING_PLAN.md](TRACING_PLAN.md).
+  After review, the owner explicitly authorized applying it and testing one
+  question. Revision `0002` is applied; four tracing DB tests and a committed
+  real P04 trace/span passed verification. Corpus/index contents are unchanged.
+  Generator/provider and context/prompt work are next. LLM/tool instrumentation
+  remains future work; the JSONB payload/usage/cost fields are prepared for it.
 - **Confirmed/implemented (owner, 2026-11-06):** The owner authorized the
   next embedding step after the Nomic recommendation. The initial pilot uses
   `nomic-ai/nomic-embed-text-v1.5` at revision
@@ -256,12 +287,14 @@ Observability and Enron/privacy are not active thesis directions in this repo.
   weights/reports are Git-ignored. See [EMBEDDING_SETUP.md](EMBEDDING_SETUP.md).
 - **Proposed:** Start with a local embedding model and a simple CLI. Establish
   a working retrieval-and-answer baseline before enhanced/agentic behavior.
+- **Owner decision, 2026-11-17:** Use an inexpensive paid hosted API for the
+  initial generator. The provider and exact model are still open. GPT-6 Luna
+  is a recommendation, not an approved model or a measured quality result.
+  Keep generator settings shared across workflow comparisons; local models
+  may be evaluated later.
 - **Open:** The full PostgreSQL snapshot/coverage, sandbox data model, precise
-  DB tool contracts, generator/LLM provider and exact generator model IDs. The
-  owner wants to try local open models and affordable hosted APIs. Small local
-  models on a MacBook Air M3 could limit quality, so isolate model effects from
-  the workflow comparison. Do not send private corpus content to a hosted API
-  without an explicit decision.
+  DB tool contracts, generator/LLM provider and exact generator model IDs.
+  Do not send private corpus content to a hosted API without an explicit decision.
 - **Hardware (owner, 2026-11-05):** The MacBook Air M3 has 24 GB RAM or more;
   the exact capacity above that threshold was not specified. The
   [embedding plan](EMBEDDING_PLAN.md) proposes one dense model/index to start.
