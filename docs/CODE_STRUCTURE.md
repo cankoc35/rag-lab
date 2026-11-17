@@ -12,14 +12,14 @@ components without copying retrieval/model code into each workflow. Build the
 first baseline from small Python functions; add the LangGraph dependency when
 implementing the agentic workflow.
 
-**Initial workflow design approved, 2026-11-13:** `simple.py` will compose
+**Initial workflow design approved, 2026-11-13:** `simple.py` composes
 dense retrieval and one answer call. `enhanced.py` will compose dense/full-text
 hybrid retrieval, RRF merge/deduplication and reranking with the same answer
 setup, plus relevant tool steps controlled by predefined Python conditions.
 Native LLM function calling is not required for that initial Enhanced design.
 Agentic details are deferred. Reranker/final generator settings, numeric budgets
-and exact tool conditions remain open. These are planned module responsibilities;
-the implementations are still scaffolds. See
+and exact tool conditions remain open. Simple has one verified live P04 run;
+the remaining workflows are scaffolds. See
 [METHOD_DESIGN.md](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 
 The tree below was initially a staged file-creation plan. At the owner's later
@@ -190,8 +190,14 @@ immutable raw-SQL storage and dense query retrieval are implemented. Four
 snapshots produce 49 chunks and one index/49 vectors. The repeatable checker
 records P01–P06 ranks/annotated hits; retrieval tracing is applied and verified.
 
-`llm.generate_text()` and the locked Luna smoke are implemented and checked
-offline. The API key/live smoke, context assembly, answer prompt and LLM
-tracing are next. Workflows, tools, full evaluation and LangGraph remain
-scaffolds. See [chunking](CHUNKING.md), [embedding setup](EMBEDDING_SETUP.md),
+`llm.build_answer_input()` labels whole retrieved chunks S1–S5 and excludes
+gold. `workflows.simple.answer_question()` combines retrieval and one
+`llm.generate_text()` call using `answer_v1`; the workflow owns one trace with
+retrieval and LLM spans. `scripts/run_simple_rag.py` and its lock provide an
+explicit opt-in single-question or batch runner. It reuses model/connections,
+shares a batch run ID and preserves per-question JSON records. The former P04
+smoke script was renamed and generalized; the live batch is pending. One live answer passed
+editorial review; broader answer evaluation and other workflows remain open.
+Tools, full evaluation and LangGraph remain scaffolds.
+See [chunking](CHUNKING.md), [embedding setup](EMBEDDING_SETUP.md),
 [DB setup](POSTGRES_SETUP.md) and [tracing](TRACING_PLAN.md) for contracts.

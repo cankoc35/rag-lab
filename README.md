@@ -16,8 +16,8 @@ For a new session, follow [AGENTS.md](AGENTS.md), then read
 | Corpus | Four PostgreSQL 18 HTML snapshots; parsing and 49 section-aware chunks | Synthetic runbooks and sandbox fixtures |
 | Embeddings / DB | Pinned local Nomic, 768 dimensions; four snapshots, 49 chunks, one index/49 vectors | Broader corpus coverage |
 | Retrieval | Dense search, query embedding and repeatable P01–P06 checker at 5/10/20 | Hybrid search and reranking |
-| Tracing | Applied revision `0002`; verified retrieval trace/span | LLM and tool instrumentation |
-| Generation | Luna Responses API client and locked opt-in smoke | API key/live smoke, context/prompt and answer workflow |
+| Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
+| Generation | Simple workflow and single/batch runner; live P04 passed editorial review | Live six-question answer check and LLM-only control |
 | Evaluation | Six source-verified development questions out of 20 pilot records | P07–P20 verification, held-out set and final protocol |
 
 The first dense diagnostic found annotated evidence in the top five for five
@@ -25,9 +25,9 @@ of six questions. P05 showed wording sensitivity; these are development
 observations, not answer-quality or held-out results. See the
 [diagnostic](data/evaluation/dev/README.md#p05-wording-diagnosis).
 
-**Next:** Set `OPENAI_API_KEY`, run the Luna smoke, then build one source-cited
-P04 answer. Full workflows, tools, LangGraph orchestration and the router are
-not implemented. Current checks and dated evidence are in [STATUS](docs/STATUS.md).
+**Next:** Check Simple on P01–P06, then add the LLM-only control. One P04
+answer is verified; broader answer quality remains unmeasured. Enhanced, tools,
+LangGraph and the router remain unimplemented. See [STATUS](docs/STATUS.md).
 
 ## Working design
 
@@ -164,7 +164,47 @@ message with a 30-second timeout, zero retries, Standard processing and
 JSON output contains text, completion status, model/response IDs, usage,
 settings, SDK version and elapsed time. Partial/empty replies return exit code
 2; provider errors print only their type. This tests connectivity, not RAG
-quality, and reads no corpus/dataset or DB. No hosted call is verified yet.
+quality, and reads no corpus/dataset or DB. The first live call passed on
+2026-11-17; usage and the local report path are in [STATUS](docs/STATUS.md).
+
+## Run Simple RAG
+
+With the existing corpus/index, cached Nomic model, applied `0002` and API key:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_simple_rag.py \
+  --index-id nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447 --question-id P04 --call-api
+```
+
+Replace `--question-id P04` with `--all` to run all six pinned development
+questions in dataset order. Select exactly one mode; unknown IDs fail before
+loading the model or opening DB/API clients. The former `simple_rag_smoke.py`
+and its lockfile were renamed to `run_simple_rag.py` and its matching lockfile.
+
+This **makes one paid request per question and writes traces**. `--offline` only prevents
+dependency downloads; it does not block the API. On a fresh machine, omit it
+once to install locked dependencies. The model is loaded once and DB/API
+clients are reused. For each question, the runner retrieves five whole chunks
+and labels them S1–S5. Only the raw question and
+retrieved evidence enter Luna's input; gold stays outside generation.
+`answer_v1.md` requests cited answers or insufficient-evidence responses.
+
+Each question gets a `simple` trace with retrieval and LLM spans; traces share
+the batch `run_id`. The LLM span stores the exact
+instructions/input, label-to-source map, response and reported usage. Unknown
+cost remains NULL. Partial/empty answers fail explicitly. The client uses the
+same timeout/retry/settings policy as the connectivity smoke.
+The schema-version-2 JSON report under `outputs/answers/` contains a `questions`
+list with each answer, sources, usage, duration and trace ID. Reports do not
+overwrite older runs; exact prompts are in PostgreSQL. A returned incomplete
+answer is saved and makes the exit code 2. Provider/DB exceptions stop the
+batch without retries; existing autocommitted traces remain inspectable, but
+that interrupted batch has no final JSON report. No automatic grading is added.
+
+The first P04 call passed a post-run editorial check on
+2026-11-17. This single development check does not establish overall quality
+or isolate prior knowledge. The live six-question batch has not run.
+See [tracing](docs/TRACING_PLAN.md).
 
 ## Verification
 
@@ -190,5 +230,5 @@ PYTHONPATH=src RAG_LAB_TEST_DB=1 uv run --offline --no-project --env-file .env -
 Current test counts and verification limits are in [STATUS](docs/STATUS.md).
 Paid calls and downloads remain explicit. Record sources, versions, failures,
 latency and cost before claiming improvements; keep secrets and private traces
-outside Git. The first end-to-end milestone is a CLI that cites retrieved
-sources and can report insufficient evidence.
+outside Git. The one-question Simple path is implemented; broader answer and
+abstention behavior still need real development checks.

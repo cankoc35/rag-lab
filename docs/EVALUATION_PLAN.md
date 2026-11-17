@@ -105,7 +105,11 @@ of MLflow. A question execution has a `trace_id` and its operations have
 [two-table migration and writers](TRACING_PLAN.md) are applied following the
 owner's explicit instruction. One real P04 trace/span and four DB tests passed.
 The checker can link `--trace` executions to question records; default checks
-remain read-only. No generated-answer/tool traces or quality grades exist yet.
+remain read-only. One later Simple P04 answer has retrieval/LLM spans under
+one trace, with exact prompt/source map, output and reported usage. Both
+mandatory requirements and optional guidance passed post-run editorial review;
+this is not a benchmark grade. No tool trace or comparative answer evaluation
+exists yet. See [STATUS](STATUS.md) for the record and remaining controls.
 Keep JSON experiment records and later judgments linked to those identities.
 
 ## Consistency checks before final testing

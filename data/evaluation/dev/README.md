@@ -185,7 +185,8 @@ answer completeness or justify a production context-budget change. The
 application's `limit=5` baseline, questions, corpus and index are unchanged.
 
 The runs preserved all public table counts/fingerprints at `(4, 49, 1, 49)`;
-104 offline unit tests passed. No generated answers or final-test results exist.
+104 offline unit tests passed at that retrieval-only step; it produced no
+generated answers or final-test results. A later P04 answer check is described below.
 Reports:
 
 - `outputs/retrieval/dense-20261114T152432906864Z.json`
@@ -206,3 +207,22 @@ Record: `outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
 The four tracing DB tests also passed in temporary table clones. The complete
 six-question `--trace` checker batch has not run; these results describe only
 the requested one-question smoke. See [TRACING_PLAN.md](../../../docs/TRACING_PLAN.md).
+
+## First Simple answer check — 2026-11-17
+
+P04 ran through dense top-five retrieval, whole-chunk context and one Luna
+answer call using `answer_v1`. Only the raw question and retrieved public
+evidence entered generation. Runtime labels S1/S2 map to P04-E1/E2; they are
+not gold annotation IDs shown to the model. Post-run editorial review found
+P04-R1/R2 and the optional monitoring guidance satisfied. This is one
+development check, not an automated grade, a held-out result or proof that
+retrieval caused correctness; the LLM-only control has not run.
+
+Trace: `0a5c1437-8383-4702-b9a7-e676a24ddbee`. Raw answer/usage:
+`outputs/answers/simple-P04-20261117T172725743636Z.json`. Independent persisted
+record checks and editorial review use the same name under `outputs/validation/`.
+The five-chunk baseline, questions, gold, snapshots and index are unchanged.
+The [single/batch runner](../../../README.md#run-simple-rag) is now prepared
+with offline tests. Next: run P01–P06, retaining P05's known retrieval failure
+case, then add LLM-only. The live answer batch has not run.
+See [STATUS](../../../docs/STATUS.md).

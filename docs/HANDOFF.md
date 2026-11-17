@@ -42,9 +42,15 @@ show wording sensitivity; review the [diagnostic](../data/evaluation/dev/README.
 Revision `0002` and retrieval tracing are applied; one real P04 trace/span is
 verified. The full traced six-question batch has not run.
 
-The Luna client and locked opt-in smoke passed offline checks. No hosted
-response is verified; the API key was absent at setup. Context/answer prompt,
-full workflows, tools, LLM spans and final evaluation remain unimplemented.
+The Luna client and one full Simple P04 answer passed live checks on 2026-11-17;
+credentials are in the ignored `.env`, with a blank tracked template. Simple
+assembles source-linked whole chunks, uses `answer_v1` and records retrieval
+and LLM spans under one trace. P04 passed editorial requirements/citation review;
+this is not a benchmark or a prior-knowledge control. Enhanced, LLM-only, tools
+and final evaluation remain unimplemented.
+The P04 script/lock are now `run_simple_rag.py` and its matching lockfile.
+The runner accepts one question ID or all pinned questions; it passed offline
+tests, but the live six-question answer batch has not run.
 P07–P20 are drafts; the held-out set is empty. See STATUS for live-check dates
 and counts; never infer current service health from this paragraph.
 
@@ -59,20 +65,23 @@ and counts; never infer current service health from this paragraph.
 | [store.py](../src/rag_workflow_lab/store.py) | Read-only DB check, immutable writes, index metadata and dense SQL search |
 | [retrieval.py](../src/rag_workflow_lab/retrieval.py) | Check index/model compatibility, embed raw question, search; no gold data |
 | [tracing.py](../src/rag_workflow_lab/tracing.py) | Lifecycle writers and retrieval wrapper; independent autocommit writer |
-| [llm.py](../src/rag_workflow_lab/llm.py) | One Responses API call through a caller-owned client; text/status/IDs/usage, no DB I/O |
+| [llm.py](../src/rag_workflow_lab/llm.py) | Whole-chunk JSON context/labels and one Responses API call; no DB I/O or gold |
+| [workflows/simple.py](../src/rag_workflow_lab/workflows/simple.py) | Dense top-five retrieval, `answer_v1`, one answer call and workflow-owned trace |
 | [import_corpus.py](../scripts/import_corpus.py) | Validate snapshots/chunks and commit one corpus transaction |
 | [index_corpus.py](../scripts/index_corpus.py) | Embed all stored chunks and commit index/vectors; flushed progress |
 | [check_retrieval.py](../scripts/check_retrieval.py) | Full ranks and annotated hits at 5/10/20; optional `--trace` |
 | [llm_smoke.py](../scripts/llm_smoke.py) | Explicit `--call-api`; one fixed English test, no corpus/DB access |
+| [run_simple_rag.py](../scripts/run_simple_rag.py) | Explicit `--call-api` and `--question-id`/`--all`; shared batch resources/run ID, per-question trace and answer records |
 | [migrations/versions/](../migrations/versions/) | Applied raw-SQL `0001` retrieval and `0002` trace/span schemas |
 
 Store/search/retrieval functions accept existing connections; callers own
 transactions. Identical stored records are accepted and conflicting IDs fail.
 Dense SQL sorts by cosine distance then chunk ID and preserves citation fields.
-Tracing records safe ranked references, not duplicate full chunk texts. Logging
-failure aborts; finished observations cannot be overwritten and unknown
-usage/cost stays NULL. The current wrapper finishes a retrieval-only trace;
-a future answer workflow must own its root trace through the LLM step.
+The retrieval span records ranked references; the LLM span stores exact
+instructions/input including chunk texts, source-label mapping and response/usage.
+Logging failure aborts; finished observations cannot be overwritten and unknown
+usage/cost stays NULL. `retrieve_with_trace(..., trace_id=...)` leaves the supplied
+trace open for its workflow owner; standalone calls still finish their own root.
 See [TRACING_PLAN](TRACING_PLAN.md). `sql/retrieval/001_initial.sql` is only an
 old comment scaffold; Alembic revisions are authoritative.
 
@@ -84,7 +93,7 @@ old comment scaffold; Alembic revisions are authoritative.
 | Chunk JSON + summary | `data/local/chunks/pilot-section-blocks-v1/` |
 | Model weights | `data/local/models/nomic-ai--nomic-embed-text-v1.5/<revision>/` |
 | Six questions + gold evidence | `data/evaluation/dev/document_questions.json` |
-| Local verification reports | `outputs/validation/`, `outputs/embeddings/`, `outputs/retrieval/` |
+| Local reports | `outputs/validation/`, `outputs/embeddings/`, `outputs/retrieval/`, `outputs/llm/`, `outputs/answers/` |
 
 Git ignores `.env`, `.venv`, `data/local/` and `outputs/`; a fresh clone lacks
 these and the Docker volume. Preserve snapshot IDs/hashes in STATUS and keep
@@ -104,10 +113,14 @@ from README. The app loads `.env` only when explicitly requested through uv.
 
 ## Next small step
 
-Set `OPENAI_API_KEY` locally and run the [Luna smoke](../README.md#check-the-luna-api-client).
-Then prepare source-linked context/answer prompt and one P04 answer with
-retrieval/LLM spans under the same trace. Preserve questions, snapshots, chunks,
-index and `limit=5`; the cutoff sweep did not choose a new context budget.
+One P04 Simple run is complete: trace `0a5c1437-8383-4702-b9a7-e676a24ddbee`,
+report `outputs/answers/simple-P04-20261117T172725743636Z.json`; independent
+checks use the same filename under `outputs/validation/`. Public totals are
+two traces/three spans; corpus remains `(4, 49, 1, 49)`.
+Use the [prepared runner](../README.md#run-simple-rag) with `--all` to check
+P01–P06, then add LLM-only. Preserve questions,
+snapshots, chunks, index and `limit=5`. The current context sends all five
+whole chunks without truncation; no final numeric context budget is chosen.
 Synthetic sources/tools, Enhanced and Agentic follow the Simple baseline.
 
 ## Checks and resume commands
@@ -125,6 +138,7 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 Start the existing service with `docker compose up -d --wait postgres` if
 needed, preserving its volume. The [README](../README.md#verification) has
 opt-in DB tests and [retrieval commands](../README.md#retrieval-diagnostic).
-On 2026-11-17, 124 unit tests and 19 DB tests passed; public counts/hashes are
-checked in the review record. Paid API calls are not part of ordinary tests.
+On 2026-11-17, 146 unit tests passed; the earlier DB check passed 20 tests.
+Runner preparation used no hosted calls or DB writes. Corpus/older trace hashes
+are preserved in the P04 verification record. Paid calls are not ordinary tests.
 Inspect Git before edits and load credentials without printing them.

@@ -15,8 +15,9 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 | Database | Applied Alembic `0002`; four snapshots, 49 chunks, one index and 49 vectors |
 | Retrieval | Index/model compatibility checks, query embedding and dense cosine search; default `limit=5` |
 | Diagnostics | P01–P06 full ranks and annotated hits at 5/10/20; immutable JSON reports |
-| Tracing | Lifecycle writers and opt-in `--trace`; one real P04 trace/span verified |
-| Generator | Luna Responses API client, generator config and locked single-request smoke; hosted inference not verified |
+| Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
+| Generator | Luna client, source-linked context, `answer_v1` and Simple workflow; one live P04 answer verified |
+| Answer runner | `run_simple_rag.py`: explicit single-question or all-question selection; shared resources/run ID and per-question records |
 | Questions | P01–P06 source-verified with 13 evidence records over nine chunks/blocks; P07–P20 drafts |
 
 Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
@@ -44,8 +45,8 @@ traced batch is available but has not run. Details: [TRACING_PLAN](TRACING_PLAN.
 
 ## Latest verification — 2026-11-17
 
-- **124 offline unit tests passed**, plus the six-question pinned-reference check.
-- **19 local PostgreSQL integration tests passed**, using temporary tables and
+- **146 offline unit tests passed**, including 11 runner tests, plus the six-question pinned-reference check.
+- **20 local PostgreSQL integration tests passed**, using temporary tables and
   synthetic vectors. `check-db` confirmed read-only PostgreSQL 18.6 + pgvector
   0.8.7; Alembic reported `0002 (head)`. Service health was checked this date,
   not inferred from older records.
@@ -54,8 +55,37 @@ traced batch is available but has not run. Details: [TRACING_PLAN](TRACING_PLAN.
   including outputs, error codes and mocked side effects.
 - Earlier this date, three real-SDK mock-transport checks covered completed,
   incomplete and HTTP 429 replies without network access or retries.
-- `OPENAI_API_KEY` was absent at the last setup check. No hosted inference,
-  generated answer or LLM/tool trace is verified. The smoke reads no corpus.
+- On the owner's explicit request, one live Luna smoke passed: `completed`,
+  answer `Luna API smoke test passed.`, 27 input / 11 output tokens, zero
+  reasoning tokens and 5.26 seconds. The key was moved from `.env.example`
+  to the ignored `.env`; the tracked template is blank. Report:
+  `outputs/llm/luna-smoke-20261117T170826Z.json`. Estimated Standard token cost:
+  $0.0000082 before taxes/extra services. This is connectivity verification,
+  not a RAG answer; no corpus was sent and no DB/LLM trace was written.
+- The later P04 Simple run completed with five whole chunks and one Luna call.
+  Both mandatory requirements and optional monitoring guidance passed a
+  post-run editorial check; S1/S2 map to P04-E1/E2. Gold was not sent to Luna.
+  Usage: 2,207 input / 81 output / 2,288 total, zero reasoning tokens;
+  2,204 input tokens were 30-minute cache writes, zero cache reads.
+  Retrieval took 0.719 s and generation 4.125 s; workflow total 4.854 s
+  excludes model loading. Estimated Standard cost including cache writes:
+  **$0.0003163**, not an invoice. DB cost remains NULL.
+  Trace: `0a5c1437-8383-4702-b9a7-e676a24ddbee`.
+  Report: `outputs/answers/simple-P04-20261117T172725743636Z.json`;
+  independent checks: `outputs/validation/simple-P04-20261117T172725743636Z.json`.
+  A fresh read-only connection verified exact prompt/chunk text, label mapping,
+  answer/usage and both completed spans. Public totals are now two traces/three
+  spans; corpus/index and the older trace/span fingerprints are unchanged.
+- Generalized and renamed the P04 script/lock to `run_simple_rag.py` and its
+  matching lockfile. `--question-id` and `--all` are mutually exclusive and
+  required; invalid IDs fail before model loading or DB/API client creation.
+  The runner loads Nomic once, reuses connections/client, shares one batch
+  `run_id` and saves per-question trace/source/answer/usage/duration records
+  in a schema-version-2 JSON report. Incomplete replies remain visible and
+  produce exit code 2; provider/DB exceptions stop the batch without retries.
+  The runner preparation used mocks and offline checks only; it made no API
+  calls or DB writes. The earlier 20 DB integration checks were not repeated
+  because the workflow/store/tracing implementation is unchanged.
 
 The review shortened repeated orientation prose and moved chronological
 records intact to [history](STATUS_HISTORY.md). Source IDs, corpus artifacts,
@@ -68,23 +98,26 @@ older evidence paths are listed in the history.
 
 ## Next small step
 
-Set `OPENAI_API_KEY` locally and run the [opt-in Luna smoke](../README.md#check-the-luna-api-client).
+Run the prepared runner with `--all` on P01–P06 and inspect
+answers/citations against requirements after generation. Keep gold out of
+model input and retain P05 as a known dense-retrieval failure case. Then add
+the LLM-only control before interpreting retrieval's contribution.
 Initial settings: `gpt-6-luna`, reasoning `none`, maximum 1000 output tokens;
-OpenAI SDK `3.51.0`. The smoke requires `--call-api`, uses Standard processing,
-`store=False`, a 30-second timeout and zero retries. It makes no DB writes.
+OpenAI SDK `3.51.0`. Paid runs require `--call-api`, Standard processing,
+`store=False`, a 30-second timeout and zero retries. The Simple runner writes
+traces; the connectivity-only smoke does not. Current context is all five
+whole chunks; a final numeric context token budget has not been selected.
 
 The 2026-11-17 price check was $0.10 / million input and $0.50 / million output
 tokens: 4,000 uncached input + 1,000 billed output would cost $0.0009 before
 extra services/taxes. This is an estimate, not observed usage. Recheck
 [official pricing](https://developers.openai.com/api/docs/models/gpt-6-luna) before budgeting.
 
-After connectivity, agree source-linked context/answer-prompt behavior and
-connect one P04 answer, with retrieval and LLM spans under one workflow trace.
 Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 
 ## Not yet completed
 
-- Evidence-context assembly, answer prompt, Simple/LLM-only workflows and LLM tracing.
+- Six-question Simple answer check, LLM-only control and broader answer/abstention checks.
 - Hybrid/full-text search, RRF, reranker and Enhanced tool conditions.
 - Synthetic runbooks, Markdown ingestion, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.

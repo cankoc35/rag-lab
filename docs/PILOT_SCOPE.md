@@ -11,8 +11,9 @@ verified dataset.
 source-grounded reference answers and exact snapshot/block/chunk evidence in
 [document_questions.json](../data/evaluation/dev/document_questions.json).
 The [development-data guide](../data/evaluation/dev/README.md) explains the
-annotations and later retrieval diagnostics. P07–P20 remain drafts; no
-generated-answer or held-out evaluation has run.
+annotations and later retrieval diagnostics. P07–P20 remain drafts. One Simple
+P04 answer passed post-run editorial review on 2026-11-17; the six-question
+answer check and held-out evaluation have not run.
 
 **Language decision (owner, 2026-11-05):** All repository content and RAG
 artifacts use English: corpus/synthetic documents, questions/datasets, prompts,
@@ -23,7 +24,8 @@ required.
 
 A CLI answering PostgreSQL questions with citations. The initial coding
 milestone establishes ingestion/retrieval that reads documents and finds
-relevant sections. LLM-only and Simple RAG answer runs follow. Enhanced,
+relevant sections. One Simple P04 answer is verified; broader Simple and
+LLM-only runs follow. Enhanced,
 LangGraph agent and router stages will share the same components later.
 
 ## Source coverage
@@ -152,14 +154,16 @@ renaming these questions; keep related scenario families within one split.
    One index and 49 vectors are verified. Dense query retrieval and its first
    P01–P06 diagnostic, P05 wording diagnosis and repeatable 5/10/20 checker now
    exist. Trace/span code and migration `0002` are applied and verified with
-   one real P04 trace/span. The Luna client is checked offline. **Next small step:**
-   Set the API key, run its smoke, then prepare context/prompt assembly.
+   one real P04 trace/span. The Luna client passed offline checks and one live
+   smoke. Simple context/`answer_v1` and one P04 answer with retrieval/LLM spans
+   are verified. **Next small step:** Extend the answer check to P01–P06,
+   followed by LLM-only.
    Keep gold and source/index state fixed.
    The cutoff sweep alone does not choose a production context budget. See the
    [development results](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
 3. Write two synthetic documents and add Markdown ingestion. These tasks do
    not require a model or orchestration framework.
-4. Select the generator, add LLM-only/Simple RAG answer runs with citations
+4. Extend answer checks with the initial Luna generator and add LLM-only controls
    and project-owned PostgreSQL traces. Then create DB fixtures/tools, verify tool questions,
    and implement enhanced/agentic workflows.
 

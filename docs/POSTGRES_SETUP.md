@@ -4,7 +4,8 @@
 migrations are implemented. The current service passed read-only `check-db`
 with PostgreSQL 18.6 + pgvector 0.8.7; revision is `0002`. Four snapshots,
 49 chunks, one index and 49 vectors are committed. Dense query retrieval and
-retrieval tracing are verified; the Luna client awaits its live smoke.
+retrieval/LLM tracing are verified with one Simple P04 answer; the Luna
+connectivity smoke also passed.
 See [STATUS](STATUS.md) for checks and [history](STATUS_HISTORY.md) for earlier
 setup, import, rollback and indexing records. Recheck service state when resuming.
 
@@ -277,9 +278,11 @@ from STATUS. Initial Compose checks separately verified startup, vector SQL
 and volume persistence in a temporary project; the detailed records remain
 in STATUS_HISTORY.
 
-Run the [Luna smoke](../README.md#check-the-luna-api-client), then connect
-source-linked context and one answer. The existing corpus/index need no rerun
-for this step. Import/index/retrieval commands are in
+The Simple P04 check passed with
+retrieval and LLM spans under one trace. Existing `0002` columns hold the exact
+prompt, source map, output and usage; no new migration was needed. The corpus/index
+need no rerun for broader Simple answer checks using the
+[prepared runner](../README.md#run-simple-rag). Import/index/retrieval commands are in
 [README](../README.md#postgresql-and-corpus); local paths and model settings
 are in [HANDOFF](HANDOFF.md).
 

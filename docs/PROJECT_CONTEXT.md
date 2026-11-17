@@ -88,7 +88,7 @@ and [evaluation](EVALUATION_PLAN.md); neither is a finalized protocol.
 | Embeddings | Local `nomic-ai/nomic-embed-text-v1.5`, pinned revision, CPU float32, 768 dimensions |
 | Chunking | Whole blocks within sections; target 512 / ceiling 1024 tokens including context; no overlap or silent truncation |
 | Generator | Initial `gpt-6-luna` via OpenAI Responses API; reasoning `none`, maximum 1000 output tokens; SDK `3.51.0` |
-| Tracing | Project-owned `traces` / `spans` through raw SQL; separate writer for retrieval logs |
+| Tracing | Project-owned `traces` / `spans` through raw SQL; separate writer for retrieval and LLM records |
 | Agent orchestration | LangGraph selected, not installed |
 
 Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`. Preserve exact
@@ -101,8 +101,14 @@ See [chunking](CHUNKING.md), [embedding setup](EMBEDDING_SETUP.md) and
 [database setup](POSTGRES_SETUP.md) for contracts and dependency pins.
 
 **Owner, 2026-11-17:** Start with an inexpensive paid hosted generator. The
-Luna client and opt-in smoke are prepared and checked offline; no hosted call
-or quality result is verified. Use the same generator/settings across workflow
+owner retained Luna pending measured spending. The client passed its first
+explicit live smoke: 27 input / 11 output tokens on 2026-11-17. A later Simple
+P04 run used five whole chunks, `answer_v1` and one answer call; retrieval and
+LLM records share a workflow-owned trace. Both mandatory requirements and
+optional monitoring guidance passed post-run editorial review. This is one
+development check, not a quality benchmark. Current context is five whole
+chunks without truncation; a final numeric token budget remains open.
+Use the same generator/settings across workflow
 comparisons; final experimental models/settings remain open. Do not send
 private corpus content to a hosted provider without an explicit decision.
 
@@ -113,7 +119,7 @@ comparison may follow later without confounding workflow comparisons.
 **Still open:** Full corpus coverage, synthetic runbooks/DB fixtures and tool
 contracts, reranker, candidate/context/fusion budgets, Enhanced tool conditions,
 Agentic/router design, final model count, rubric/judges, metrics, quality margin,
-held-out set and sample size. No generated-answer or thesis result exists.
+held-out set and sample size. No comparative or held-out thesis result exists.
 
 ## Where to find the literature
 

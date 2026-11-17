@@ -46,7 +46,7 @@ flowchart LR
 
 | Workflow | Initial behavior | Decision status |
 | --- | --- | --- |
-| Simple | One dense retrieval pass, then answer or abstain. No hybrid search, reranking or sandbox tools in the initial baseline. | Approved by the owner, 2026-11-13; not implemented yet. |
+| Simple | One dense retrieval pass, then answer or abstain. No hybrid search, reranking or sandbox tools in the initial baseline. | Implemented; one P04 answer passed editorial review on 2026-11-17. Broader answer/abstention checks remain. |
 | Enhanced | Dense + PostgreSQL full-text retrieval, RRF merge/deduplication, reranking, then answer. Relevant tool steps follow predefined Python conditions/order. | Initial design approved, 2026-11-13; models, budgets and exact tool conditions remain open. |
 | Agentic | Shared relevant tool access; the model chooses actions from observations within limits. | General direction retained; detailed design deferred until that stage. |
 | Router | Chooses a workflow using permitted input signals. | Proposed; designed after fixed workflows and Agentic. |

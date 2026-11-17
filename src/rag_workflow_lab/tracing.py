@@ -61,24 +61,27 @@ def finish_span(connection, span_id: str, *, outputs=None, usage=None, cost=None
 
 
 def retrieve_with_trace(connection, writer, embedder, index_id: str, question: str, limit: int = 5,
-                        *, run_id=None, question_id=None, configuration=None) -> tuple[list[dict], str]:
+                        *, trace_id=None, run_id=None, question_id=None, configuration=None) -> tuple[list[dict], str]:
     """Record one dense retrieval using a separate autocommit writer.
 
     Logging errors abort the call rather than silently dropping observations.
     Only explicit safe fields are recorded; driver/exception messages are omitted.
+    An existing trace_id stays open for its owning workflow to finish.
     """
     if writer is connection or not writer.autocommit:
         raise ValueError("Tracing requires a separate autocommit writer connection.")
-    settings = embedder.settings
-    trace_id = start_trace(writer, question, "dense_retrieval", run_id=run_id,
-                           question_id=question_id, configuration={
-        **(configuration or {}),
-        "embedding": {"model_id": settings.model_id, "revision": settings.revision,
-                      "dimensions": settings.dimensions, "device": settings.device,
-                      "max_tokens": settings.max_tokens},
-        "retrieval": {"index_id": index_id, "method": "dense", "limit": limit,
-                      "distance_metric": "cosine"},
-    })
+    owns_trace = trace_id is None
+    if owns_trace:
+        settings = embedder.settings
+        trace_id = start_trace(writer, question, "dense_retrieval", run_id=run_id,
+                               question_id=question_id, configuration={
+            **(configuration or {}),
+            "embedding": {"model_id": settings.model_id, "revision": settings.revision,
+                          "dimensions": settings.dimensions, "device": settings.device,
+                          "max_tokens": settings.max_tokens},
+            "retrieval": {"index_id": index_id, "method": "dense", "limit": limit,
+                          "distance_metric": "cosine"},
+        })
     span_id = start_span(writer, trace_id, "retrieval", "dense_retrieval", {
         "question": question, "index_id": index_id, "limit": limit,
         "query_input_sha256": sha256((QUERY_PREFIX + question).encode()).hexdigest(),
@@ -88,11 +91,13 @@ def retrieve_with_trace(connection, writer, embedder, index_id: str, question: s
     except Exception as exc:
         error = {"type": type(exc).__name__, "message": "Dense retrieval failed."}
         finish_span(writer, span_id, error=error)
-        finish_trace(writer, trace_id, error=error)
+        if owns_trace:
+            finish_trace(writer, trace_id, error=error)
         raise
     chunks = [{"rank": rank, **{key: match[key] for key in (
         "chunk_id", "snapshot_id", "source_id", "url", "title", "token_count", "distance",
     )}} for rank, match in enumerate(matches, 1)]
     finish_span(writer, span_id, outputs={"score_type": "cosine_distance", "chunks": chunks})
-    finish_trace(writer, trace_id)
+    if owns_trace:
+        finish_trace(writer, trace_id)
     return matches, trace_id

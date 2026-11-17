@@ -588,3 +588,80 @@ earlier proposals, missing features and preparation-only holds.
   `outputs/validation/luna-client-2026-11-17.json`.
 - Next: set the key locally and run the documented opt-in smoke. Then prepare
   the source-linked context/answer prompt and connect one P04 answer.
+
+## Luna live API smoke — 2026-11-17
+
+The owner retained Luna pending actual spending and explicitly requested an
+API-key check and live smoke. The key was found in the tracked example file,
+then moved without printing its value to the ignored `.env`; the example key
+was blanked and other settings preserved.
+
+One invocation of the locked smoke completed through OpenAI Responses API:
+`gpt-6-luna`, reasoning `none`, maximum 1000 output tokens, Standard processing,
+`store=False`, 30-second timeout and zero automatic retries. The exact answer
+was `Luna API smoke test passed.` Usage was 27 input / 11 output / 38 total
+tokens, including zero reasoning/cache-read/cache-write tokens. Elapsed time
+was 5.258 seconds. At the checked Standard rates the token estimate is
+$0.0000082 before taxes/other services; this is not an invoice.
+
+Record: `outputs/llm/luna-smoke-20261117T170826Z.json`. No corpus was sent,
+retrieval/model indexing was not run, and no database or LLM trace was written.
+Application code is unchanged; unit tests were not repeated for this live
+connectivity-only step. Next: source-linked context/answer prompt and one P04
+answer with workflow-owned tracing.
+
+## First Simple RAG answer — 2026-11-17
+
+Implemented whole-chunk context/labels in `llm.build_answer_input()`, the generic
+English `answer_v1` prompt and `workflows.simple.answer_question()`. Simple owns
+one trace through dense top-five retrieval and one answer call. Supplying an
+existing `trace_id` to the retrieval wrapper leaves it open for the workflow.
+The LLM span records exact instructions/input, label-to-source map, provider
+response/status/text and full usage. Partial/empty outputs are errors with
+returned text preserved. Unknown cost stays NULL; no migration was needed.
+
+The opt-in locked `scripts/simple_rag_smoke.py` ran P04 once using the existing
+index and Luna settings. The model saw only the raw question and five whole
+retrieved chunks. It distinguished NULL from measured zero, described the
+caught-up idle standby and separated dashboard presentation policy, citing
+S1/S2. Post-run editorial review found both mandatory requirements and optional
+guidance satisfied. Gold was not sent; no LLM judge or other question ran.
+
+Usage: 2,207 input / 81 output / 2,288 total; zero reasoning/cache-read tokens,
+2,204 cache-write tokens at the default 30-minute lifetime. Retrieval took
+0.719 s, generation 4.125 s, total workflow 4.854 s excluding model loading.
+Standard token estimate: $0.0003163 including cache writes, before taxes/other
+services. Cache writes replace ordinary-input pricing rather than adding a
+second input charge; the independent validation record contains rates/sources.
+
+Trace: `0a5c1437-8383-4702-b9a7-e676a24ddbee`.
+Report: `outputs/answers/simple-P04-20261117T172725743636Z.json`.
+Validation: `outputs/validation/simple-P04-20261117T172725743636Z.json`.
+A fresh read-only connection confirmed complete spans, exact full-text input,
+source/rank mapping and persisted answer/usage. Public totals changed only by
+one trace/two spans, to two traces/three spans; corpus and older records retain
+their fingerprints. 135 offline unit tests, 20 DB integration tests and the
+six-question reference check passed. No re-indexing, schema change, tool call
+or batch evaluation occurred. Next: P01–P06 Simple answer checks, then LLM-only.
+
+## Simple single/batch runner — 2026-11-17
+
+Renamed the P04-only script/lock to `scripts/run_simple_rag.py` and its
+matching lockfile. Exactly one of `--question-id` or `--all` is required,
+along with the existing explicit paid-call flag. Selection retains only
+question ID/text; unknown IDs fail before loading Nomic or opening clients.
+Nomic loads once and DB/API resources are reused. Each question goes through
+the existing Simple workflow, gets its own trace and shares the batch run ID.
+
+Schema-version-2 JSON reports contain a `questions` list with raw answers,
+source mappings, usage, durations and trace IDs. Incomplete replies are saved
+and make the batch return exit code 2. Provider/DB exceptions stop the batch
+without retries; prior autocommitted traces remain available, but no final
+JSON report is written for an interrupted batch. No quality grader was added.
+
+All 146 offline unit tests passed, including 11 selection/batch/CLI checks.
+The pinned-reference checker, Ruff unused/undefined-name checks, locked runner
+`--help` and whitespace checks passed. The renamed lockfile matches its prior
+content byte for byte. Preparation made no hosted calls or DB writes; existing
+workflow, prompt, retrieval and tracing code were preserved. The live P01–P06
+batch and its answer/citation review are next, followed by LLM-only.

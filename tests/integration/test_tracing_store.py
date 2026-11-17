@@ -4,10 +4,12 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
-from rag_workflow_lab.config import EmbeddingSettings, load_database_settings
+from rag_workflow_lab.config import EmbeddingSettings, GeneratorSettings, load_database_settings
 from rag_workflow_lab.embeddings import MODEL_ID, MODEL_REVISION
 from rag_workflow_lab.tracing import finish_span, finish_trace, retrieve_with_trace, start_span, start_trace
+from rag_workflow_lab.workflows.simple import answer_question
 
 
 @unittest.skipUnless(os.environ.get("RAG_LAB_TEST_DB") == "1", "Set RAG_LAB_TEST_DB=1 for local DB tests.")
@@ -49,6 +51,33 @@ class TracingStoreTests(unittest.TestCase):
             start_span(self.writer, second, "tool", "child", {}, parent_span_id=parent)
         child = start_span(self.writer, first, "tool", "child", {}, parent_span_id=parent)
         self.assertNotEqual(parent, child)
+
+    def test_simple_workflow_persists_both_spans_prompt_and_actual_usage(self):
+        embedder = SimpleNamespace(settings=EmbeddingSettings(MODEL_ID, MODEL_REVISION, Path("unused")))
+        matches = [{"chunk_id": "chunk", "snapshot_id": "snapshot", "source_id": "PG-STATS",
+                    "title": "Fixture", "url": "https://example.org", "distance": 0.25,
+                    "token_count": 20, "text": "Whole source text."}]
+        for status in ("completed", "incomplete"):
+            result = {"response_id": "response", "model": "gpt-6-luna", "status": status,
+                      "answer": "Answer [S1]", "usage": {"input_tokens": 10, "output_tokens": 3},
+                      "incomplete_reason": None if status == "completed" else "max_output_tokens"}
+            with self.subTest(status=status), \
+                    patch("rag_workflow_lab.tracing.retrieve", return_value=matches), \
+                    patch("rag_workflow_lab.workflows.simple.generate_text", return_value=result):
+                observed = answer_question(object(), self.writer, embedder, object(), GeneratorSettings("gpt-6-luna"),
+                                           "index", "Raw question?", question_id="P04")
+                trace_id = observed["trace_id"]
+                with self.writer.cursor() as cursor:
+                    cursor.execute("SELECT status, final_answer, question_id FROM traces WHERE trace_id=%s", (trace_id,))
+                    self.assertEqual(cursor.fetchone(), ("ok" if observed["ok"] else "error", result["answer"], "P04"))
+                    cursor.execute("SELECT kind, status, inputs, usage, cost FROM spans WHERE trace_id=%s ORDER BY started_at",
+                                   (trace_id,))
+                    retrieval, llm = cursor.fetchall()
+                self.assertEqual(retrieval[:2], ("retrieval", "ok"))
+                self.assertEqual(llm[:2], ("llm", "ok" if observed["ok"] else "error"))
+                self.assertIn("Whole source text.", llm[2]["prompt"])
+                self.assertEqual(llm[2]["sources"][0]["chunk_id"], "chunk")
+                self.assertEqual(llm[3:], (result["usage"], None))
 
     def test_completed_observations_cannot_be_overwritten(self):
         trace_id = start_trace(self.writer, "Question", "simple")

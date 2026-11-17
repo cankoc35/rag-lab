@@ -1,16 +1,19 @@
-# PostgreSQL tracing — applied retrieval logging
+# PostgreSQL tracing — retrieval and Simple answers
 
-**Updated:** 2026-11-16. **Status:** The owner explicitly authorized applying
+**Updated:** 2026-11-17. **Status:** The owner explicitly authorized applying
 migration `0002` and testing one question, superseding the earlier review hold.
 Database and repository revisions are `0002`. `traces` and `spans` exist;
-one real P04 retrieval trace/span is committed and independently verified.
-MLflow is not used. Generator and tool instrumentation remain future work.
+one retrieval-only P04 trace and a later Simple P04 trace with retrieval/LLM
+spans are independently verified. MLflow is not used. Tool instrumentation
+remains future work.
 
 ## Implementation files
 
 - [0002_create_tracing_tables.py](../migrations/versions/0002_create_tracing_tables.py): raw-SQL upgrade/downgrade.
 - [tracing.py](../src/rag_workflow_lab/tracing.py): four writer functions and traced retrieval.
 - [check_retrieval.py](../scripts/check_retrieval.py): optional `--trace` integration.
+- [simple.py](../src/rag_workflow_lab/workflows/simple.py): owns the question trace through retrieval and one LLM call.
+- [run_simple_rag.py](../scripts/run_simple_rag.py): opt-in single/batch answers, per-question traces linked by a shared run ID.
 - [Unit tests](../tests/unit/test_tracing.py) and [post-migration DB tests](../tests/integration/test_tracing_store.py).
 
 Offline SQL previews are saved locally as
@@ -60,14 +63,22 @@ messages. Logging failures abort the diagnostic call; they are not silently
 ignored. A writer failure can leave a partial `running` record for inspection.
 There is no automatic logging retry or background queue.
 
-The wrapper completes a retrieval-only trace. Future answer workflows should
-own their question trace and reuse the four writers for retrieval/context/LLM/
-tool spans, rather than appending operations to this completed diagnostic trace.
-Inputs/outputs JSONB can hold exact prompt/messages and actual tool arguments/
-results; usage/cost fields are ready but no LLM/tool instrumentation exists yet.
-Distinguish retrieved candidates from excerpts actually sent to a future LLM.
-Preserve reported usage and estimated-cost basis; aggregate individual calls
-without double-counting nested spans or token subcategories.
+Standalone calls complete a retrieval-only trace. Supplying `trace_id` leaves
+that existing trace open for its workflow owner, including on retrieval errors.
+Simple starts its own `simple` trace and records retrieval followed by one LLM
+span. The latter's inputs contain exact instructions/input, source-label map,
+generator settings and request policy. Outputs retain response/model IDs,
+completion status, text and incomplete reason; usage keeps the provider's full
+payload. A partial/empty reply marks the span and root `error` while preserving
+returned text/usage. Provider exceptions use sanitized messages without retries.
+
+The current context sends all five retrieved chunks, whole and untruncated;
+no separate context span or final numeric token budget is introduced. Source
+labels S1–S5 are runtime citations, distinct from gold E1/E2 annotations.
+Gold stays outside the workflow/model input. Unknown cost stays SQL NULL;
+the P04 validation report records a separate token-price estimate with its
+basis. Cache-write/read counts are subsets of input, not extra tokens to add
+to totals. No tool spans are claimed.
 
 ## Checker modes
 
@@ -98,9 +109,19 @@ the overall report has `read_only: false`, `retrieval_read_only: true` and
   span, exact input/output payloads and matching ranks/distances. Annotated
   P04-E1/E2 chunks are ranked 1/2. Usage, cost and final answer remain SQL NULL
   because this was retrieval only. The corpus/index fingerprints are unchanged.
-- The full six-question `--trace` checker batch has not been executed yet.
-  The Luna client is checked offline; its live smoke, context/prompt and LLM
-  instrumentation follow. See [STATUS](STATUS.md) for the current boundary.
+- On 2026-11-17, Simple P04 added one `ok` trace with `ok` retrieval/LLM spans.
+  A fresh read-only check confirmed full prompt/chunk text, valid S1/S2 mapping,
+  answer/usage and unchanged corpus/older records. Public totals: two traces,
+  three spans. Both mandatory requirements and optional guidance passed
+  post-run editorial review. This is not a benchmark or prior-knowledge control.
+  Trace: `0a5c1437-8383-4702-b9a7-e676a24ddbee`; report and validation use
+  `simple-P04-20261117T172725743636Z.json` under `outputs/answers/` and
+  `outputs/validation/` respectively.
+- 135 offline unit tests and 20 local DB integration tests passed, including
+  completed/incomplete Simple trace round trips in temporary tables.
+- The full six-question traced diagnostic/answer batches have not run.
+  The answer runner supports `--question-id`/`--all` and passed offline tests.
+  Tool spans and LLM-only remain future work. See [STATUS](STATUS.md).
 
 Application/test record: `outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
 Trace ID: `db808e0d-76ed-4148-9996-2a8988cc4ce7`.

@@ -58,8 +58,9 @@ draft exist; the source/fixture verification work is not done yet.
   diagnostic, P05 wording diagnosis and repeatable 5/10/20 checker exist.
   Custom trace/span code and migration `0002` are applied, with one real query
   trace verified. The owner approved the initial Luna API client on 2026-11-17;
-  its locked smoke and offline checks are ready. A live call awaits the key;
-  evidence-context/answer-prompt and Simple workflow work follow.
+  its connectivity smoke and one full Simple P04 answer have passed.
+  Source-linked context, `answer_v1` and retrieval/LLM tracing are implemented;
+  the six-question answer check and LLM-only control follow.
 - Follow the [code structure and staged implementation plan](CODE_STRUCTURE.md)
   when filling in the scaffold modules.
 - Run PostgreSQL with `pgvector` locally in Docker.
@@ -157,11 +158,12 @@ margin before final testing. Adaptive routing itself is not claimed as novel.
 
 ## Immediate next step
 
-The Luna client is prepared and checked offline. Set the API key and run the
-[explicit smoke](../README.md#check-the-luna-api-client), then prepare the
-evidence-context/answer prompt and connect one P04 answer with LLM tracing.
-The corpus/index, dense retrieval and retrieval tracing are already verified;
-no re-indexing or schema change is needed for this step.
+The connectivity smoke and one Simple P04 answer passed on 2026-11-17.
+The [single/batch runner](../README.md#run-simple-rag) is prepared and passed
+offline tests; the live batch has not run. Run P01–P06 and inspect source
+support after generation, then add the LLM-only control. Preserve P05 as a
+known dense-retrieval failure case. Existing corpus/index and schema need no
+change for these checks.
 
 Preserve the P01–P06 questions and five-result baseline. Build Simple before
 hybrid/RRF/reranking and fixed tools; Agentic details come later. Use

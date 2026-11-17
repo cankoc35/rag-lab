@@ -1,6 +1,17 @@
 """One text-generation call through the OpenAI Responses API, without DB access."""
 
+import json
+
 from rag_workflow_lab.config import GeneratorSettings
+
+
+def build_answer_input(question: str, matches: list[dict]) -> tuple[str, list[dict]]:
+    """Label whole retrieved chunks; keep citation labels separate from gold evidence IDs."""
+    sources = [{"label": f"S{rank}", **{key: match[key] for key in (
+        "chunk_id", "snapshot_id", "source_id", "title", "url", "distance", "token_count",
+    )}} for rank, match in enumerate(matches, 1)]
+    evidence = [{**source, "text": match["text"]} for source, match in zip(sources, matches)]
+    return json.dumps({"question": question, "sources": evidence}, ensure_ascii=False, indent=2), sources
 
 
 def generate_text(client, settings: GeneratorSettings, *, instructions: str, prompt: str) -> dict:

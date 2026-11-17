@@ -106,6 +106,24 @@ class TracedRetrievalTests(unittest.TestCase):
         self.start_trace.assert_not_called()
         self.retrieve.assert_not_called()
 
+    def test_existing_trace_is_not_created_or_finished_by_retrieval(self):
+        matches, trace_id = retrieve_with_trace(self.reader, self.writer, self.embedder,
+                                                "index", "question", trace_id="workflow-trace")
+        self.assertIs(matches, self.matches)
+        self.assertEqual(trace_id, "workflow-trace")
+        self.assertEqual(self.start_span.call_args.args[1], "workflow-trace")
+        self.start_trace.assert_not_called()
+        self.finish_trace.assert_not_called()
+
+    def test_existing_trace_remains_owned_by_caller_after_retrieval_error(self):
+        self.retrieve.side_effect = RuntimeError("Failure")
+        with self.assertRaises(RuntimeError):
+            retrieve_with_trace(self.reader, self.writer, self.embedder,
+                                "index", "question", trace_id="workflow-trace")
+        self.finish_span.assert_called_once()
+        self.start_trace.assert_not_called()
+        self.finish_trace.assert_not_called()
+
     def test_logging_failure_aborts_instead_of_reporting_a_completed_trace(self):
         self.finish_span.side_effect = RuntimeError("Writer unavailable")
         with self.assertRaisesRegex(RuntimeError, "Writer unavailable"):
