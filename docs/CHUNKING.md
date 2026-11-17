@@ -93,7 +93,7 @@ At the chunking step, the Nomic Embed Text v1.5 tokenizer was still a
 candidate, pinned at `e9b6763023c676ca8431644204f50c2b100d9aab`. Nomic has
 since been selected for the initial pilot, and a [local embedding smoke check](EMBEDDING_SETUP.md)
 passed. All saved chunk token counts still match. No database indexing or
-retrieval evaluation has occurred.
+retrieval evaluation occurred in that original chunking run.
 
 ## Verified corpus output
 
@@ -130,3 +130,35 @@ Dense query retrieval now works. The first six-question diagnostic exposes
 a P05 reference-evidence miss in the top five; no chunking changes were made.
 See [HANDOFF.md](HANDOFF.md) for runtime state and inputs.
 Keep this chunking configuration versioned and shared across later comparisons.
+
+## Atlas Markdown chunks — 2026-11-18
+
+The same runner/algorithm now reads saved Atlas snapshots with an explicit
+Markdown allowlist. It reparses pinned raw copies and verifies the saved
+blocks before chunking; the HTML defaults and core algorithm are unchanged.
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --python 3.11 scripts/chunk_corpus.py \
+  --sources-manifest data/corpus/synthetic/sources.json \
+  --markdown-run data/local/markdown/atlas-docs-v1-ssme1pql
+```
+
+The verified run is `data/local/chunks/atlas-docs-v1-section-blocks-v1/`:
+six inventory chunks (60–268 tokens) and six policy chunks (59–204 tokens).
+All 25 content blocks, one SQL block and two tables remain intact, with no
+overlap or heading-boundary crossings. No chunk exceeds 512 tokens. The
+existing 512/1024 limits, task prefix and tokenizer identity are retained.
+
+Each source JSON includes content-block `body_tokens` and `contextual_tokens`
+in `block_token_counts`, plus the usual heading records/chunks. Inline Markdown
+remains in the exact counted text. See [token measurements](TOKEN_COUNTS.md#atlas-markdown-follow-up--2026-11-18).
+Snapshot/state/version, raw/parsed/input-manifest hashes and code/tokenizer
+provenance remain traceable through the saved artifacts and summary.
+
+All 173 offline unit tests and original question-reference checks passed.
+Independent read-back reproduced all Atlas chunks/counts. A temporary HTML
+regression run reproduced the original 49 chunks/heading records exactly;
+35 protected artifact/core-code hashes were unchanged. Record:
+`outputs/validation/atlas-chunking-20261118.json`.
+Atlas snapshots/chunks were subsequently imported and verified. Atlas has no
+embedding index or new answer evaluation yet; see [STATUS](STATUS.md).

@@ -12,6 +12,11 @@ Dense query retrieval is implemented. P01–P06 ran with the real local model;
 P05 has no annotated evidence in the top five. See
 [EMBEDDING_SETUP.md](EMBEDDING_SETUP.md) for the exact revision/settings.
 
+**Atlas follow-up, 2026-11-18:** The DB now contains six snapshots/61 chunks
+after importing two Atlas sources/12 chunks. The original PostgreSQL index/49
+vectors is unchanged; Atlas has no vectors yet. The current indexer reads all
+stored chunks. Explicit Atlas-only selection is a proposed next step.
+
 ## Language decision and starting proposal
 
 **Owner decision, 2026-11-05:** The entire repository and RAG system use

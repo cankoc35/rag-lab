@@ -10,6 +10,7 @@ from rag_workflow_lab.config import EmbeddingSettings, GeneratorSettings, load_d
 from rag_workflow_lab.embeddings import MODEL_ID, MODEL_REVISION
 from rag_workflow_lab.tracing import finish_span, finish_trace, retrieve_with_trace, start_span, start_trace
 from rag_workflow_lab.workflows.simple import answer_question
+from rag_workflow_lab.workflows.llm_only import answer_question as answer_without_retrieval
 
 
 @unittest.skipUnless(os.environ.get("RAG_LAB_TEST_DB") == "1", "Set RAG_LAB_TEST_DB=1 for local DB tests.")
@@ -88,6 +89,25 @@ class TracingStoreTests(unittest.TestCase):
             finish_span(self.writer, span_id, outputs={"changed": True})
         with self.assertRaises(ValueError):
             finish_trace(self.writer, trace_id, answer="Changed answer")
+
+    def test_llm_only_persists_one_llm_span_with_no_source_context(self):
+        for status in ("completed", "incomplete"):
+            response = {"response_id": "response", "model": "gpt-6-luna", "status": status,
+                        "answer": "Answer from prior knowledge.", "usage": {"input_tokens": 10, "output_tokens": 3},
+                        "incomplete_reason": None if status == "completed" else "max_output_tokens"}
+            with self.subTest(status=status), patch("rag_workflow_lab.workflows.llm_only.generate_text", return_value=response):
+                result = answer_without_retrieval(self.writer, object(), GeneratorSettings("gpt-6-luna"),
+                                                 "Raw question?", question_id="P01", run_id="batch")
+                with self.writer.cursor() as cursor:
+                    cursor.execute("SELECT workflow, status, final_answer FROM traces WHERE trace_id=%s", (result["trace_id"],))
+                    self.assertEqual(cursor.fetchone(), ("llm_only", "ok" if result["ok"] else "error", response["answer"]))
+                    cursor.execute("SELECT kind, inputs, usage, cost FROM spans WHERE trace_id=%s", (result["trace_id"],))
+                    rows = cursor.fetchall()
+                self.assertEqual(len(rows), 1)
+                kind, inputs, usage, cost = rows[0]
+                self.assertEqual((kind, inputs["prompt"], inputs["sources"]), ("llm", "Raw question?", []))
+                self.assertEqual(usage, response["usage"])
+                self.assertIsNone(cost)
 
     def test_error_records_survive_retrieval_transaction_rollback(self):
         reader = self.driver.connect(**load_database_settings().connect_kwargs())

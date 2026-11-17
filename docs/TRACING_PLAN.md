@@ -119,9 +119,24 @@ the overall report has `read_only: false`, `retrieval_read_only: true` and
   `outputs/validation/` respectively.
 - 135 offline unit tests and 20 local DB integration tests passed, including
   completed/incomplete Simple trace round trips in temporary tables.
-- The full six-question traced diagnostic/answer batches have not run.
-  The answer runner supports `--question-id`/`--all` and passed offline tests.
-  Tool spans and LLM-only remain future work. See [STATUS](STATUS.md).
+- The owner then ran the full P01–P06 Simple answer batch:
+  `simple-20261117T183619008413Z`. A fresh read-only check verified six new
+  completed traces and 12 spans, exact inputs/full chunk text, response IDs,
+  answers and usage. Public totals are eight traces/15 spans, with unchanged
+  corpus and older records. Validation and a separate `-review.json` record
+  are under `outputs/validation/`; raw answers are under `outputs/answers/`.
+  Editorial review found P03/P05 partial; a trace's `ok` status indicates
+  successful execution, not semantic correctness.
+- The separate full-ranking six-question `check_retrieval.py --trace` batch
+  has not run. LLM-only uses one `llm_only` trace and one LLM span
+  per question; `inputs.prompt` is the raw question and `inputs.sources` is
+  empty. The DB connection is solely a trace writer. Completed/incomplete
+  round trips passed in temporary tables. The later live P01–P06 control added
+  six traces/six LLM spans, independently verified against raw inputs,
+  prompt/settings, answers and usage. Public totals then reached 14 traces/21
+  spans; older rows and corpus/index fingerprints were unchanged. Cost remains
+  NULL. See the [paired comparison](LLM_ONLY_COMPARISON.md).
+  Tool spans remain future work. See [STATUS](STATUS.md).
 
 Application/test record: `outputs/validation/tracing-schema-0002/applied-2026-11-16.json`.
 Trace ID: `db808e0d-76ed-4148-9996-2a8988cc4ce7`.

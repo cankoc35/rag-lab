@@ -1,0 +1,339 @@
+{
+  "schema_version": 1,
+  "dataset_id": "atlas-document-dev",
+  "dataset_version": "1.0.0",
+  "split": "dev",
+  "language": "en",
+  "status": "source_verified",
+  "verified_on": "2026-11-18",
+  "verification": {
+    "review": "Reference answers and selected claim support reviewed by the assistant against the complete saved Atlas v1.0 documents and chunks. P19 received a corpus-scope absence review.",
+    "reference_checks": "Pinned file hashes, source/state/snapshot/chunk identities, exact block/span references, support modes and negative-case scope are checked offline.",
+    "model_answer_runs": 0,
+    "retrieval_runs": 0
+  },
+  "reference_policy": {
+    "requirements": "Requirements annotate reference claims, not a frozen grading rubric. any means alternative supporting records; all means complementary selected support. corpus_scope is used only for an unanswerable case with no positive answer evidence.",
+    "coverage": "Selected reference evidence is not an exhaustive list of valid passages. Future evaluation must allow equivalent sufficient evidence, including a different valid passage or chunk.",
+    "limits": "This annotation does not implement a scoring metric, freeze a held-out set, or establish irreducible multi-document reasoning.",
+    "span_coordinates": "Zero-based Python Unicode character offsets in the original parsed block text; end is exclusive.",
+    "model_input": "Use only the question as the model-visible query. Gold answers, requirements and evidence remain evaluation data outside ingestion.",
+    "versioning": "Changing the source snapshot, parser, chunker, tokenizer or chunk settings requires revalidating references and versioning this development dataset.",
+    "scope": "This diagnostic subset uses exactly the two pinned Atlas documents. A broader or changed corpus requires rechecking answerability. It is separate from the unchanged six-question PostgreSQL baseline."
+  },
+  "source_state": {
+    "source_state_id": "atlas-docs-v1-section-blocks-v1",
+    "document_state": "atlas-docs-v1",
+    "sources_manifest": {
+      "path": "data/corpus/synthetic/sources.json",
+      "sha256": "48018426cfe45ea62914b7223ea4b9867f52dfc618660bc9bdb6920bd61dd51b"
+    },
+    "chunking": {
+      "chunker_version": "section-blocks-v1",
+      "serialization_version": "chunk-context-v1",
+      "tokenizer": {
+        "identifier": "nomic-ai/nomic-embed-text-v1.5",
+        "revision": "e9b6763023c676ca8431644204f50c2b100d9aab",
+        "fingerprint": "193209d0efaf65a10abebfccaa2d1d0a39566c167e757aff7951c06802b7afd8",
+        "max_input_tokens": 8192
+      },
+      "settings": {
+        "target_tokens": 512,
+        "max_tokens": 1024,
+        "document_prefix": "search_document: "
+      }
+    },
+    "sources": [
+      {
+        "source_id": "LOCAL-INVENTORY",
+        "snapshot_id": "LOCAL-INVENTORY-246a17e09e73d871",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_inventory.md",
+        "title": "Atlas environment inventory",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-docs-v1-ssme1pql/LOCAL-INVENTORY-246a17e09e73d871/manifest.json",
+            "sha256": "d185f801f0ab7501530a1fd657e5ef0456ebfed706081a437fff927981d51a3e"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-docs-v1-ssme1pql/LOCAL-INVENTORY-246a17e09e73d871/atlas_inventory.md",
+            "sha256": "191074529ebc89385e1853da247538440ab864c291fd5d01cd25f6476ca457b8"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-docs-v1-ssme1pql/LOCAL-INVENTORY-246a17e09e73d871/parsed.json",
+            "sha256": "a0c1723e59d7608b58810f7644470028c3989025bb20bc84a934c253dc43ddee"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-docs-v1-section-blocks-v1/LOCAL-INVENTORY-246a17e09e73d871.json",
+            "sha256": "0a04a8e8189210d6203106d6bd53346909140d7bd5dde5c5a9102d11197c5558"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-POLICY",
+        "snapshot_id": "LOCAL-POLICY-d7124ea3bb39455d",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_operations_policy.md",
+        "title": "Atlas operations policy",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-docs-v1-ssme1pql/LOCAL-POLICY-d7124ea3bb39455d/manifest.json",
+            "sha256": "53e03601e9ebc9b79a43dda19677a4d6ff8399a78231c680941616f99de1bd8f"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-docs-v1-ssme1pql/LOCAL-POLICY-d7124ea3bb39455d/atlas_operations_policy.md",
+            "sha256": "76845e28ab497188fed76ec768288b81a30d0d9582b9af54b217511ca747af26"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-docs-v1-ssme1pql/LOCAL-POLICY-d7124ea3bb39455d/parsed.json",
+            "sha256": "4081dd3ca57249f32b7d67cd31f62e5de84f1565df974196e9f22b3a69cbe817"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-docs-v1-section-blocks-v1/LOCAL-POLICY-d7124ea3bb39455d.json",
+            "sha256": "e8de6c701595ed3c6354c1ed4200636b690dbc8ad81f8f5f3fd0b35af8bbc44e"
+          }
+        }
+      }
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "P07",
+      "question_type": "direct_document",
+      "question": "What are the database and application schema names in the Atlas example environment?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The Atlas database is atlas_telemetry, and its application schema is atlas_app.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P07-R1",
+          "statement": "Name atlas_telemetry as the database.",
+          "supporting_evidence_ids": [
+            "P07-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P07-R2",
+          "statement": "Name atlas_app as the application schema.",
+          "supporting_evidence_ids": [
+            "P07-E1"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P07-E1",
+          "source_id": "LOCAL-INVENTORY",
+          "snapshot_id": "LOCAL-INVENTORY-246a17e09e73d871",
+          "chunk_id": "LOCAL-INVENTORY-6d18b086ee104785a6c7ff0bebb1a87515f156f33af19799bb7e2c9eeef40358",
+          "block_index": 7,
+          "block_sha256": "513636ddc3fa9bed3283f190bce3d07dc28a08d30d4af6c6c62e2e18a6101944",
+          "heading_path": [
+            "Atlas environment inventory",
+            "Database and application identity"
+          ],
+          "anchor": "L24",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_inventory.md#L24",
+          "span": {
+            "start": 0,
+            "end": 83,
+            "text": "The database is named `atlas_telemetry`, and its application schema is\n`atlas_app`."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 supplies both names; no live database inspection is required."
+    },
+    {
+      "question_id": "P08",
+      "question_type": "direct_document",
+      "question": "What is the maximum lag allowed by the Atlas replica lag rule?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The Atlas reporting-replica lag limit is 5 seconds, inclusive: exactly 5 seconds satisfies the lag criterion.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P08-R1",
+          "statement": "State the lag limit as 5 seconds.",
+          "supporting_evidence_ids": [
+            "P08-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P08-R2",
+          "statement": "Treat the maximum as inclusive; exactly 5 seconds is allowed.",
+          "supporting_evidence_ids": [
+            "P08-E1",
+            "P08-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P08-E1",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-d7124ea3bb39455d",
+          "chunk_id": "LOCAL-POLICY-e321edc249410f4a36b66a4d93c17a8e83c36c11f67675d12208df8786d17115",
+          "block_index": 7,
+          "block_sha256": "aa03fbf119ae1b059054738022e0b2107784c404987ede587f5468d73c8a8457",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L25",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_operations_policy.md#L25",
+          "span": {
+            "start": 0,
+            "end": 117,
+            "text": "The policy identifier is `ATLAS-REPORTING-LAG`. Its maximum permitted numeric\nreplay lag is **5 seconds**, inclusive."
+          }
+        },
+        {
+          "evidence_id": "P08-E2",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-d7124ea3bb39455d",
+          "chunk_id": "LOCAL-POLICY-e321edc249410f4a36b66a4d93c17a8e83c36c11f67675d12208df8786d17115",
+          "block_index": 9,
+          "block_sha256": "4e90c2f81471828c4593b8aef67b8603d0b437ec5ea408183cb361913ed69272",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L38",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_operations_policy.md#L38",
+          "span": {
+            "start": 0,
+            "end": 42,
+            "text": "Exactly 5 seconds satisfies the criterion."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 gives the local rule and inclusive threshold; E2 is alternative explicit support for the boundary. This asks about policy, not a measured current lag."
+    },
+    {
+      "question_id": "P09",
+      "question_type": "multi_document",
+      "question": "Which lag rule applies to the replica listed in the Atlas inventory?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The inventory identifies atlas-replica-01 as the reporting replica following atlas-primary-01. That replica is governed by ATLAS-REPORTING-LAG, with a maximum replay lag of 5 seconds inclusive. This identifies the applicable rule, not a current lag observation or health assessment.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P09-R1",
+          "statement": "Identify atlas-replica-01 as the reporting replica in the Atlas inventory.",
+          "supporting_evidence_ids": [
+            "P09-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P09-R2",
+          "statement": "Match that reporting replica to ATLAS-REPORTING-LAG and its inclusive 5-second limit.",
+          "supporting_evidence_ids": [
+            "P09-E1",
+            "P09-E2",
+            "P09-E3"
+          ],
+          "support_mode": "all"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P09-E1",
+          "source_id": "LOCAL-INVENTORY",
+          "snapshot_id": "LOCAL-INVENTORY-246a17e09e73d871",
+          "chunk_id": "LOCAL-INVENTORY-e27e1ff29ada256a471ca0804d04ac776cbb38859b746cc2a7a8f08343fa7105",
+          "block_index": 14,
+          "block_sha256": "3ac0592c31254226474aa97e49c4752cd7d8f00c8f148ce221f824368b49d25e",
+          "heading_path": [
+            "Atlas environment inventory",
+            "Replica identity and policy relationship"
+          ],
+          "anchor": "L59",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_inventory.md#L59",
+          "span": {
+            "start": 0,
+            "end": 415,
+            "text": "`atlas-replica-01` follows `atlas-primary-01` and has the operational role\n`reporting`. Its applicable local lag rule is defined in **LOCAL-POLICY**,\nthe Atlas operations policy with document state `atlas-docs-v1`. Use that\npolicy for the threshold, units and interpretation of missing observations.\nThe inventory itself records the replica's identity and role, not its current\nlag or whether it satisfies the rule."
+          }
+        },
+        {
+          "evidence_id": "P09-E2",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-d7124ea3bb39455d",
+          "chunk_id": "LOCAL-POLICY-714b2195179d2dd0eec393d208e910bfde6c2cf8cd35d972db137b3a1ecc8fd4",
+          "block_index": 4,
+          "block_sha256": "a74453a4fd26625ed8e74fdfbf407a93bc71665e9520830edf5ef7d81a1e115c",
+          "heading_path": [
+            "Atlas operations policy",
+            "Scope and authority"
+          ],
+          "anchor": "L11",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_operations_policy.md#L11",
+          "span": {
+            "start": 0,
+            "end": 427,
+            "text": "This policy defines a local replica-lag rule and inspection practices for the\nfictional Atlas PostgreSQL environment. It applies only to the reporting\nreplica identified by the Atlas environment inventory, **LOCAL-INVENTORY**,\nwith document state `atlas-docs-v1`. Both documents describe the same reference\nstate. The inventory supplies resource identities; this document supplies the\noperational rule used for those resources."
+          }
+        },
+        {
+          "evidence_id": "P09-E3",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-d7124ea3bb39455d",
+          "chunk_id": "LOCAL-POLICY-e321edc249410f4a36b66a4d93c17a8e83c36c11f67675d12208df8786d17115",
+          "block_index": 7,
+          "block_sha256": "aa03fbf119ae1b059054738022e0b2107784c404987ede587f5468d73c8a8457",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L25",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas_operations_policy.md#L25",
+          "span": {
+            "start": 0,
+            "end": 117,
+            "text": "The policy identifier is `ATLAS-REPORTING-LAG`. Its maximum permitted numeric\nreplay lag is **5 seconds**, inclusive."
+          }
+        }
+      ],
+      "evidence_combination_note": "The selected support combines replica identity/role (E1), policy scope (E2) and rule identifier/threshold (E3). Equivalent sufficient passages remain valid; this annotation alone does not prove irreducible multi-hop reasoning."
+    },
+    {
+      "question_id": "P19",
+      "question_type": "insufficient_evidence",
+      "question": "What is the approved replica lag limit for the Boreal environment?",
+      "question_revision_note": "Removed the draft clause \"which is absent from the documents\" because it disclosed the expected answer. The question ID and scenario are unchanged.",
+      "verification_status": "source_verified",
+      "answerability": "unanswerable",
+      "expected_answer": "The supplied Atlas documents do not provide an approved replica lag limit for Boreal. Its limit cannot be determined from this corpus; the Atlas 5-second rule must not be transferred to another environment.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P19-R1",
+          "statement": "State that the available documents do not establish an approved lag limit for Boreal.",
+          "supporting_evidence_ids": [],
+          "support_mode": "corpus_scope"
+        },
+        {
+          "requirement_id": "P19-R2",
+          "statement": "Do not invent a numeric limit or transfer the Atlas 5-second rule to Boreal.",
+          "supporting_evidence_ids": [],
+          "support_mode": "corpus_scope"
+        }
+      ],
+      "evidence": [],
+      "unanswerability": {
+        "reason": "missing_environment_policy",
+        "target_entity": "Boreal",
+        "checked_source_ids": [
+          "LOCAL-INVENTORY",
+          "LOCAL-POLICY"
+        ],
+        "review_note": "Reviewed both complete pinned Atlas documents. Neither identifies Boreal or approves a policy for it; the policy is explicitly local to Atlas. The absent-entity check supplements this editorial review and is not a general proof of semantic unanswerability."
+      },
+      "evidence_combination_note": "No positive answer passage or mandatory retrieval-hit chunk exists for this question. Its reference is an abstention within the complete pinned two-document scope. Returning relevant Atlas passages is compatible with a correct abstention."
+    }
+  ]
+}

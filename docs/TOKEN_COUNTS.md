@@ -137,3 +137,30 @@ source snapshots and existing-output protection were also checked. The local
 validation record is `outputs/token-counts/nomic-v1.5-pilot-validation.json`.
 All four raw and parsed source hashes remained unchanged. No embedding
 inference, DB operation or answer evaluation was run.
+
+## Atlas Markdown follow-up — 2026-11-18
+
+The saved `atlas-docs-v1` sources were measured and chunked with the same
+pinned Nomic tokenizer and `tokenizers==0.22.2`, offline with no model loaded.
+The chunk runner records body counts without special tokens and complete
+contextual counts with prefix/headings/special tokens for each content block.
+Its 12 heading records supply context and are not standalone chunks.
+
+| Source | Content blocks | Largest contextual block | Chunks | Chunk token range | Total chunk tokens |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| LOCAL-INVENTORY | 13 | 113 | 6 | 60–268 | 952 |
+| LOCAL-POLICY | 12 | 103 | 6 | 59–204 | 909 |
+
+The 12 chunks total 1,861 tokens, all below the 512-token target and 1024-token
+ceiling. All content, including one SQL block and two tables, is intact and
+appears exactly once. Per-block `block_token_counts` and chunks are saved under
+`data/local/chunks/atlas-docs-v1-section-blocks-v1/`; `summary.json` records
+settings, tokenizer/source/code provenance and source-level statistics.
+
+Independent read-back reproduced all chunks/counts. A temporary HTML run
+reproduced all 49 original chunks/heading records exactly. All 173 offline
+unit tests, original P01–P06 reference checks and changed-file Ruff checks
+passed. The 35 protected source/evaluation/old-artifact/core-code hashes were
+unchanged. Record: `outputs/validation/atlas-chunking-20261118.json`.
+These are embedding-tokenizer measurements, not generator-token usage or an
+answer-quality result. No embedding, DB access or API call ran.

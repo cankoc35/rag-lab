@@ -8,6 +8,7 @@ from pathlib import Path
 from rag_workflow_lab import __version__
 from rag_workflow_lab.config import load_database_settings, load_settings
 from rag_workflow_lab.ingestion.download import SourceDownloadError, download_source, load_sources
+from rag_workflow_lab.ingestion.markdown import ingest_markdown
 from rag_workflow_lab.ingestion.parse import parse_snapshot
 from rag_workflow_lab.store import DatabaseCheckError, check_database
 
@@ -35,6 +36,9 @@ def main(argv: list[str] | None = None) -> int:
         elif name == "parse-source":
             check.add_argument("--manifest", type=Path, required=True)
     commands.add_parser("check-db", help="Check PostgreSQL and pgvector with read-only SQL using POSTGRES_* settings.")
+    markdown = commands.add_parser("ingest-markdown", help="Snapshot and parse an explicit local Markdown source list offline.")
+    markdown.add_argument("--config", type=Path, default=Path("configs/pilot.toml"))
+    markdown.add_argument("--sources-manifest", type=Path, required=True)
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -51,7 +55,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         settings = load_settings(args.config)
-        if args.command == "check-config":
+        if args.command == "ingest-markdown":
+            payload = ingest_markdown(args.sources_manifest, settings.local_data_dir / "markdown")
+        elif args.command == "check-config":
             payload = {
                 "project_name": settings.project_name,
                 "config_path": str(settings.config_path),

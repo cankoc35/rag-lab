@@ -5,6 +5,11 @@ Nomic recommendation. Nomic Embed Text v1.5 is now the initial pilot embedding
 model, with a working local document/query adapter. This is a runtime smoke
 check, not a retrieval-quality comparison or a final thesis model verdict.
 
+**Atlas follow-up, 2026-11-18:** Two Atlas snapshots/12 chunks are now imported;
+DB totals are six snapshots/61 chunks. The original PostgreSQL index/49 vectors
+is preserved. Atlas has no embeddings yet; the current indexer reads all stored
+chunks. See [STATUS](STATUS.md) for the proposed scoped-indexing step.
+
 ## Selected setup
 
 | Setting | Value |

@@ -23,6 +23,11 @@ records adapter, prefix, normalization and runtime settings. Its
 `chunk_set_sha256` identifies the fixed collection of chunk IDs and input hashes.
 Current vector storage is fixed at 768 dimensions.
 
+Local Markdown import reuses this schema. The legacy `downloaded_at` column
+stores the source acquisition time: HTTP download time for official docs and
+the manifest's `captured_at` for local Atlas snapshots. Atlas import needed no
+new migration; repository/database head remains `0002`.
+
 Application was explicitly authorized by the owner; database revision, tables,
 keys and vector dimensions were verified. The tables were initially empty;
 the later corpus import/indexing populated them.

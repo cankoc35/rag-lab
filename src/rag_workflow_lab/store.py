@@ -78,10 +78,12 @@ def save_snapshots(connection, snapshots: list[dict]) -> None:
 
     Repeated identical records are accepted. Changed records with an existing
     ID raise ValueError so the caller can roll back the whole import.
+    The legacy downloaded_at column stores captured_at for local snapshots.
     """
     with connection.cursor() as cursor:
         for snapshot in snapshots:
             source = snapshot["source"]
+            acquired_at = snapshot["captured_at"] if source.get("format") == "markdown" else snapshot["downloaded_at"]
             cursor.execute("""
                 INSERT INTO source_snapshots
                     (snapshot_id, source_id, title, url, sha256, downloaded_at)
@@ -94,7 +96,7 @@ def save_snapshots(connection, snapshots: list[dict]) -> None:
                     = (EXCLUDED.source_id, EXCLUDED.title, EXCLUDED.url,
                        EXCLUDED.sha256, EXCLUDED.downloaded_at)
             """, (snapshot["snapshot_id"], source["source_id"], source["title"],
-                  source["url"], snapshot["sha256"], snapshot["downloaded_at"]))
+                  source["url"], snapshot["sha256"], acquired_at))
             if cursor.rowcount != 1:
                 raise ValueError(f"Stored snapshot differs: {snapshot['snapshot_id']}")
 

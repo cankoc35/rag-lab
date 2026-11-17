@@ -46,7 +46,7 @@ flowchart LR
 
 | Workflow | Initial behavior | Decision status |
 | --- | --- | --- |
-| Simple | One dense retrieval pass, then answer or abstain. No hybrid search, reranking or sandbox tools in the initial baseline. | Implemented; one P04 answer passed editorial review on 2026-11-17. Broader answer/abstention checks remain. |
+| Simple | One dense retrieval pass, then answer or abstain. No hybrid search, reranking or sandbox tools in the initial baseline. | Implemented; live P01–P06 completed on 2026-11-17. Editorial review found four answers meeting recorded requirements and P03/P05 partial; broader controls remain. |
 | Enhanced | Dense + PostgreSQL full-text retrieval, RRF merge/deduplication, reranking, then answer. Relevant tool steps follow predefined Python conditions/order. | Initial design approved, 2026-11-13; models, budgets and exact tool conditions remain open. |
 | Agentic | Shared relevant tool access; the model chooses actions from observations within limits. | General direction retained; detailed design deferred until that stage. |
 | Router | Chooses a workflow using permitted input signals. | Proposed; designed after fixed workflows and Agentic. |
@@ -103,8 +103,9 @@ for this corpus and no novelty claim.
    document-plus-tool reasoning, and unanswerable cases. Keep development and
    frozen final-test questions separate. The [pilot scope](PILOT_SCOPE.md)
    contains 20 development records: P01–P06 now have a
-   [source-verified subset](../data/evaluation/dev/README.md), while P07–P20
-   remain drafts. This does not finalize the protocol or held-out set.
+   [source-verified subset](../data/evaluation/dev/README.md). P07–P09/P19 now
+   have a separate verified Atlas subset, including an unanswerable case;
+   P10–P18/P20 remain drafts. This does not finalize the protocol or held-out set.
 3. Use shared ingestion, retriever, tool implementation, and primary generator
    settings where comparable. Record workflow-specific differences explicitly.
 4. For offline comparison, run **all three workflows on every test question**.
@@ -119,6 +120,10 @@ for this corpus and no novelty claim.
    changed-evidence pairs, and insufficient-evidence checks described in the
    evaluation plan. These controls do not add a fourth router target. Keep
    LLM-only-correct questions; report tool-access limitations separately.
+
+The first six-question Simple/LLM-only development comparison is recorded in
+[LLM_ONLY_COMPARISON](LLM_ONLY_COMPARISON.md). Its descriptive findings do not
+settle the final judging protocol or establish retrieval's causal contribution.
 
 ```mermaid
 flowchart LR

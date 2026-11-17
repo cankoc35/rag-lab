@@ -43,16 +43,19 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
     require(dataset["status"] == "source_verified", "Expected source-verified annotation status.")
     state = dataset["source_state"]
     _, manifest_data = read_pinned(state["sources_manifest"], root)
-    allowlist = {s["source_id"]: s for s in json.loads(manifest_data)["sources"]}
+    source_manifest = json.loads(manifest_data)
+    allowlist = {s["source_id"]: s for s in source_manifest["sources"]}
     sources, chunks = {}, {}
     for source in state["sources"]:
         sid = source["source_id"]
         require(sid not in sources, f"Duplicate source: {sid}")
-        require(sid in allowlist and source["source_url"] == allowlist[sid]["url"],
-                f"Source is outside the selected allowlist: {sid}")
+        require(sid in allowlist, f"Source is outside the selected allowlist: {sid}")
+        declaration = allowlist[sid]
+        markdown = declaration["format"] == "markdown"
+        require(declaration["format"] in {"html", "markdown"}, f"Unsupported source format: {sid}")
         files = source["files"]
         manifest_path, saved_manifest = read_pinned(files["manifest"], root)
-        raw_path, raw = read_pinned(files["raw_html"], root)
+        raw_path, raw = read_pinned(files["raw_markdown" if markdown else "raw_html"], root)
         _, parsed = read_pinned(files["parsed"], root)
         _, chunk_bytes = read_pinned(files["chunks"], root)
         snapshot = json.loads(saved_manifest)["snapshot"]
@@ -64,13 +67,22 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
             require(payload["snapshot_id"] == source["snapshot_id"], f"Snapshot mismatch: {sid}/{label}")
         # SourceSpec serializes the default empty section_ids for page scope;
         # the allowlist may omit that optional field.
-        expected_source = {**allowlist[sid], "selection": {
-            **allowlist[sid]["selection"],
-            "section_ids": allowlist[sid]["selection"].get("section_ids", []),
-        }}
+        if markdown:
+            expected_source = {**declaration, "url": source["source_url"]}
+            require(snapshot["document_state"] == state["document_state"] == source_manifest["document_state"],
+                    f"Markdown document state mismatch: {sid}")
+            require(snapshot["source_manifest_sha256"] == digest(manifest_data)
+                    and snapshot["sha256"] == declaration["sha256"],
+                    f"Markdown allowlist hash mismatch: {sid}")
+        else:
+            require(source["source_url"] == declaration["url"], f"Source URL differs from allowlist: {sid}")
+            expected_source = {**declaration, "selection": {
+                **declaration["selection"],
+                "section_ids": declaration["selection"].get("section_ids", []),
+            }}
         require(snapshot["source"] == expected_source, f"Snapshot source definition mismatch: {sid}")
         require(raw_path == (manifest_path.parent / snapshot["local_path"]).resolve(),
-                f"Raw HTML path mismatch: {sid}")
+                f"Raw source path mismatch: {sid}")
         require(snapshot["sha256"] == document["source_sha256"] == digest(raw),
                 f"Raw source hash mismatch: {sid}")
         require(snapshot["size_bytes"] == len(raw), f"Raw source size mismatch: {sid}")
@@ -105,14 +117,20 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
         sources[sid] = (source, document)
 
     question_ids, all_evidence_ids, referenced_chunks, referenced_blocks = set(), set(), set(), set()
-    evidence_count, requirement_count = 0, 0
+    evidence_count, requirement_count, unanswerable_count = 0, 0, 0
     require(bool(dataset["questions"]), "Dataset contains no questions.")
     for question in dataset["questions"]:
         qid = question["question_id"]
         require(qid not in question_ids, f"Duplicate question ID: {qid}")
         question_ids.add(qid)
         require(question["verification_status"] == "source_verified", f"Unverified question: {qid}")
-        require(question["question_type"] in {"direct_document", "multi_document"}, f"Unknown question type: {qid}")
+        answerability = question.get("answerability", "answerable")
+        require(answerability in {"answerable", "unanswerable"}, f"Unknown answerability: {qid}")
+        unanswerable = answerability == "unanswerable"
+        require(question["question_type"] in {"direct_document", "multi_document", "insufficient_evidence"},
+                f"Unknown question type: {qid}")
+        require((question["question_type"] == "insufficient_evidence") == unanswerable,
+                f"Question type and answerability disagree: {qid}")
         require(bool(question["question"].strip()) and bool(question["expected_answer"].strip()),
                 f"Empty question or expected answer: {qid}")
         evidence_ids = set()
@@ -148,17 +166,32 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
             referenced_chunks.add(evidence["chunk_id"])
             referenced_blocks.add((sid, index))
             evidence_count += 1
-        require(bool(evidence_ids), f"Question has no evidence: {qid}")
+        if unanswerable:
+            unanswerable_count += 1
+            require(not evidence_ids, f"Unanswerable question must not claim positive answer evidence: {qid}")
+            scope = question["unanswerability"]
+            require(set(scope["checked_source_ids"]) == set(sources) == set(allowlist),
+                    f"Incomplete checked corpus scope: {qid}")
+            entity = scope["target_entity"].strip().casefold()
+            require(bool(entity) and bool(scope["review_note"].strip()), f"Missing absence review: {qid}")
+            require(all(entity not in block["text"].casefold()
+                        for _, document in sources.values() for block in document["blocks"]),
+                    f"Entity is present in the checked sources; absence review is stale: {qid}")
+        else:
+            require(bool(evidence_ids), f"Question has no evidence: {qid}")
         require(bool(question["answer_requirements"]), f"Question has no answer requirements: {qid}")
         requirement_ids = set()
         for requirement in question["answer_requirements"]:
             rid = requirement["requirement_id"]
             require(rid.startswith(qid + "-") and rid not in requirement_ids, f"Invalid requirement ID: {rid}")
             requirement_ids.add(rid)
-            require(requirement["support_mode"] == "any", f"Unsupported evidence support mode: {rid}")
+            mode = requirement["support_mode"]
+            require(mode in ({"corpus_scope"} if unanswerable else {"any", "all"}),
+                    f"Unsupported evidence support mode: {rid}")
             require(bool(requirement["statement"].strip()), f"Empty answer requirement: {rid}")
             refs = requirement["supporting_evidence_ids"]
-            require(bool(refs) and set(refs) <= evidence_ids, f"Unknown requirement evidence: {rid}")
+            require((not refs) if unanswerable else (bool(refs) and set(refs) <= evidence_ids),
+                    f"Unknown requirement evidence: {rid}")
             requirement_count += 1
         if "optional_guidance" in question:
             refs = question["optional_guidance"]["supporting_evidence_ids"]
@@ -168,6 +201,8 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
         "dataset_id": dataset["dataset_id"], "dataset_version": dataset["dataset_version"],
         "dataset_sha256": digest(dataset_bytes), "questions": len(question_ids),
         "sources": len(sources), "answer_requirements": requirement_count,
+        "answerable_questions": len(question_ids) - unanswerable_count,
+        "unanswerable_questions": unanswerable_count,
         "evidence_records": evidence_count, "referenced_chunks": len(referenced_chunks),
         "referenced_blocks": len(referenced_blocks), "status": "reference_checks_passed",
         "semantic_review": "Recorded editorial review; not inferred by this checker",

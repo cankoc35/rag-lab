@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["tokenizers==0.22.2"]
 # ///
-"""Chunk the pilot's saved HTML snapshots with the cached Nomic tokenizer.
+"""Measure and chunk saved HTML or Atlas Markdown with the cached Nomic tokenizer.
 
 Run with PYTHONPATH=src and uv --offline. No downloads or model inference.
 Select exactly one saved snapshot per allowlisted source. All documents are
@@ -21,8 +21,9 @@ import tokenizers
 
 from measure_block_tokens import FILES, MODEL_ID, REVISION, ROOT, prepare_tokenizer
 from rag_workflow_lab.contracts import TokenizerSpec
-from rag_workflow_lab.ingestion.chunk import CHUNKER_VERSION, ChunkSettings, chunk_document
+from rag_workflow_lab.ingestion.chunk import CHUNKER_VERSION, ChunkSettings, chunk_document, serialize_chunk
 from rag_workflow_lab.ingestion.download import load_sources
+from rag_workflow_lab.ingestion.markdown import load_markdown_snapshots
 from rag_workflow_lab.ingestion.parse import parse_snapshot
 
 
@@ -55,22 +56,27 @@ def run(args) -> dict:
         raise ValueError("Tokenizer must count long inputs without truncation")
     settings = ChunkSettings()
     outputs, statistics, inputs = {}, [], []
-    for source in load_sources(args.sources_manifest):
-        candidates = sorted(args.snapshots_dir.glob(f"{source.source_id}-*/manifest.json"))
-        if len(candidates) != 1:
-            raise ValueError(
-                f"Expected one snapshot for {source.source_id}, found {len(candidates)}. "
-                "Use --snapshots-dir to select a directory with one snapshot per source."
-            )
-        manifest = candidates[0]
-        document = parse_snapshot(manifest, source)
+    if args.markdown_run:
+        documents = load_markdown_snapshots(args.sources_manifest, args.markdown_run)
+    else:
+        documents = []
+        for source in load_sources(args.sources_manifest):
+            candidates = sorted(args.snapshots_dir.glob(f"{source.source_id}-*/manifest.json"))
+            if len(candidates) != 1:
+                raise ValueError(
+                    f"Expected one snapshot for {source.source_id}, found {len(candidates)}. "
+                    "Use --snapshots-dir to select a directory with one snapshot per source."
+                )
+            manifest = candidates[0]
+            documents.append((manifest, parse_snapshot(manifest, source)))
+    for manifest, document in documents:
         chunks = chunk_document(document, count_tokens=count, tokenizer=spec, settings=settings)
         if chunks != chunk_document(document, count_tokens=count, tokenizer=spec, settings=settings):
-            raise ValueError(f"Nondeterministic chunk output: {source.source_id}")
+            raise ValueError(f"Nondeterministic chunk output: {document.source_id}")
         expected = [(i, block) for i, block in enumerate(document.blocks, 1) if block.kind != "heading"]
         actual = [(i, block) for chunk in chunks for i, block in zip(chunk.block_indices, chunk.blocks)]
         if actual != expected:
-            raise ValueError(f"Source blocks lost, duplicated or changed: {source.source_id}")
+            raise ValueError(f"Source blocks lost, duplicated or changed: {document.source_id}")
         for chunk in chunks:
             if count(chunk.embedding_text) != chunk.token_count or chunk.token_count > settings.max_tokens:
                 raise ValueError(f"Invalid complete-input token count: {chunk.chunk_id}")
@@ -78,7 +84,7 @@ def run(args) -> dict:
                 raise ValueError(f"Chunk crosses heading boundaries: {chunk.chunk_id}")
         sizes = [chunk.token_count for chunk in chunks]
         statistics.append({
-            "source_id": source.source_id, "parsed_blocks": len(document.blocks),
+            "source_id": document.source_id, "parsed_blocks": len(document.blocks),
             "content_blocks": len(expected), "chunks": len(chunks),
             "code_blocks_preserved": sum(block.kind == "code" for _, block in actual),
             "tables_preserved": sum(block.kind == "table" for _, block in actual),
@@ -87,12 +93,19 @@ def run(args) -> dict:
         })
         inputs.append({
             "manifest": str(manifest.resolve()), "manifest_sha256": file_hash(manifest),
-            "source_id": source.source_id, "snapshot_id": document.snapshot_id,
+            "source_id": document.source_id, "snapshot_id": document.snapshot_id,
             "source_sha256": document.source_sha256,
         })
         outputs[document.snapshot_id + ".json"] = {
-            "schema_version": 1, "source_id": source.source_id,
+            "schema_version": 1, "source_id": document.source_id,
             "snapshot_id": document.snapshot_id,
+            "block_token_counts": [
+                {"block_index": i, "kind": block.kind, "heading_path": block.heading_path,
+                 "anchor": block.anchor,
+                 "body_tokens": len(tokenizer.encode(block.text, add_special_tokens=False).ids),
+                 "contextual_tokens": count(serialize_chunk(block.text, block.heading_path))}
+                for i, block in expected
+            ],
             "heading_blocks": [
                 {"block_index": i, "block": asdict(block)}
                 for i, block in enumerate(document.blocks, 1) if block.kind == "heading"
@@ -104,12 +117,16 @@ def run(args) -> dict:
         "scope": "Offline chunking verification, not embedding or retrieval evaluation",
         "settings": asdict(settings), "chunker_version": CHUNKER_VERSION,
         "tokenizer_setup": setup, "tokenizer": asdict(spec), "inputs": inputs,
+        "sources_manifest": str(args.sources_manifest.resolve()),
+        "sources_manifest_sha256": file_hash(args.sources_manifest),
+        "markdown_run": str(args.markdown_run.resolve()) if args.markdown_run else None,
         "code_sha256": {
             str(path.relative_to(ROOT)): file_hash(path) for path in (
                 Path(__file__).resolve(), ROOT / "scripts/measure_block_tokens.py",
                 ROOT / "src/rag_workflow_lab/contracts.py",
                 ROOT / "src/rag_workflow_lab/ingestion/chunk.py",
                 ROOT / "src/rag_workflow_lab/ingestion/parse.py",
+                ROOT / "src/rag_workflow_lab/ingestion/markdown.py",
             )
         },
         "sources": statistics,
@@ -129,6 +146,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sources-manifest", type=Path, default=ROOT / "data/corpus/sources.json")
     parser.add_argument("--snapshots-dir", type=Path, default=ROOT / "data/local/snapshots")
+    parser.add_argument("--markdown-run", type=Path, help="Read a saved Markdown run using its separate --sources-manifest.")
     parser.add_argument("--tokenizer-dir", type=Path, default=(
         ROOT / "data/local/tokenizers/nomic-embed-text-v1.5" / REVISION
     ))

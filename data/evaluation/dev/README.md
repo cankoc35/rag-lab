@@ -1,10 +1,13 @@
-# Document-question development subset
+# Development question subsets
 
 **Version:** `postgresql18-document-dev` / `1.0.0`, verified on 2026-11-06.
 [document_questions.json](document_questions.json) contains P01–P06 from the
 [pilot draft](../../../docs/PILOT_SCOPE.md), with unchanged question text and
-source-verified English reference answers. The remaining 14 pilot questions
-are still drafts. This is development data, not the held-out thesis test set.
+source-verified English reference answers. The separate
+[atlas_questions.json](atlas_questions.json), `atlas-document-dev` / `1.0.0`,
+contains P07–P09/P19 verified on 2026-11-18. There are ten annotated records
+across the two subsets; P10–P18/P20 remain drafts. This is development data,
+not the held-out thesis test set. The original six-question file is unchanged.
 
 ## Contents
 
@@ -61,6 +64,7 @@ From the repository root, using Python 3.11+:
 
 ```sh
 python3.11 scripts/check_document_questions.py
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/atlas_questions.json
 ```
 
 The read-only checker verifies file hashes, source/snapshot/chunk identities,
@@ -69,6 +73,47 @@ claim-to-evidence references. It requires the saved local artifacts but no
 model, tokenizer package, database or network access. It does not decide
 whether an answer is semantically supported; that support was reviewed against
 the saved source passages when the dataset was authored.
+
+## Atlas source-specific subset — 2026-11-18
+
+The Atlas subset binds exactly two complete documents in `atlas-docs-v1` to
+their saved Markdown snapshots and 12 local chunks. Its source state pins nine
+files: the local allowlist plus raw/manifest/parsed/chunk records for each source.
+
+| Question | Reference | Answerability | Selected blocks |
+| --- | --- | --- | --- |
+| P07 | Database `atlas_telemetry`, application schema `atlas_app` | Answerable | Inventory 7 |
+| P08 | Maximum lag 5 seconds, inclusive | Answerable | Policy 7, 9 |
+| P09 | Reporting replica `atlas-replica-01` → `ATLAS-REPORTING-LAG`, 5 seconds inclusive | Answerable | Inventory 14 + policy 4, 7 |
+| P19 | No approved Boreal lag limit in this corpus | Unanswerable | Complete two-document scope review; no positive answer evidence |
+
+There are eight answer requirements and six positive evidence records over
+five blocks/four chunks. `support_mode: any` lists alternative selected support;
+`all` combines complementary records for P09. This does not establish that
+two documents are irreducibly necessary for every equivalent valid answer.
+
+P19 uses `answerability: unanswerable`, empty `evidence`, and `corpus_scope`
+requirements with no positive evidence IDs. Its `unanswerability` record names
+the target entity, complete checked source scope and editorial review. The
+checker verifies that the declared absent entity is not in those sources;
+this supplements the review and is not a general semantic answerability test.
+Correct abstention does not require an empty retrieval result: related Atlas
+passages can be returned without answering the Boreal question.
+
+The original P19 draft disclosed the answer with "which is absent from the
+documents". Its finalized raw question omits that clause, retaining the ID and
+scenario. Questions P07–P09 retain their draft text. Gold and revision notes
+stay outside generation; the shared selector emits only question ID/text.
+Changing or expanding the two-document scope requires revalidating absence.
+
+Both dataset checks and all 178 offline unit tests passed, including five new
+reference-boundary/gold-isolation tests; 64 protected files remained unchanged.
+Record: `outputs/validation/atlas-questions-v1-20261118.json`.
+The two Atlas snapshots/12 chunks were subsequently imported and verified;
+Atlas has no embeddings or retrieval/answer run yet. The paid answer runners
+still select P01–P06; Atlas index/dataset selection support is later work.
+
+## Historical PostgreSQL verification
 
 Initial verification passed, including nine rejection checks for stale hashes,
 unknown chunks, wrong block positions, changed span text/offsets, unknown claim
@@ -216,13 +261,77 @@ evidence entered generation. Runtime labels S1/S2 map to P04-E1/E2; they are
 not gold annotation IDs shown to the model. Post-run editorial review found
 P04-R1/R2 and the optional monitoring guidance satisfied. This is one
 development check, not an automated grade, a held-out result or proof that
-retrieval caused correctness; the LLM-only control has not run.
+retrieval caused correctness; the LLM-only control had not run at that point.
 
 Trace: `0a5c1437-8383-4702-b9a7-e676a24ddbee`. Raw answer/usage:
 `outputs/answers/simple-P04-20261117T172725743636Z.json`. Independent persisted
 record checks and editorial review use the same name under `outputs/validation/`.
 The five-chunk baseline, questions, gold, snapshots and index are unchanged.
-The [single/batch runner](../../../README.md#run-simple-rag) is now prepared
-with offline tests. Next: run P01–P06, retaining P05's known retrieval failure
-case, then add LLM-only. The live answer batch has not run.
-See [STATUS](../../../docs/STATUS.md).
+The [single/batch runner](../../../README.md#run-simple-rag) subsequently ran
+P01–P06 as recorded below, followed by the LLM-only control.
+
+## First Simple answer batch
+
+On 2026-11-17 the owner requested the live P01–P06 batch. Six calls to Luna
+completed using the unchanged questions, sources, index, top-five retrieval,
+generator settings and `answer_v1`. Each question received its own trace;
+all six share `run_id` **`simple-20261117T183619008413Z`**.
+
+| Question | Post-run editorial finding | Evidence / limitation |
+| --- | --- | --- |
+| P01 | Meets recorded requirements | Estimated versus actual execution, including query execution by EXPLAIN ANALYZE; cites S4/S5. |
+| P02 | Meets recorded requirements | Leading equalities/first inequality narrow the scanned range; later-column filters are not categorically excluded; cites S2. |
+| P03 | Partial | Correct implication direction/planner recognition, but does not explicitly separate eligibility from selection. Supporting P03-E2 was retrieved at S3, so this omission is in the answer. |
+| P04 | Meets recorded requirements | Distinguishes NULL from measured zero, explains idle caught-up/absent-tracking cases and monitoring presentation; cites S1/S2. |
+| P05 | Partial; explicit evidence gap | No PG-MULTI chunk in the five retrieved sources. Acknowledges missing composite-index evidence and answers plan inspection with alternative EXPLAIN evidence; no supported missing-leading-column/skip-scan explanation. The opening "No" is stronger than the evidence establishes. |
+| P06 | Meets recorded requirements | Distinguishes eligibility from cost-based choice; common-value example; cites S1/S2. |
+
+This was one non-blind editorial review against existing development
+requirements, not an automated grade or a frozen final judging protocol.
+Valid citation labels alone do not establish semantic support. P03 needs
+better answer completeness despite retrieved evidence; P05 retains the known
+retrieval coverage gap. Preserve both observations when comparing controls.
+
+The batch took 19.262 s excluding model loading: 15,328 input / 457 output /
+15,785 total tokens, zero reasoning/cache reads and 15,310 30-minute cache-write
+tokens. Estimated Standard token cost: $0.00214405 before taxes/other services;
+rates and calculation basis are in the validation record. DB cost remains NULL.
+
+- Raw outputs: `outputs/answers/simple-20261117T183619008413Z.json`.
+- Independent DB/provenance checks: `outputs/validation/simple-20261117T183619008413Z.json`.
+- Per-question editorial notes: `outputs/validation/simple-20261117T183619008413Z-review.json`.
+
+A fresh read-only connection verified six traces/12 spans, exact full-text
+context, source mappings, responses and usage. Public totals are eight
+traces/15 spans; corpus and older observations retain their fingerprints.
+No implementation, prompt or gold changed during that batch execution.
+The [LLM-only control](../../../README.md#run-the-llm-only-control) later ran
+on these same questions/settings, as recorded below.
+It uses the shared question selector, without reading source artifacts or
+passing gold to generation. The separate prompt allows prior knowledge and
+supplies the PostgreSQL 18 task label; no per-question hints are added.
+Dedicated insufficient/changed-
+evidence checks and held-out evaluation remain open; this batch does not
+establish retrieval's contribution or general accuracy.
+
+## First paired LLM-only comparison — 2026-11-17
+
+All six calls completed in `llm-only-20261117T191359474642Z`. A fresh read-only
+check verified one trace/LLM span per question, exact raw-question inputs,
+prompt/settings, answers and usage, with no supplied documents/tools/history.
+The prior corpus/index, trace rows and Simple report were unchanged.
+
+Against the same recorded requirements, Simple meets P01/P02/P04/P06 and
+LLM-only meets P01/P05/P06. Both are partial on P03. Simple is more complete
+on P02/P04; LLM-only supplies the PostgreSQL 18 skip-scan explanation that
+Simple's P05 retrieval missed. Keep every question, including LLM-only-correct
+cases. This is one non-blind development comparison with intentionally
+different instruction policies, not an accuracy estimate or proof of memorization.
+
+LLM-only used 523 input / 621 output / 1,144 total tokens in 19.031 s. Its
+estimated Standard token cost was $0.0003628. Full findings, pricing basis and
+limitations are in [LLM_ONLY_COMPARISON](../../../docs/LLM_ONLY_COMPARISON.md).
+
+- Raw answers: `outputs/answers/llm-only-20261117T191359474642Z.json`.
+- Independent checks: `outputs/validation/llm-only-20261117T191359474642Z.json`.
+- Paired answers/requirement notes: `outputs/comparisons/simple-vs-llm-only-20261117T191359474642Z.json`.

@@ -1,6 +1,7 @@
 """Opt-in PostgreSQL tests using temporary tables and rollback only."""
 
 import os
+from datetime import datetime
 import unittest
 
 from rag_workflow_lab.config import load_database_settings
@@ -71,6 +72,23 @@ class CorpusStoreTests(unittest.TestCase):
                 save_snapshots(self.connection, [self.snapshot])
                 save_chunks(self.connection, [{**self.chunk, "token_count": 0}])
         self.assertEqual(self.counts(), (0, 0))
+
+    def test_local_snapshot_uses_capture_time_and_rejects_changed_records(self):
+        local = {"snapshot_id": "local-snapshot", "source": {
+            "source_id": "LOCAL-FIXTURE", "title": "Local fixture", "url": "file:///fixture.md", "format": "markdown"},
+            "sha256": "local-hash", "captured_at": "2026-11-18T00:00:00+00:00"}
+        chunk = {**self.chunk, "snapshot_id": local["snapshot_id"]}
+        for _ in range(2):
+            save_snapshots(self.connection, [local])
+            save_chunks(self.connection, [chunk])
+        self.assertEqual(self.counts(), (1, 1))
+        with self.connection.cursor() as cursor:
+            cursor.execute("SELECT source_id, url, downloaded_at FROM source_snapshots")
+            self.assertEqual(cursor.fetchone(), ("LOCAL-FIXTURE", "file:///fixture.md", datetime.fromisoformat(local["captured_at"])))
+        with self.assertRaisesRegex(ValueError, "differs"):
+            with self.connection.transaction():
+                save_snapshots(self.connection, [{**local, "captured_at": "2026-11-18T01:00:00+00:00"}])
+        self.assertEqual(self.counts(), (1, 1))
 
 
 if __name__ == "__main__":

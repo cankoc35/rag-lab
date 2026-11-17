@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-17. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-18. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -11,9 +11,12 @@ verified dataset.
 source-grounded reference answers and exact snapshot/block/chunk evidence in
 [document_questions.json](../data/evaluation/dev/document_questions.json).
 The [development-data guide](../data/evaluation/dev/README.md) explains the
-annotations and later retrieval diagnostics. P07–P20 remain drafts. One Simple
-P04 answer passed post-run editorial review on 2026-11-17; the six-question
-answer check and held-out evaluation have not run.
+annotations and later retrieval diagnostics. P07–P09/P19 now have a separate
+[verified Atlas subset](../data/evaluation/dev/atlas_questions.json), dated
+2026-11-18. P10–P18/P20 remain drafts. One Simple
+P04 answer passed post-run editorial review on 2026-11-17. A later P01–P06
+batch completed; editorial review found P03/P05 partial and the other four
+meeting recorded requirements. Held-out evaluation has not run.
 
 **Language decision (owner, 2026-11-05):** All repository content and RAG
 artifacts use English: corpus/synthetic documents, questions/datasets, prompts,
@@ -24,8 +27,8 @@ required.
 
 A CLI answering PostgreSQL questions with citations. The initial coding
 milestone establishes ingestion/retrieval that reads documents and finds
-relevant sections. One Simple P04 answer is verified; broader Simple and
-LLM-only runs follow. Enhanced,
+relevant sections. The first Simple and LLM-only P01–P06 batches are
+[compared](LLM_ONLY_COMPARISON.md); broader controls follow. Enhanced,
 LangGraph agent and router stages will share the same components later.
 
 ## Source coverage
@@ -37,8 +40,10 @@ source selection alone does not freeze content. Download time, actual content
 hash and local file path are recorded in each download's separate manifest.
 All four selected pages have saved, hash-verified HTML snapshots. The PG-STATS
 target section ID was checked in saved HTML. Snapshot IDs/hashes are in STATUS.
-Synthetic sources and the complete pilot corpus are not ready. The HTML parser
-is implemented and verified against all four saved sources.
+Two Atlas Markdown sources now have pinned local snapshots, parsed blocks
+and 12 verified chunks, now committed to the DB. Atlas has no embeddings yet;
+the complete pilot corpus is not ready. The HTML parser is implemented and verified
+against all four saved HTML sources.
 
 | Source ID | Source | Use |
 | --- | --- | --- |
@@ -46,8 +51,8 @@ is implemented and verified against all four saved sources.
 | PG-MULTI | [Multicolumn Indexes](https://www.postgresql.org/docs/18/indexes-multicolumn.html) | B-tree column order and skip-scan limits |
 | PG-PARTIAL | [Partial Indexes](https://www.postgresql.org/docs/18/indexes-partial.html) | Predicate/query compatibility |
 | PG-STATS | [Cumulative Statistics — pg_stat_replication](https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-REPLICATION-VIEW) | Only this section, including NULL-lag explanations |
-| LOCAL-INVENTORY | Synthetic Atlas environment inventory to be written | Database/schema, replica identities and query catalog |
-| LOCAL-POLICY | Synthetic Atlas operations policy to be written | Local thresholds and inspection rules |
+| LOCAL-INVENTORY | [Atlas inventory v1.0](../data/corpus/synthetic/atlas_inventory.md), snapshot/parsed Markdown | Database/schema, replica identities and query catalog |
+| LOCAL-POLICY | [Atlas operations policy v1.0](../data/corpus/synthetic/atlas_operations_policy.md), snapshot/parsed Markdown | Local threshold and inspection rules |
 
 In `sources.json`, `schema_version: 1` is the file-format version;
 `postgresql_version: "18"` is the documentation major version.
@@ -75,14 +80,21 @@ Retain heading paths, section anchors, code blocks and tables during ingestion.
 Start with required subsections; include all evidence needed by pilot questions
 within the snapshot scope.
 
+Atlas uses a separate [local Markdown manifest](../data/corpus/synthetic/sources.json)
+with pinned hashes, document versions/state and filenames. `ingest-markdown`
+copies/parses only those files; it does not extend or weaken the HTML allowlist.
+See [COMMANDS](COMMANDS.md#corpus-preparation-and-embedding-tools).
+
 Keep this document, the evaluation plan and gold answers out of the retrieval
 corpus. Ingestion must use an explicit source-file allowlist.
 
 ## Synthetic environment and tool draft
 
 - Environment name: **Atlas**, an example using no real user or organizational
-  data. Separate corpus documents have not been written.
-- Example local policy: for the specified replica, a valid numeric lag of
+  data. Two corpus documents now use version 1.0/state `atlas-docs-v1`.
+  The inventory defines database `atlas_telemetry`, schema `atlas_app`, 120
+  application tables and 10.0 GB. Its reporting replica is `atlas-replica-01`.
+- Authored local policy `ATLAS-REPORTING-LAG`: for the specified replica, a valid numeric lag of
   **at most 5 seconds** satisfies only the lag criterion. NULL, missing or
   invalid observations make the outcome unknown. This is neither a PostgreSQL
   default nor a claim that the whole system is healthy or failover-ready.
@@ -107,11 +119,11 @@ corpus. Ingestion must use an explicit source-file allowlist.
 
 Questions and expected-answer drafts are in English, the confirmed experiment
 language. The earlier drafts were translated while preserving IDs and scenario
-scope. P01–P06 now have verified reference answers and evidence spans mapped
-to the saved snapshots and chunks in the JSON subset linked above. The table
-below retains the original short answer drafts; the JSON supplies the fuller
-verified references. Verify P07–P20 local/tool gold answers after documents
-and fixtures are created.
+scope. P01–P06 and P07–P09/P19 have verified references in separate JSON
+subsets linked above. The table includes those finalized records and the
+remaining drafts; JSON supplies the fuller references. P19's final raw wording
+omits the draft clause disclosing that the environment is absent from the
+documents. Verify P10–P18/P20 against the eventual sources/tool fixtures.
 
 | ID | Type | Draft question | Expected answer / verification needed | Required evidence |
 | --- | --- | --- | --- | --- |
@@ -121,9 +133,9 @@ and fixtures are created.
 | P04 | Direct document | Can a NULL replay_lag in pg_stat_replication be treated as zero seconds? | No. NULL can also occur on an idle, caught-up system; it is not a numeric lag value or proof of failure. | PG-STATS |
 | P05 | Multi-document | With an index on (customer_id, created_at), does filtering only on created_at always require a Seq Scan, and how can we inspect the chosen path? | No. PostgreSQL 18 can use skip scan for suitable data distributions. Inspect the chosen plan with EXPLAIN. | PG-MULTI + PG-EXPLAIN |
 | P06 | Multi-document | Is choosing a Seq Scan for a query whose condition matches a partial index necessarily an error? | No. Predicate compatibility determines eligibility; cost and data distribution affect selection. Inspect the plan. | PG-PARTIAL + PG-EXPLAIN |
-| P07 | Local document | What are the database and application schema names in the Atlas example environment? | Verify the names and source span after LOCAL-INVENTORY is written. | LOCAL-INVENTORY |
-| P08 | Local document | What is the maximum lag allowed by the Atlas replica lag rule? | The draft policy is 5 seconds; verify it against the policy document once written. | LOCAL-POLICY |
-| P09 | Local multi-document | Which lag rule applies to the replica listed in the Atlas inventory? | Match the replica identity from the inventory to the correct policy. | LOCAL-INVENTORY + LOCAL-POLICY |
+| P07 | Local document | What are the database and application schema names in the Atlas example environment? | Verified: atlas_telemetry / atlas_app, inventory block 7. | LOCAL-INVENTORY |
+| P08 | Local document | What is the maximum lag allowed by the Atlas replica lag rule? | Verified: 5 seconds inclusive, policy blocks 7/9. | LOCAL-POLICY |
+| P09 | Local multi-document | Which lag rule applies to the replica listed in the Atlas inventory? | Verified: reporting replica atlas-replica-01 maps to ATLAS-REPORTING-LAG, 5 seconds inclusive. | LOCAL-INVENTORY + LOCAL-POLICY |
 | P10 | DB tool | What indexes currently exist on the Atlas orders table, and in what column order? | Verify against the selected fixture's actual index catalog; names are not fixed yet. | DB index output |
 | P11 | DB tool | What is the observed Atlas replica lag, in seconds, in the selected snapshot? | A: 3; B: 12. Verify the output and evidence ID after the fixtures are prepared. | DB observation output |
 | P12 | DB tool | Which scan type appears in the selected snapshot's plan for the Atlas customer lookup query? | Determine from an actual plan output; do not assume an Index Scan. | EXPLAIN output |
@@ -133,7 +145,7 @@ and fixtures are created.
 | P16 | Document + tool | Is the cost in the Atlas query's plain EXPLAIN output an actual duration, and can we measure latency from it? | No. Cost units are not actual milliseconds, and a plain plan supplies no actual duration. Verify the real output. | PG-EXPLAIN + EXPLAIN output |
 | P17 | Insufficient evidence | Does the Atlas replica satisfy the lag rule when its observed lag is NULL? | This cannot be determined without a valid numeric observation; NULL must not be treated as zero. | LOCAL-POLICY + PG-STATS + NULL observation fixture |
 | P18 | Insufficient evidence | What is the exact root cause of the increase in Atlas replica lag? | A single observation cannot establish an exact cause; identify the additional measurements needed. | Available evidence scope; do not invent a causal diagnosis |
-| P19 | Insufficient evidence | What is the approved replica lag limit for the Boreal environment, which is absent from the documents? | The sources do not provide it; do not transfer the Atlas policy to another environment. | Corpus scope and targeted retrieval |
+| P19 | Insufficient evidence | What is the approved replica lag limit for the Boreal environment? | Verified unanswerable within the complete pinned Atlas scope; do not transfer the Atlas rule. No positive answer chunk. | Corpus-scope absence review |
 | P20 | Insufficient evidence | Exactly how many milliseconds will an unmeasured new index save on the Atlas query? | An exact gain cannot be established without actual before-and-after measurements. | PG-EXPLAIN + existing plan; no benchmark measurement |
 
 P13 will run in at least two states, an additional execution variant rather
@@ -156,16 +168,21 @@ renaming these questions; keep related scenario families within one split.
    exist. Trace/span code and migration `0002` are applied and verified with
    one real P04 trace/span. The Luna client passed offline checks and one live
    smoke. Simple context/`answer_v1` and one P04 answer with retrieval/LLM spans
-   are verified. **Next small step:** Extend the answer check to P01–P06,
-   followed by LLM-only.
-   Keep gold and source/index state fixed.
+   are verified. The later P01–P06 batch completed with P03/P05 partial in
+   editorial review. The later LLM-only batch completed on the unchanged
+   questions/settings. Simple was more complete on P02/P04, LLM-only on P05,
+   and both were partial on P03. Preserve both raw baselines.
    The cutoff sweep alone does not choose a production context budget. See the
    [development results](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
-3. Write two synthetic documents and add Markdown ingestion. These tasks do
-   not require a model or orchestration framework.
-4. Extend answer checks with the initial Luna generator and add LLM-only controls
-   and project-owned PostgreSQL traces. Then create DB fixtures/tools, verify tool questions,
-   and implement enhanced/agentic workflows.
+3. **Atlas references complete:** The 12 local chunks support verified
+   P07–P09 references; P19 has a complete two-document absence review and no
+   positive evidence. The four-question file is separate from the unchanged
+   six-question baseline. No Atlas answer/retrieval run has occurred.
+4. **Atlas import complete:** Two snapshots/12 chunks were committed and
+   repeated without duplicates. Proposed next: Atlas-scoped index selection/
+   embedding, then explicit runner dataset selection before new answer runs.
+5. Broaden answer/control checks and project-owned traces. Then create DB
+   fixtures/tools, verify tool questions and implement enhanced/agentic workflows.
 
 **Before the pilot is ready:** Verify each record's `question_id`, type,
 source state, gold answer/rubric, required source-span/tool evidence IDs and

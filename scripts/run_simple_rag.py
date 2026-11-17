@@ -23,21 +23,13 @@ from time import perf_counter
 
 from rag_workflow_lab.config import load_database_settings, load_settings
 from rag_workflow_lab.embeddings import NomicEmbedder, file_sha256
+from rag_workflow_lab.evaluation.dataset import select_questions
 from rag_workflow_lab.store import get_embedding_index
 from rag_workflow_lab.workflows.simple import answer_question
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "data/evaluation/dev/document_questions.json"
-
-
-def select_questions(dataset: dict, question_id: str | None) -> list[dict]:
-    """Select one question or all questions, keeping gold outside the workflow."""
-    questions = [{"question_id": q["question_id"], "question": q["question"]}
-                 for q in dataset["questions"] if question_id is None or q["question_id"] == question_id]
-    if not questions:
-        raise ValueError(f"No questions selected; unknown question ID: {question_id}.")
-    return questions
 
 
 def run_questions(connection, writer, embedder, client, generator, index_id: str, questions: list[dict],
@@ -99,6 +91,7 @@ def main(argv=None) -> int:
                 "scripts/run_simple_rag.py", "scripts/run_simple_rag.py.lock",
                 "scripts/check_document_questions.py", "configs/pilot.toml",
                 "src/rag_workflow_lab/config.py", "src/rag_workflow_lab/llm.py",
+                "src/rag_workflow_lab/evaluation/dataset.py",
                 "src/rag_workflow_lab/workflows/simple.py", "src/rag_workflow_lab/prompts/answer_v1.md",
                 "src/rag_workflow_lab/retrieval.py", "src/rag_workflow_lab/store.py",
                 "src/rag_workflow_lab/embeddings.py", "src/rag_workflow_lab/tracing.py",

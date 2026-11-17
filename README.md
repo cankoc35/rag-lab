@@ -9,25 +9,40 @@ For a new session, follow [AGENTS.md](AGENTS.md), then read
 [context](docs/PROJECT_CONTEXT.md), [status](docs/STATUS.md),
 [roadmap](docs/ROADMAP.md) and [handoff](docs/HANDOFF.md).
 
+For copyable terminal commands and their options, see the
+[command reference](docs/COMMANDS.md).
+
 ## Current status
 
 | Area | Implemented | Remaining |
 | --- | --- | --- |
-| Corpus | Four PostgreSQL 18 HTML snapshots; parsing and 49 section-aware chunks | Synthetic runbooks and sandbox fixtures |
-| Embeddings / DB | Pinned local Nomic, 768 dimensions; four snapshots, 49 chunks, one index/49 vectors | Broader corpus coverage |
+| Corpus | Four PostgreSQL HTML + two Atlas Markdown snapshots; all 61 chunks imported | Atlas embedding/index and sandbox fixtures |
+| Embeddings / DB | Six snapshots, 61 chunks; original Nomic index/49 vectors preserved | Atlas vectors and broader corpus coverage |
 | Retrieval | Dense search, query embedding and repeatable P01–P06 checker at 5/10/20 | Hybrid search and reranking |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
-| Generation | Simple workflow and single/batch runner; live P04 passed editorial review | Live six-question answer check and LLM-only control |
-| Evaluation | Six source-verified development questions out of 20 pilot records | P07–P20 verification, held-out set and final protocol |
+| Generation | Simple and LLM-only P01–P06 batches completed and compared | Source-specific, insufficient/changed-evidence controls and broader evaluation |
+| Evaluation | Ten verified development questions in separate PostgreSQL/Atlas subsets | P10–P18/P20 verification, held-out set and final protocol |
 
 The first dense diagnostic found annotated evidence in the top five for five
 of six questions. P05 showed wording sensitivity; these are development
 observations, not answer-quality or held-out results. See the
 [diagnostic](data/evaluation/dev/README.md#p05-wording-diagnosis).
 
-**Next:** Check Simple on P01–P06, then add the LLM-only control. One P04
-answer is verified; broader answer quality remains unmeasured. Enhanced, tools,
-LangGraph and the router remain unimplemented. See [STATUS](docs/STATUS.md).
+The first [paired development comparison](docs/LLM_ONLY_COMPARISON.md) found
+four Simple and three LLM-only answers meeting recorded requirements. Simple
+was more complete on P02/P04, LLM-only on P05; both were partial on P03.
+This is one six-question check, not a held-out result.
+The synthetic [Atlas inventory](data/corpus/synthetic/atlas_inventory.md) and
+[operations policy](data/corpus/synthetic/atlas_operations_policy.md) are now
+written with shared state `atlas-docs-v1`. Both were snapshotted and parsed offline.
+Their 25 content blocks now form 12 local chunks, all below 512 tokens;
+Atlas's two snapshots and 12 chunks are now imported; it has no vectors yet.
+Its [four-question subset](data/evaluation/dev/atlas_questions.json)
+now has verified reference answers, answerability and pinned evidence.
+**Proposed next step:** prepare an explicitly scoped Atlas embedding index,
+then dataset selection before new answer tests.
+Enhanced, tools, LangGraph and the router remain unimplemented.
+See [STATUS](docs/STATUS.md).
 
 ## Working design
 
@@ -75,6 +90,29 @@ PYTHONPATH=src python3.11 -m rag_workflow_lab download-source --source-id PG-EXP
 PYTHONPATH=src python3.11 -m rag_workflow_lab parse-source --source-id PG-EXPLAIN --manifest data/local/snapshots/PG-EXPLAIN-20261102T173311Z-yhdhybna/manifest.json
 ```
 
+Snapshot and parse the two explicitly allowlisted Atlas Markdown documents:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m rag_workflow_lab ingest-markdown --sources-manifest data/corpus/synthetic/sources.json
+```
+
+This offline command verifies pinned source hashes and writes exact Markdown
+copies, manifests and `parsed.json` in a new `data/local/markdown/` run folder.
+It preserves headings, prose, tables, SQL and source-line anchors using the
+existing block contract. It makes no model/DB calls. The HTML source manifest
+and `parse-source` remain unchanged. To measure/chunk a
+saved Atlas run, use the same chunk runner with explicit Markdown inputs:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --python 3.11 scripts/chunk_corpus.py \
+  --sources-manifest data/corpus/synthetic/sources.json \
+  --markdown-run data/local/markdown/atlas-docs-v1-ssme1pql
+```
+
+This saves new chunk JSON and per-content-block token counts under
+`data/local/chunks/`. The import runner supports both HTML and explicit
+Markdown inputs; use the Atlas command below to commit its saved records.
+
 Each download preserves previous snapshots. The parser verifies source/hash
 metadata and preserves headings, SQL and tables within the selected scope.
 The pilot already has four pinned snapshots; fresh downloads may invalidate
@@ -108,13 +146,28 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 
 `check-db` is read-only. The existing project DB and repository head are `0002`;
 see [migrations](migrations/README.md) and [tracing](docs/TRACING_PLAN.md).
-The current corpus and vectors are already imported. For a new DB, the
+The current corpus and original PostgreSQL vectors are already imported. For a new DB, the
 following commands **commit** their respective records:
 
 ```sh
 PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
 ```
+
+Import the two Atlas snapshots and 12 chunks (already committed locally):
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py \
+  --sources-manifest data/corpus/synthetic/sources.json \
+  --markdown-run data/local/markdown/atlas-docs-v1-ssme1pql \
+  --chunks-dir data/local/chunks/atlas-docs-v1-section-blocks-v1
+```
+
+Imports use one transaction; repeating identical inputs preserves records.
+No migration was needed. For local snapshots, the legacy `downloaded_at`
+column stores their `captured_at` acquisition time. The indexer currently reads
+all 61 stored chunks; Atlas-only selection is a proposed next step, not an
+option it already supports. Importing does not generate embeddings.
 
 The importer validates saved source/chunk provenance and preserves exact
 embedding inputs. Identical records are accepted; conflicting IDs roll back
@@ -203,8 +256,29 @@ that interrupted batch has no final JSON report. No automatic grading is added.
 
 The first P04 call passed a post-run editorial check on
 2026-11-17. This single development check does not establish overall quality
-or isolate prior knowledge. The live six-question batch has not run.
+or isolate prior knowledge. A later six-question batch completed with four
+answers meeting recorded requirements and two partial answers (P03/P05),
+based on post-run editorial review. See [development results](data/evaluation/dev/README.md#first-simple-answer-batch).
 See [tracing](docs/TRACING_PLAN.md).
+
+## Run the LLM-only control
+
+Use the same questions and Luna settings, with an own-knowledge prompt and
+no retrieved evidence. This **makes paid calls and writes traces**:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_llm_only.py --all --call-api
+```
+
+Replace `--all` with `--question-id P01` to select one question. No index or
+embedding model is needed; PostgreSQL is used only for logging. Each question
+gets one `llm_only` trace and one LLM span, with no sources/tools/history.
+The raw question is unchanged. `llm_only_v1` permits the model's prior knowledge
+and labels the task PostgreSQL 18; no question-specific facts are added.
+Simple's prompt is preserved. Reports go to `outputs/answers/llm-only-*.json`.
+The first live control batch completed and was independently verified;
+see the [paired comparison](docs/LLM_ONLY_COMPARISON.md).
+See the [options and comparison notes](docs/COMMANDS.md#llm-only-control).
 
 ## Verification
 
@@ -218,7 +292,13 @@ Check pinned question evidence separately; this needs saved artifacts but no mod
 
 ```sh
 python3.11 scripts/check_document_questions.py
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/atlas_questions.json
 ```
+
+The default remains the unchanged P01–P06 PostgreSQL baseline. The separate
+Atlas subset contains P07–P09 and P19; its last case has no positive answer
+evidence. Answer runners still select the PostgreSQL baseline; Atlas dataset
+selection follows Atlas index support. These checks make no model/DB calls.
 
 DB tests are opt-in and use temporary tables/synthetic vectors. They require
 the local DB and applied `0002`, and leave public records unchanged:

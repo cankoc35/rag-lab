@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "document_state": "atlas-docs-v1",
+  "sources": [
+    {
+      "source_id": "LOCAL-INVENTORY",
+      "title": "Atlas environment inventory",
+      "format": "markdown",
+      "path": "atlas_inventory.md",
+      "document_version": "1.0",
+      "sha256": "191074529ebc89385e1853da247538440ab864c291fd5d01cd25f6476ca457b8"
+    },
+    {
+      "source_id": "LOCAL-POLICY",
+      "title": "Atlas operations policy",
+      "format": "markdown",
+      "path": "atlas_operations_policy.md",
+      "document_version": "1.0",
+      "sha256": "76845e28ab497188fed76ec768288b81a30d0d9582b9af54b217511ca747af26"
+    }
+  ]
+}

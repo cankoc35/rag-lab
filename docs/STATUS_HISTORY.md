@@ -665,3 +665,236 @@ The pinned-reference checker, Ruff unused/undefined-name checks, locked runner
 content byte for byte. Preparation made no hosted calls or DB writes; existing
 workflow, prompt, retrieval and tracing code were preserved. The live P01–P06
 batch and its answer/citation review are next, followed by LLM-only.
+
+## First six-question Simple answer batch — 2026-11-17
+
+The owner explicitly requested the documented `run_simple_rag.py --all
+--call-api` command. The existing PostgreSQL service was healthy, revision
+`0002` and selected index/49 vectors were verified, and before-run public-table
+fingerprints were saved. One cached Nomic load served all six questions.
+The unchanged Luna settings/prompt produced six completed responses, without
+retries or additional judge calls.
+
+Run: `simple-20261117T183619008413Z`. Batch workflow time was 19.262 seconds,
+excluding model loading. Usage was 15,328 input / 457 output / 15,785 total;
+zero reasoning/cache reads and 15,310 30-minute cache-write tokens. Estimated
+Standard token cost was $0.00214405 before taxes/other services, not an invoice.
+The estimate uses disjoint ordinary-input/cache-write/cache-read categories;
+unknown DB cost remains NULL.
+
+A fresh read-only connection verified six distinct traces and 12 completed
+retrieval/LLM spans, question/run links, exact full-text context, source labels,
+raw answers/response IDs and usage. Public totals became eight traces/15 spans.
+Corpus/index and older observations retain their counts/fingerprints; recorded
+code hashes still match. No code, prompt, question, gold or schema changed.
+
+Post-run non-blind editorial review found P01/P02/P04/P06 meet recorded
+requirements. P03 correctly explains implication/planner recognition but
+omits the eligibility-versus-selection distinction available in retrieved S3.
+P05 lacks PG-MULTI evidence, acknowledges the composite-index evidence gap and
+answers plan inspection using alternative EXPLAIN passages; it remains partial,
+and its opening "No" is stronger than the retrieved evidence establishes.
+These findings are not an automated quality grade or a held-out accuracy result.
+
+- Raw report: `outputs/answers/simple-20261117T183619008413Z.json`.
+- Before state: `outputs/validation/simple-batch-before-20261117T183615Z.json`.
+- Independent checks: `outputs/validation/simple-20261117T183619008413Z.json`.
+- Editorial notes: `outputs/validation/simple-20261117T183619008413Z-review.json`.
+
+Tests were not repeated because this was execution/documentation only; the
+existing counts remain 146 offline unit and 20 earlier DB integration tests.
+Next: the approved LLM-only control on the same questions/settings, preserving
+this Simple baseline and its observed failures. Dedicated insufficient/changed-
+evidence cases and held-out evaluation remain open.
+
+## LLM-only control preparation — 2026-11-17
+
+The owner retained PostgreSQL for the current comparison and requested the
+LLM-only structure. Added `workflows/llm_only.py`, the English `llm_only_v1`
+prompt and locked `scripts/run_llm_only.py`. The control sends only the unchanged
+raw question with a concise own-knowledge instruction and PostgreSQL 18 task
+label. It uses the existing Luna/settings/client policy, with no question-
+specific hints, documents, tools or prior responses. Simple's prompt is unchanged.
+
+The runner supports explicit `--question-id` or `--all`, plus `--call-api`.
+It reads question JSON/metadata, not pinned source artifacts, embeddings or
+index records. One autocommit DB connection records one trace and one LLM span
+per question, with empty sources and preserved reported usage; unknown cost
+stays NULL. Schema-version-2 reports share Simple's per-question shape.
+Partial/empty responses and provider exceptions follow the existing failure
+policy. No migration was needed and no hosted control call was made.
+
+Moved the existing question selector into `evaluation/dataset.py` for use by
+both runners, retaining only IDs/text. Existing Simple behavior passes its
+regression tests. The new control lock preserves the SDK/database dependency
+versions from Simple while excluding ML packages. All 159 offline unit tests
+and 21 temporary-table PostgreSQL integration tests passed, including isolation,
+single/batch selection and completed/incomplete trace round trips. CLI help,
+Ruff and documentation checks passed. Next: the live P01–P06 control and paired
+editorial review against the recorded Simple batch.
+
+## Live LLM-only batch and paired review — 2026-11-17
+
+The owner requested all six LLM-only answers and comparison with the existing
+Simple batch. Ran `run_llm_only.py --all --call-api` once with the unchanged
+questions, Luna/settings and `llm_only_v1`. All calls completed without retries;
+run ID: `llm-only-20261117T191359474642Z`. No Simple calls were repeated.
+
+A fresh read-only DB check verified six new traces/six LLM spans, exact raw
+question inputs, prompt/settings, responses and usage, with empty sources and
+no retrieval spans. Public totals reached 14 traces/21 spans. Corpus/index,
+older rows and the prior Simple raw report retained their fingerprints.
+
+The non-blind review against existing requirements found Simple complete on
+P01/P02/P04/P06 and LLM-only on P01/P05/P06. Simple was more complete on P02/P04,
+LLM-only on P05; both were partial on P03. LLM-only's P05 skip-scan explanation
+shows useful prior knowledge where Simple lacked the relevant retrieved passage.
+These are descriptive completeness observations, not general accuracy rates,
+training-membership evidence or an identical-prompt causal retrieval ablation.
+
+LLM-only: 523 input / 621 output / 1,144 total tokens, zero reasoning/cache
+tokens, 19.031 s workflow batch time and estimated Standard token cost
+$0.0003628. Simple's corresponding observations were 15,785 total tokens,
+19.262 s excluding model loading and $0.00214405. DB cost remains NULL;
+estimates exclude taxes/other services. One separate batch each does not
+establish a latency advantage.
+
+Records: `outputs/answers/llm-only-20261117T191359474642Z.json`,
+`outputs/validation/llm-only-20261117T191359474642Z.json`, and
+`outputs/comparisons/simple-vs-llm-only-20261117T191359474642Z.json`.
+The English report is [LLM_ONLY_COMPARISON](LLM_ONLY_COMPARISON.md).
+No application code, prompt, dataset or migration changed; prior 159 unit/21 DB
+tests were not repeated for execution/documentation-only work. Proposed next:
+the first small synthetic PostgreSQL runbook and source-specific questions,
+then changed/missing-evidence checks, retaining both baselines and all six cases.
+
+## Atlas synthetic source documents — 2026-11-17
+
+The owner authorized creating the discussed synthetic data. Added English
+`atlas_inventory.md` and `atlas_operations_policy.md` under
+`data/corpus/synthetic/`, with source IDs `LOCAL-INVENTORY`/`LOCAL-POLICY`,
+version 1.0 and shared document state `atlas-docs-v1`. They contain 630/668
+whitespace-separated words and five sections each. All facts are labeled
+synthetic. The inventory defines the 120-table, 10.0 GB Atlas environment;
+the policy retains the inclusive 5-second lag criterion and unknown cases.
+
+Offline checks verified metadata, storage arithmetic, largest-table identity,
+cross-source references, absence of evaluation labels/fixture answers and
+unchanged hashes for 57 protected runtime/configuration/evaluation files.
+Record: `outputs/validation/atlas-docs-v1-authored-20261117.json`.
+The existing `.gitkeep` remains. No code, source manifest, question dataset,
+DB state or existing index changed; no ingestion or API call ran. Application
+tests were not repeated for source/document-only changes. Next: local Markdown
+ingestion with source/snapshot provenance, then P07–P09/P19 reference checks.
+
+## Offline Markdown snapshot and parsing — 2026-11-18
+
+Implemented `ingestion/markdown.py` and the `ingest-markdown` CLI command,
+using a separate pinned `data/corpus/synthetic/sources.json` allowlist. It
+checks source hashes and local file boundaries before creating a new run
+folder, then saves exact copies, manifests and shared parsed blocks. The
+reader handles the Atlas subset: headings, prose/lists, triple-backtick code
+and simple pipe tables. Inline markup remains text; anchors identify source
+lines. No dependency, shared contract or HTML parser change was required.
+
+The live offline command produced
+`data/local/markdown/atlas-docs-v1-ssme1pql/`. Inventory snapshot
+`LOCAL-INVENTORY-246a17e09e73d871` has 19 blocks; policy snapshot
+`LOCAL-POLICY-d7124ea3bb39455d` has 18. Together: 12 headings, 22 paragraphs,
+two tables and one SQL code block. Raw copies and parsed hashes/metadata were
+independently read back. All 24 protected source/evaluation/HTML artifact
+hashes were unchanged.
+
+All 168 offline unit tests passed, including nine new tests for evidence
+preservation, path/hash boundaries, incomplete blocks, repeated runs, CLI
+isolation and write-failure cleanup. Existing P01–P06 reference checks,
+changed-file Ruff and whitespace checks passed. Record:
+`outputs/validation/markdown-ingestion-20261118.json`.
+No chunking, token measurement, embedding, DB access or API call ran; DB tests
+were not repeated. Existing HTML manifest, snapshots, parsed data, chunks and
+index remain unchanged. Next: token measurement and section-aware chunking of
+the saved Atlas blocks, then P07–P09/P19 references before import/indexing.
+
+## Atlas token counts and section-aware chunks — 2026-11-18
+
+Added `load_markdown_snapshots()` to verify pinned local copies/metadata and
+reparse their saved blocks without reading live source text. The existing
+`chunk_corpus.py` accepts `--markdown-run` with the separate allowlist and
+saves per-content-block body/contextual token counts. Its default HTML path,
+core chunker, shared contracts and pinned tokenizer/counting rules are unchanged.
+
+The explicit offline run wrote
+`data/local/chunks/atlas-docs-v1-section-blocks-v1/`: six inventory chunks
+(60–268 tokens, 952 total) and six policy chunks (59–204 tokens, 909 total).
+All 25 content blocks, one SQL block and two tables are preserved exactly once.
+The 12 headings remain context/heading records. No chunk exceeds 512 tokens;
+the 1024 ceiling and no-overlap/no-truncation rules remain unchanged.
+
+All 173 offline unit tests passed, including five new saved-snapshot tests.
+Independent read-back re-counted blocks and reproduced all Atlas chunks. A
+temporary HTML run reproduced the original 49 chunks and heading records
+exactly. P01–P06 reference checks and changed-file Ruff/whitespace checks passed;
+all 35 protected source/evaluation/old-artifact/core-code hashes were unchanged.
+Record: `outputs/validation/atlas-chunking-20261118.json`.
+No embedding/model inference, DB access or API call ran. Next: verify
+P07–P09/P19 reference answers/evidence against Atlas artifacts before preparing
+import/indexing support or new answer comparisons.
+
+## Atlas reference questions and answerability — 2026-11-18
+
+Created `data/evaluation/dev/atlas_questions.json`, `atlas-document-dev` /
+`1.0.0`, with unchanged P07–P09 wording and a finalized P19. P19 drops the
+draft's "which is absent from the documents" clause, which disclosed its
+answer. IDs/scenarios and the existing six-question dataset are preserved.
+
+The new subset pins both complete Atlas documents, their snapshots and the
+saved chunks. Three questions are answerable; P19 is unanswerable in that
+scope. Eight requirements and six positive evidence records reference five
+blocks/four chunks. P09 marks the selected identity/scope/rule support as
+complementary (`all`). P19 has empty positive evidence and `corpus_scope`
+requirements, with the target entity, complete checked scope and review note.
+Neither a mandatory empty retrieval result nor irreducible multi-hop reasoning
+is claimed. Reference support and absence were reviewed against the sources.
+
+Extended the existing offline checker for Markdown records and explicit
+answerability/support modes. Its absence scan supplements editorial review;
+it is not a general answerability classifier. Both dataset checks, all 178
+offline unit tests, changed-file Ruff and whitespace checks passed. Five new
+tests cover invalid evidence/spans, negative-case scope, state/hash failures
+and gold isolation using temporary fixtures, without local corpus dependencies.
+All 64 protected file hashes were unchanged. Record:
+`outputs/validation/atlas-questions-v1-20261118.json`.
+
+No DB/API, embedding, retrieval or answer run occurred. The answer runners
+remain pinned to P01–P06. Next: Markdown snapshot/chunk import support, then
+indexing and explicit dataset selection before new answer comparisons.
+
+## Atlas committed database import — 2026-11-18
+
+The owner requested the Atlas documents in the DB. Added explicit Markdown
+inputs to the existing importer, reusing the pinned snapshot reader and
+checking ordered content coverage, intact table/SQL data and rendered inputs
+before connecting. HTML defaults remain. The snapshot writer maps local
+`captured_at` to the legacy `downloaded_at` acquisition column; no migration
+was needed. Source manifests and chunk artifacts remain unchanged.
+
+Fresh service/read-only/revision checks passed: healthy Docker PostgreSQL
+18.6, pgvector 0.8.7, Alembic `0002`. Before import: four snapshots, 49 chunks,
+one index/49 vectors and 14 traces/21 spans. All 181 offline unit tests and 22
+temporary-table DB tests passed, including local timestamp/immutability and
+rollback checks. Both reference checks and changed-file Ruff/whitespace checks
+passed. No real model inference or API call ran.
+
+Committed two Atlas snapshots/12 chunks in one transaction, then ran the same
+import again. A separate read-only connection verified both snapshot rows and
+all 12 complete chunk payloads against the local files. First/repeat-import
+counts and logical fingerprints matched. Totals: six snapshots, 61 chunks,
+one original index/49 vectors, 14 traces/21 spans. Inventory/policy each have
+six chunks; Atlas has zero embeddings. Every older row and all 35 protected
+source/evaluation/artifact files retained their fingerprints.
+
+Records: `outputs/validation/atlas-import-before-20261118.json`,
+`atlas-import-first-20261118.json` and `atlas-import-20261118.json` in the same
+directory. Proposed next: explicitly select/index the 12 Atlas chunks without
+changing the original PostgreSQL index, then expose dataset selection and
+perform Atlas retrieval/answer checks. The current indexer reads all 61 rows.

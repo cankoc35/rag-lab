@@ -1,6 +1,7 @@
 """Offline import-input checks using a synthetic saved snapshot."""
 
 import hashlib
+from dataclasses import asdict
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -8,6 +9,9 @@ import unittest
 from unittest.mock import patch
 
 from scripts.import_corpus import load_corpus
+from rag_workflow_lab.contracts import TokenizerSpec
+from rag_workflow_lab.ingestion.chunk import chunk_document, serialize_chunk
+from rag_workflow_lab.ingestion.markdown import ingest_markdown, load_markdown_snapshots
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -96,6 +100,70 @@ class CorpusInputTests(unittest.TestCase):
         self.payload["snapshot_id"] = "../outside"
         self.write_chunks()
         with self.assertRaisesRegex(ValueError, "Invalid chunk file"):
+            self.load()
+
+
+class MarkdownCorpusInputTests(unittest.TestCase):
+    def setUp(self):
+        directory = TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.root = Path(directory.name)
+        source_dir = self.root / "sources"
+        source_dir.mkdir()
+        for path in (ROOT / "data/corpus/synthetic").glob("*"):
+            if path.suffix in {".md", ".json"}:
+                (source_dir / path.name).write_bytes(path.read_bytes())
+        self.allowlist = source_dir / "sources.json"
+        result = ingest_markdown(self.allowlist, self.root / "snapshots")
+        self.run = Path(result["output_dir"])
+        self.chunks = self.root / "chunks"
+        self.chunks.mkdir()
+        tokenizer = TokenizerSpec("fixture/tokenizer", "fixture", "fixture", 1024)
+        self.expected_snapshots, self.expected_chunks = [], []
+        for manifest, document in load_markdown_snapshots(self.allowlist, self.run):
+            chunks = chunk_document(document, count_tokens=lambda text: len(text.split()) + 2, tokenizer=tokenizer)
+            payload = {"schema_version": 1, "source_id": document.source_id,
+                       "snapshot_id": document.snapshot_id, "chunks": [asdict(chunk) for chunk in chunks]}
+            (self.chunks / (document.snapshot_id + ".json")).write_text(json.dumps(payload))
+            self.expected_snapshots.append(json.loads(manifest.read_text())["snapshot"])
+            self.expected_chunks.extend(json.loads(json.dumps(payload["chunks"])))
+
+    def load(self):
+        return load_corpus(self.chunks, self.root / "unused-html", self.allowlist, markdown_run=self.run)
+
+    def test_preserves_exact_markdown_records_and_ignores_unselected_files(self):
+        (self.chunks / "UNSELECTED-gold.json").write_text("not corpus JSON")
+        with patch("socket.socket.connect", side_effect=AssertionError("Network forbidden")):
+            snapshots, chunks = self.load()
+        self.assertEqual(snapshots, self.expected_snapshots)
+        self.assertEqual(chunks, self.expected_chunks)
+        self.assertTrue(all("captured_at" in snapshot and "http_status" not in snapshot for snapshot in snapshots))
+
+    def test_rejects_changed_rendered_text_blocks_tables_and_missing_content(self):
+        path = next(self.chunks.glob("LOCAL-INVENTORY-*.json"))
+        original = json.loads(path.read_text())
+        for defect in ("text", "embedding_text", "block", "table", "missing_content"):
+            payload = json.loads(json.dumps(original))
+            chunk = payload["chunks"][0]
+            if defect in {"text", "embedding_text"}:
+                chunk[defect] += " changed"
+            elif defect == "block":
+                chunk["blocks"][0]["text"] += " changed"
+                chunk["text"] = chunk["blocks"][0]["text"]
+                chunk["embedding_text"] = serialize_chunk(chunk["text"], tuple(chunk["heading_path"]))
+            elif defect == "table":
+                table = next(block for item in payload["chunks"] for block in item["blocks"] if block["kind"] == "table")
+                table["table_rows"][1][0]["text"] = "changed table cell"
+            else:
+                payload["chunks"].pop(0)
+            path.write_text(json.dumps(payload))
+            with self.subTest(defect=defect), self.assertRaises(ValueError):
+                self.load()
+        path.write_text(json.dumps(original))
+
+    def test_requires_one_chunk_file_for_each_markdown_source(self):
+        next(self.chunks.glob("LOCAL-POLICY-*.json")).unlink()
+        with self.assertRaisesRegex(ValueError, "found 0"):
             self.load()
 
 

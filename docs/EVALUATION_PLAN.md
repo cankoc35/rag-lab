@@ -88,7 +88,9 @@ change. No result or target percentage is assumed here.
 [verified reference answers and pinned evidence](../data/evaluation/dev/README.md).
 The evidence checker validates references/integrity, not answer correctness
 or retrieval performance. These annotations do not finalize the scoring
-rubric; no scored retrieval or answer-generation run has occurred. P07–P20 remain drafts.
+rubric. This describes the annotation-preparation step; later Simple/LLM-only
+development runs are recorded below. P07–P09/P19 now have a separate verified
+Atlas subset; P10–P18/P20 remain drafts. Atlas has no answer/retrieval run yet.
 The subsequent [embedding runtime check](EMBEDDING_SETUP.md) produced two
 vectors; it reports no retrieval or answer-quality metric.
 
@@ -108,11 +110,33 @@ The checker can link `--trace` executions to question records; default checks
 remain read-only. One later Simple P04 answer has retrieval/LLM spans under
 one trace, with exact prompt/source map, output and reported usage. Both
 mandatory requirements and optional guidance passed post-run editorial review;
-this is not a benchmark grade. No tool trace or comparative answer evaluation
-exists yet. See [STATUS](STATUS.md) for the record and remaining controls.
+this is not a benchmark grade. Tool traces remain future work. The later
+Simple P01–P06 batch completed and was independently
+checked; post-run editorial review found four answers meeting recorded
+requirements and P03/P05 partial. This is development review, not a frozen
+judging protocol or evidence of retrieval's causal contribution. The later
+live LLM-only batch was independently verified and compared in a
+[paired editorial review](LLM_ONLY_COMPARISON.md). Dedicated insufficient/
+changed-evidence controls and broader evaluation remain open.
+See [STATUS](STATUS.md) for the records and remaining controls.
 Keep JSON experiment records and later judgments linked to those identities.
 
 ## Consistency checks before final testing
+
+**LLM-only control, 2026-11-17:** `run_llm_only.py` selects the same
+raw questions without reading corpus/index artifacts. `llm_only_v1` permits
+prior knowledge and labels the task PostgreSQL 18, matching the documentation
+version available in Simple's context. Both use Luna, reasoning `none`, a
+1000-output-token maximum, concise English, uncertainty instructions and no
+tool execution. The instruction texts intentionally differ: Simple requires
+supplied evidence/citations, while LLM-only receives no sources and can use
+prior knowledge. Record both prompt versions rather than claiming identical
+instructions. Each control attempt has one trace/LLM span with `sources: []`;
+DB access is logging only, and no tools/history/gold enter the request.
+The first live P01–P06 comparison is recorded in
+[LLM_ONLY_COMPARISON](LLM_ONLY_COMPARISON.md): Simple meets the recorded
+requirements on four questions, LLM-only on three. This small non-blind
+development review does not freeze the judging protocol or establish causality.
 
 1. Use the same question and source snapshot for every compared arm.
 2. Keep comparable model settings and shared retrieval/tool implementations.
@@ -139,8 +163,14 @@ training, and do not change the router's action space.
   newly authored, explicitly synthetic deployment runbooks and seeded sandbox
   DB fixtures. Ask separately about public docs, runbook-specific facts,
   DB-specific facts, and combinations. Do not rewrite PostgreSQL semantics or
-  defaults to create artificial facts. The owner approved adding runbooks;
-  exact source content and fixture definitions remain to be prepared.
+  defaults to create artificial facts. The first two Atlas documents are
+  authored in `data/corpus/synthetic/`, version 1.0/state `atlas-docs-v1`.
+  Offline local snapshot/parsing and token measurement/chunking are verified.
+  P07–P09/P19 reference verification is complete in a separate Atlas subset.
+  P19 has no positive evidence IDs and a complete two-document absence review;
+  its raw question omits the draft's answer-disclosing clause. Atlas snapshots/
+  chunks are now imported. Embedding/indexing, changed states and DB fixtures
+  remain; no Atlas answer comparison has run.
 - For selected scenarios, prepare paired source states with the same question
   but a changed relevant fact. For example, a synthetic deployment policy
   permits at most 5 seconds of replica lag; a frozen DB state reports 3 seconds

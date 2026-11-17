@@ -1,9 +1,10 @@
 # Local PostgreSQL + pgvector Compose setup
 
-**Updated:** 2026-11-17. Compose, extension bootstrap and raw-SQL Alembic
+**Updated:** 2026-11-18. Compose, extension bootstrap and raw-SQL Alembic
 migrations are implemented. The current service passed read-only `check-db`
-with PostgreSQL 18.6 + pgvector 0.8.7; revision is `0002`. Four snapshots,
-49 chunks, one index and 49 vectors are committed. Dense query retrieval and
+with PostgreSQL 18.6 + pgvector 0.8.7; revision is `0002`. Six snapshots,
+61 chunks, one original PostgreSQL index and 49 vectors are committed. Atlas's
+two snapshots/12 chunks have no embeddings yet. Dense query retrieval and
 retrieval/LLM tracing are verified with one Simple P04 answer; the Luna
 connectivity smoke also passed.
 See [STATUS](STATUS.md) for checks and [history](STATUS_HISTORY.md) for earlier
@@ -83,7 +84,7 @@ This reads configuration only, without opening a DB connection. Existing
 ingestion/config commands continue to work without DB credentials. URL-style
 retrieval/sandbox settings remain reserved; the current loader reads only the
 six variables above. `check-db` uses these settings for the explicit connection
-check below; the importer uses the same settings. Vector search remains future work.
+check below; corpus import and vector search use the same settings.
 
 ## Start the project service
 
@@ -214,6 +215,26 @@ Alembic revisions under `migrations/versions/` are the schema history.
 Docker's extension bootstrap remains separate. The old comment-only
 `sql/retrieval/001_initial.sql` scaffold is preserved and is not executed by Alembic.
 
+## Atlas document import
+
+Atlas snapshot/chunk import uses the same raw-SQL writers and one transaction:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py \
+  --sources-manifest data/corpus/synthetic/sources.json \
+  --markdown-run data/local/markdown/atlas-docs-v1-ssme1pql \
+  --chunks-dir data/local/chunks/atlas-docs-v1-section-blocks-v1
+```
+
+The owner-authorized run added two snapshots/12 chunks and was repeated with
+identical logical row fingerprints. Local `captured_at` is stored in the legacy
+`source_snapshots.downloaded_at` acquisition column; no migration was needed.
+Snapshot metadata remains in the immutable local manifests, and exact chunk
+fields are preserved in the DB columns/JSONB. No embeddings are generated here.
+All 181 offline unit tests and 22 temporary-table DB integration tests passed;
+independent read-back verified all Atlas fields and unchanged older records.
+Record: `outputs/validation/atlas-import-20261118.json`.
+
 ## Embedding storage functions
 
 [store.py](../src/rag_workflow_lab/store.py) now provides
@@ -227,8 +248,8 @@ Vector writes check model/revision/dimensions, document task, finite values
 and the SHA-256 of the stored `embedding_text`. Vector text is passed as a
 bound parameter and cast to `vector`, using the existing Psycopg dependency.
 The checks passed with synthetic vectors in temporary tables: 89 offline tests
-and eight opt-in DB tests. Public tables still contain four snapshots, 49 chunks
-and zero embedding indexes/vectors after those checks. The corpus indexing
+and eight opt-in DB tests. At that earlier check, public tables contained four
+snapshots, 49 chunks and zero embedding indexes/vectors. The corpus indexing
 script is now implemented and the owner completed its committed run. One index
 and 49 vectors are present. Dense SQL search is now implemented below.
 

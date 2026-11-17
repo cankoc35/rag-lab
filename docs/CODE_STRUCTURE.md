@@ -18,8 +18,8 @@ hybrid retrieval, RRF merge/deduplication and reranking with the same answer
 setup, plus relevant tool steps controlled by predefined Python conditions.
 Native LLM function calling is not required for that initial Enhanced design.
 Agentic details are deferred. Reranker/final generator settings, numeric budgets
-and exact tool conditions remain open. Simple has one verified live P04 run;
-the remaining workflows are scaffolds. See
+and exact tool conditions remain open. Simple has a verified live P01–P06 batch;
+LLM-only has passed its first live paired comparison; Enhanced/Agentic/router are scaffolds. See
 [METHOD_DESIGN.md](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 
 The tree below was initially a staged file-creation plan. At the owner's later
@@ -53,7 +53,8 @@ rag-workflow-lab/
 │   ├── contracts.py              # Shared data types; no I/O
 │   ├── ingestion/
 │   │   ├── download.py           # load_sources/download_source; raw HTML/hash
-│   │   ├── parse.py              # HTML/synthetic Markdown → source sections
+│   │   ├── parse.py              # Saved PostgreSQL HTML → source sections
+│   │   ├── markdown.py           # Local Markdown allowlist/snapshots → shared blocks
 │   │   ├── chunk.py              # Sections → source-linked chunks
 │   │   └── pipeline.py           # Parse/chunk; embed/store once indexing exists
 │   ├── embeddings.py             # Document/query embedding generation
@@ -62,6 +63,7 @@ rag-workflow-lab/
 │   ├── llm.py                    # Selected provider/model calls and usage
 │   ├── prompts/
 │   │   ├── answer_v1.md          # Cited answer / insufficient-evidence prompt
+│   │   ├── llm_only_v1.md        # Own-knowledge control, no source citations required
 │   │   └── agent_v1.md           # Later: tools and stopping rules
 │   ├── workflows/
 │   │   ├── llm_only.py           # Control without sources/tools
@@ -109,7 +111,7 @@ rag-workflow-lab/
 | `llm.py` and `prompts/` | Provider calls, selected model settings, usage/errors and versioned prompts. | Does not select a retriever or access gold data. One concrete adapter is sufficient initially; avoid a generic provider framework. |
 | `workflows/` | Determine the order of source access and model/tool calls. | Do not reimplement shared retrieval/storage. Simple and LLM-only do not require LangGraph. |
 | `tools/` | Expose retrieval and validated read-only operations on a separate sandbox. | Cannot open evaluation gold, other states, retrieval storage or trace records. |
-| `tracing.py` | Raw-SQL trace/span lifecycle writes and explicit traced retrieval. | Uses a caller-owned writer; the wrapper requires a separate autocommit connection. Migration `0002` and one real P04 trace/span are verified. |
+| `tracing.py` | Raw-SQL trace/span lifecycle writes and explicit traced retrieval. | Uses a caller-owned writer; the wrapper requires a separate autocommit connection. Migration `0002`, retrieval diagnostics and the Simple batch's retrieval/LLM spans are verified. |
 | `evaluation/` | Load separate questions, run workflows, preserve raw outputs and score afterward. | Pass only allowed questions/source access to workflows/models; gold/rubric is evaluation-only. |
 
 `workflows/agentic.py` may hold the initial graph's state and node definitions
@@ -196,8 +198,27 @@ gold. `workflows.simple.answer_question()` combines retrieval and one
 retrieval and LLM spans. `scripts/run_simple_rag.py` and its lock provide an
 explicit opt-in single-question or batch runner. It reuses model/connections,
 shares a batch run ID and preserves per-question JSON records. The former P04
-smoke script was renamed and generalized; the live batch is pending. One live answer passed
-editorial review; broader answer evaluation and other workflows remain open.
+smoke script was renamed and generalized; the live P01–P06 batch completed.
+Editorial review found four answers meeting recorded requirements and P03/P05
+partial. `workflows.llm_only.answer_question()` uses one raw-question model
+call and one LLM span; its writer connection is solely for tracing. The locked
+`scripts/run_llm_only.py` supports one question or all six without loading
+embeddings or corpus artifacts. Both runners share the small question selector
+in `evaluation/dataset.py`; full evaluation/frozen-test validation remains open.
+The first [live paired comparison](LLM_ONLY_COMPARISON.md) is recorded.
+The Atlas inventory/policy and their separate pinned manifest are in
+`data/corpus/synthetic/`. `ingest-markdown` saves exact copies/manifests and
+shared parsed blocks under `data/local/markdown/`. Its scoped reader retains
+inline Markdown and supports headings, prose/lists, fences and simple pipe
+tables. The shared chunk runner accepts `--markdown-run`, verifying snapshot
+copies and saved blocks before measuring/chunking them. Atlas has 12 local
+chunks; `parse.py` remains HTML-only and the importer now accepts explicit
+Markdown inputs. Both Atlas snapshots/all 12 chunks are committed. The separate
+`atlas_questions.json` contains verified P07–P09/P19 references; the checker
+handles Markdown records and the unanswerable corpus-scope case. The shared
+selector still emits only question IDs/text. Atlas embedding/index selection and runner
+dataset selection are next. Broader controls
+and other workflows remain open.
 Tools, full evaluation and LangGraph remain scaffolds.
 See [chunking](CHUNKING.md), [embedding setup](EMBEDDING_SETUP.md),
 [DB setup](POSTGRES_SETUP.md) and [tracing](TRACING_PLAN.md) for contracts.
