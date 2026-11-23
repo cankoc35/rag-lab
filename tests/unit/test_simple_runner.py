@@ -71,10 +71,12 @@ class RunnerCliTests(unittest.TestCase):
         self.connect = Mock(side_effect=[self.reader, self.writer])
         self.openai = Mock(return_value=self.client)
         self.validate = Mock(return_value={"dataset_version": "fixture"})
+        self.scope_check = Mock()
         self.enterContext(patch.dict(sys.modules, {
             "psycopg": SimpleNamespace(connect=self.connect, Error=LookupError),
             "openai": SimpleNamespace(OpenAI=self.openai, OpenAIError=ConnectionError),
             "check_document_questions": SimpleNamespace(validate=self.validate),
+            "check_retrieval": SimpleNamespace(validate_index_scope=self.scope_check),
         }))
         self.enterContext(patch.dict("os.environ", {"OPENAI_API_KEY": "fixture-key"}))
         self.enterContext(patch("scripts.run_simple_rag.ROOT", root))
@@ -116,6 +118,32 @@ class RunnerCliTests(unittest.TestCase):
         self.answer.assert_called_once()
         self.assertEqual(self.answer.call_args.args[-1], "Raw question 5?")
         self.assertEqual(self.answer.call_args.kwargs["question_id"], "P05")
+
+    def test_explicit_atlas_dataset_selects_its_questions_without_gold(self):
+        path = self.dataset.with_name("atlas.json")
+        dataset = {"source_state": {"source_state_id": "atlas-fixture"}, "questions": [
+            {"question_id": qid, "question": f"Raw {qid}?", "expected_answer": "SECRET GOLD",
+             "answerability": "unanswerable" if qid == "P19" else "answerable"}
+            for qid in ("P07", "P08", "P09", "P19")]}
+        path.write_text(json.dumps(dataset))
+        self.assertEqual(main(["--dataset", str(path), "--index-id", "index", "--all", "--call-api"]), 0)
+        self.validate.assert_called_once_with(path)
+        self.scope_check.assert_called_once_with(self.reader, "index", dataset)
+        self.assertEqual([call.args[-1] for call in self.answer.call_args_list], [q["question"] for q in dataset["questions"]])
+        report = json.loads(Path(json.loads(self.stdout.getvalue())["report"]).read_text())
+        self.assertEqual(report["dataset_path"], str(path.resolve()))
+        self.assertEqual(report["source_state_id"], "atlas-fixture")
+        self.assertNotIn("SECRET GOLD", json.dumps(report))
+
+    def test_wrong_index_scope_fails_before_model_loading_trace_writer_or_paid_client(self):
+        self.scope_check.side_effect = ValueError("Wrong scope")
+        with self.assertRaises(SystemExit) as caught:
+            main(["--index-id", "index", "--all", "--call-api"])
+        self.assertEqual(caught.exception.code, 2)
+        self.assertEqual(self.connect.call_count, 1)
+        self.loader.assert_not_called()
+        self.openai.assert_not_called()
+        self.answer.assert_not_called()
 
     def test_unknown_id_fails_before_model_db_or_api_client_creation(self):
         with self.assertRaises(SystemExit) as caught:

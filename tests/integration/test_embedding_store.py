@@ -183,6 +183,40 @@ class EmbeddingStoreTests(unittest.TestCase):
         text = "search_document: SELECT 'quoted';\n  -- Unicode: π"
         self.assertEqual([call.args[0] for call in self.embedder.embed_document.call_args_list], [text, text])
 
+    def test_indexer_selects_sources_and_preserves_other_indexes(self):
+        source_id = "other' OR TRUE --"
+        text = "search_document: Another source"
+        save_snapshots(self.connection, [{
+            "snapshot_id": "other-snapshot", "source": {
+                "source_id": source_id, "title": "Other", "url": "https://example.org/other"},
+            "sha256": "c" * 64, "downloaded_at": "2026-11-18T00:00:00Z",
+        }])
+        save_chunks(self.connection, [{"chunk_id": "other-chunk", "snapshot_id": "other-snapshot",
+                                      "text": "Other", "embedding_text": text, "token_count": 12}])
+        self.embedder.embed_document.side_effect = lambda value: replace(
+            self.result, input_sha256=sha256(value.encode()).hexdigest())
+        original = index_corpus(self.connection, self.embedder, {})
+        self.embedder.embed_document.reset_mock()
+
+        selected = index_corpus(self.connection, self.embedder, {}, [source_id, source_id])
+        self.embedder.embed_document.assert_called_once_with(text)
+        self.assertEqual(selected["chunks"], 1)
+        self.assertNotEqual(selected["index_id"], original["index_id"])
+        self.assertEqual(get_embedding_index(self.connection, selected["index_id"])["settings"]["source_ids"], [source_id])
+        self.assertEqual(index_corpus(self.connection, self.embedder, {}, [source_id]), selected)
+        self.assertEqual(self.counts(), (2, 3))
+        with self.connection.cursor() as cursor:
+            cursor.execute("SELECT chunk_id FROM chunk_embeddings WHERE index_id = %s ORDER BY chunk_id",
+                           (original["index_id"],))
+            self.assertEqual(cursor.fetchall(), [("chunk",), ("other-chunk",)])
+
+    def test_indexer_rejects_missing_sources_before_embedding(self):
+        for source_ids in (["missing"], ["fixture", "missing"]):
+            with self.subTest(source_ids=source_ids), self.assertRaisesRegex(ValueError, "No stored chunks for source IDs: missing"):
+                index_corpus(self.connection, self.embedder, {}, source_ids)
+        self.embedder.embed_document.assert_not_called()
+        self.assertEqual(self.counts(), (0, 0))
+
     def test_indexer_rejects_stale_token_counts_without_saving_an_index(self):
         with self.connection.cursor() as cursor:
             cursor.execute("UPDATE chunks SET token_count = token_count + 1")

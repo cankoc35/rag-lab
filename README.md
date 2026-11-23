@@ -11,16 +11,18 @@ For a new session, follow [AGENTS.md](AGENTS.md), then read
 
 For copyable terminal commands and their options, see the
 [command reference](docs/COMMANDS.md).
+The [supervisor discussion materials](docs/presentations/2026-11-23/README.md)
+contain an annotated pipeline diagram and a one-page project briefing.
 
 ## Current status
 
 | Area | Implemented | Remaining |
 | --- | --- | --- |
-| Corpus | Four PostgreSQL HTML + two Atlas Markdown snapshots; all 61 chunks imported | Atlas embedding/index and sandbox fixtures |
-| Embeddings / DB | Six snapshots, 61 chunks; original Nomic index/49 vectors preserved | Atlas vectors and broader corpus coverage |
-| Retrieval | Dense search, query embedding and repeatable P01–P06 checker at 5/10/20 | Hybrid search and reranking |
+| Corpus | Four PostgreSQL HTML + two Atlas Markdown snapshots; all 61 chunks imported | Sandbox fixtures and changed document states |
+| Embeddings / DB | Six snapshots, 61 chunks; separate PostgreSQL/Atlas indexes with 49/12 vectors | Broader corpus coverage |
+| Retrieval | Dense search and dataset-selected checks; Atlas positive evidence ranks 1–3 | Hybrid search and reranking |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
-| Generation | Simple and LLM-only P01–P06 batches completed and compared | Source-specific, insufficient/changed-evidence controls and broader evaluation |
+| Generation | Simple/LLM-only PostgreSQL and Atlas batches compared; Atlas P19 abstention verified | Changed-evidence controls and broader evaluation |
 | Evaluation | Ten verified development questions in separate PostgreSQL/Atlas subsets | P10–P18/P20 verification, held-out set and final protocol |
 
 The first dense diagnostic found annotated evidence in the top five for five
@@ -36,11 +38,16 @@ The synthetic [Atlas inventory](data/corpus/synthetic/atlas_inventory.md) and
 [operations policy](data/corpus/synthetic/atlas_operations_policy.md) are now
 written with shared state `atlas-docs-v1`. Both were snapshotted and parsed offline.
 Their 25 content blocks now form 12 local chunks, all below 512 tokens;
-Atlas's two snapshots and 12 chunks are now imported; it has no vectors yet.
+Atlas's two snapshots and 12 chunks are imported and embedded in a separate index.
 Its [four-question subset](data/evaluation/dev/atlas_questions.json)
 now has verified reference answers, answerability and pinned evidence.
-**Proposed next step:** prepare an explicitly scoped Atlas embedding index,
-then dataset selection before new answer tests.
+The first Atlas retrieval check found all annotated positive evidence in the
+top three. P19 returned Atlas policy text, which does not establish a Boreal
+limit. The later [Atlas answer comparison](docs/LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18)
+found two complete Simple answers and one partial P09 (the reporting role is
+not explicit); LLM-only abstained on all three answerable questions. Both
+abstained on P19 without assigning Boreal a numeric limit.
+**Proposed next step:** a separately versioned changed-evidence control.
 Enhanced, tools, LangGraph and the router remain unimplemented.
 See [STATUS](docs/STATUS.md).
 
@@ -165,14 +172,23 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 
 Imports use one transaction; repeating identical inputs preserves records.
 No migration was needed. For local snapshots, the legacy `downloaded_at`
-column stores their `captured_at` acquisition time. The indexer currently reads
-all 61 stored chunks; Atlas-only selection is a proposed next step, not an
-option it already supports. Importing does not generate embeddings.
+column stores their `captured_at` acquisition time. Importing does not generate
+embeddings. Index only Atlas's 12 chunks with the repeatable source filter
+(already committed locally):
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
+  --source-id LOCAL-INVENTORY --source-id LOCAL-POLICY
+```
+
+Without `--source-id`, the indexer selects all stored chunks. A requested
+source without chunks fails before inference or writes. Source selection is
+recorded in index settings; the original PostgreSQL index/49 vectors are preserved.
 
 The importer validates saved source/chunk provenance and preserves exact
 embedding inputs. Identical records are accepted; conflicting IDs roll back
 the transaction. Use `--chunks-dir PATH` to select another saved chunk run.
-The indexer embeds every stored chunk with cached Nomic and records exact
+The indexer embeds the selected stored chunks with cached Nomic and records exact
 inputs/model/runtime fingerprints. Both print JSON results without reading
 gold data; the indexer also streams progress. Index identity includes code
 hashes; an unnecessary rerun after a source change can create a new index identity.
@@ -189,6 +205,19 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 This validates pinned references, loads Nomic once and obtains full ranks in a
 read-only transaction. Annotated evidence hits at 5/10/20 and provenance go to
 `outputs/retrieval/`; progress goes to stderr and the report path to stdout.
+To check Atlas's four unchanged questions against its separate index:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf
+```
+
+The selected index must match the dataset's complete pinned chunk/input scope.
+P19 has no positive evidence, so hit scoring is N/A; retrieving similar Atlas
+text does not answer its Boreal question. This check makes no generator call.
+See the [Atlas results](data/evaluation/dev/README.md#atlas-retrieval-diagnostic--2026-11-18).
+
 Add `--trace` for a separate autocommit writer and one trace/span per question;
 without it no trace records are written. See [checker modes](docs/TRACING_PLAN.md#checker-modes).
 
@@ -229,8 +258,18 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
   --index-id nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447 --question-id P04 --call-api
 ```
 
-Replace `--question-id P04` with `--all` to run all six pinned development
-questions in dataset order. Select exactly one mode; unknown IDs fail before
+Replace `--question-id P04` with `--all` to run all questions in dataset order.
+The default is the six-question PostgreSQL dataset. For Atlas's four questions:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_simple_rag.py \
+  --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf --all --call-api
+```
+
+The index must match the selected dataset's complete pinned chunk/input scope;
+wrong scope fails before model loading, trace writes or paid calls.
+Select exactly one question mode; unknown IDs fail before
 loading the model or opening DB/API clients. The former `simple_rag_smoke.py`
 and its lockfile were renamed to `run_simple_rag.py` and its matching lockfile.
 
@@ -280,6 +319,12 @@ The first live control batch completed and was independently verified;
 see the [paired comparison](docs/LLM_ONLY_COMPARISON.md).
 See the [options and comparison notes](docs/COMMANDS.md#llm-only-control).
 
+For the unchanged Atlas questions, add
+`--dataset data/evaluation/dev/atlas_questions.json`. Only raw question text
+enters generation; corpus files and evaluation gold are not used as context.
+Both runners record the selected dataset path/hash. The first four-question
+Atlas comparison completed; see the [results](docs/LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+
 ## Verification
 
 Default tests need no API, DB, model or local corpus:
@@ -297,8 +342,8 @@ python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/atl
 
 The default remains the unchanged P01–P06 PostgreSQL baseline. The separate
 Atlas subset contains P07–P09 and P19; its last case has no positive answer
-evidence. Answer runners still select the PostgreSQL baseline; Atlas dataset
-selection follows Atlas index support. These checks make no model/DB calls.
+evidence. The diagnostic and both answer runners support `--dataset`; omission
+retains the PostgreSQL baseline. These reference checks make no model/DB calls.
 
 DB tests are opt-in and use temporary tables/synthetic vectors. They require
 the local DB and applied `0002`, and leave public records unchanged:

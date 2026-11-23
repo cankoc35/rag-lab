@@ -38,8 +38,15 @@ Atlas now has 12 local chunks using the existing 512/1024-token rules and
 cached tokenizer. P07–P09/P19 have a separate verified reference subset;
 P19 records insufficient evidence across the complete pinned Atlas scope.
 Both Atlas snapshots and all 12 chunks are now committed; the DB contains
-six snapshots/61 chunks. The original PostgreSQL index/49 vectors is preserved.
-Atlas embedding/indexing and DB fixtures remain pending; the deployment facts
+six snapshots/61 chunks. Atlas's 12 normalized Nomic vectors are committed in
+a separate source-filtered index; the original PostgreSQL index/49 vectors is
+preserved. The retrieval diagnostic now selects either dataset and verifies
+the complete pinned index scope. Its first Atlas run found all positive
+annotations in the top three. Both answer runners now select either dataset;
+the first Atlas pair found two complete Simple answers, one partial P09 and
+three honest LLM-only abstentions on answerable questions. Both abstained on
+P19 without inventing a Boreal limit. Changed states and DB fixtures remain;
+the deployment facts
 are not live measurements. Local acquisition time is stored in the legacy
 `source_snapshots.downloaded_at` column using the manifest's `captured_at`.
 P01–P06 and P07–P09/P19 have verified references in separate datasets; the
@@ -142,7 +149,7 @@ private corpus content to a hosted provider without an explicit decision.
 the exact capacity above that threshold is unspecified. Local generator
 comparison may follow later without confounding workflow comparisons.
 
-**Still open:** Full corpus coverage, synthetic-source embedding/indexing/DB fixtures and tool
+**Still open:** Full corpus coverage, broader answer/control checks, changed source states, DB fixtures and tool
 contracts, reranker, candidate/context/fusion budgets, Enhanced tool conditions,
 Agentic/router design, final model count, rubric/judges, metrics, quality margin,
 held-out set and sample size. No comparative or held-out thesis result exists.

@@ -160,5 +160,7 @@ Independent read-back reproduced all Atlas chunks/counts. A temporary HTML
 regression run reproduced the original 49 chunks/heading records exactly;
 35 protected artifact/core-code hashes were unchanged. Record:
 `outputs/validation/atlas-chunking-20261118.json`.
-Atlas snapshots/chunks were subsequently imported and verified. Atlas has no
-embedding index or new answer evaluation yet; see [STATUS](STATUS.md).
+Atlas snapshots/chunks were subsequently imported and embedded in a separate
+verified index/12 vectors. Atlas's first retrieval check found all positive
+annotations in the top three. The first Atlas Simple/LLM-only answer pair is
+also complete, with the original chunks unchanged. See [STATUS](STATUS.md).

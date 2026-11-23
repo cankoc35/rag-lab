@@ -3,8 +3,8 @@
 **Updated:** 2026-11-18. Compose, extension bootstrap and raw-SQL Alembic
 migrations are implemented. The current service passed read-only `check-db`
 with PostgreSQL 18.6 + pgvector 0.8.7; revision is `0002`. Six snapshots,
-61 chunks, one original PostgreSQL index and 49 vectors are committed. Atlas's
-two snapshots/12 chunks have no embeddings yet. Dense query retrieval and
+61 chunks and two separate indexes/61 vectors are committed: 49 PostgreSQL,
+12 Atlas. The original PostgreSQL index/vectors are preserved. Dense query retrieval and
 retrieval/LLM tracing are verified with one Simple P04 answer; the Luna
 connectivity smoke also passed.
 See [STATUS](STATUS.md) for checks and [history](STATUS_HISTORY.md) for earlier
@@ -234,6 +234,11 @@ fields are preserved in the DB columns/JSONB. No embeddings are generated here.
 All 181 offline unit tests and 22 temporary-table DB integration tests passed;
 independent read-back verified all Atlas fields and unchanged older records.
 Record: `outputs/validation/atlas-import-20261118.json`.
+
+The later source-filtered Nomic run committed Atlas's 12 vectors in a separate
+index, preserving all earlier rows. Totals are now two indexes/61 vectors;
+revision remains `0002`. All 181 unit/24 DB tests passed. Index IDs, commands
+and read-back evidence are in [STATUS](STATUS.md) and [COMMANDS](COMMANDS.md).
 
 ## Embedding storage functions
 

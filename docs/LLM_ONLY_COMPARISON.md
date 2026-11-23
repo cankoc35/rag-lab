@@ -1,4 +1,8 @@
-# Simple RAG vs LLM-only: first development comparison
+# Simple RAG vs LLM-only: development comparisons
+
+The original PostgreSQL comparison is preserved below. The later
+[Atlas comparison](#atlas-source-specific-comparison--2026-11-18) tests
+source-specific facts and one missing-environment policy.
 
 **Run date:** 2026-11-17. Six unchanged development questions, one generation
 per condition. All 12 calls completed. Findings below are a non-blind post-run
@@ -97,3 +101,64 @@ corpus/index, older traces and the Simple raw report are unchanged. The run
 changed no application code, prompt, dataset or migration. The 159 offline
 unit and 21 DB integration checks remain prior verification; they were not
 repeated for this execution/documentation-only step.
+
+## Atlas source-specific comparison — 2026-11-18
+
+Both runners now accept `--dataset`, retaining PostgreSQL P01–P06 by default.
+Simple checks the selected index against the complete pinned dataset scope
+before loading Nomic or opening a trace writer/API client. LLM-only reads
+only question JSON, never corpus files or an embedding index. Selected dataset
+path/hash is recorded in each report and trace configuration.
+
+The owner authorized four calls per arm on unchanged P07–P09/P19. LLM-only ran
+first, then Simple with the Atlas-only 12-vector index and five whole chunks.
+Generator, fixed prompts and API settings were unchanged; each call was
+independent, with no history/tools/gold in its model input. All eight calls
+completed. The review plan was recorded before generation in
+`outputs/validation/atlas-paired-before-20261118.json`.
+
+| Question | Simple RAG | LLM-only |
+| --- | --- | --- |
+| P07: database/schema | Meets: `atlas_telemetry`, `atlas_app`, supported by S1 | Honest abstention; neither name supplied |
+| P08: lag limit | Meets: 5 seconds inclusive, supported by S1 | Honest abstention; requests the rule/documentation |
+| P09: replica/rule | Partial: correct `atlas-replica-01`, `ATLAS-REPORTING-LAG` and inclusive limit, supported by S1/S2; does not explicitly state the required `reporting` role | Honest abstention; inventory unavailable |
+| P19: Boreal limit | Appropriate abstention: distinguishes missing Boreal policy from Atlas's 5-second rule, citing S1/S3 | Appropriate abstention; no invented limit |
+
+Among the three answerable questions, Simple has **two requirement-complete
+answers and one partial answer**; LLM-only has **three honest abstentions**.
+Both correctly abstain on the single unanswerable question. Abstention on an
+answerable question supplies no requested facts, but is not counted as a
+fabricated answer. P09's core answer is correct; its explicit role omission
+is preserved under the pinned R1 requirement. Citation support was reviewed
+against the actual returned text, separately from label validity.
+
+This pair shows practical value from access to these source-specific facts.
+It does not establish general accuracy or a pure causal retrieval effect:
+there are three answerable development questions, one response per condition,
+different fixed prompts and a tiny scoped corpus. Correct citations alone do
+not prove internal evidence use. Preserve both outputs and the P09 omission;
+proposed next: a separate versioned changed-evidence control.
+
+| Observed measure, four questions | Simple RAG | LLM-only |
+| --- | ---: | ---: |
+| Input tokens | 6,772 | 321 |
+| Output tokens | 186 | 118 |
+| Total tokens | 6,958 | 439 |
+| Reasoning / cache-read tokens | 0 / 0 | 0 / 0 |
+| Cache-write input tokens | 6,760 | 0 |
+| Workflow batch seconds | 6.206 | 11.400 |
+
+Workflow timing excludes Simple's model loading. Separate sequential batches
+do not establish a speed advantage. Cache-write tokens are included in input;
+no new price estimate was calculated and DB cost remains NULL.
+
+Runs: `simple-20261118T203140812238Z` and `llm-only-20261118T203122477461Z`.
+Their immutable raw reports are under `outputs/answers/`; per-requirement
+notes/raw paired answers are in
+`outputs/comparisons/atlas-simple-vs-llm-only-20261118.json`.
+Fresh read-back verified exact prompts, source texts, outputs/settings/usage,
+eight distinct traces and 12 spans. Corpus/index and every older row/report
+retained its fingerprint; 39 protected files and 42 older reports are unchanged.
+Totals: six snapshots/61 chunks, two indexes/61 vectors, 22 traces/33 spans.
+Verification: `outputs/validation/atlas-paired-20261118.json`.
+All 187 offline unit tests, 24 local DB integration tests and Ruff passed.

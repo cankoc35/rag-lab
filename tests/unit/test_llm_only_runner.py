@@ -78,6 +78,25 @@ class LlmOnlyRunnerTests(unittest.TestCase):
         self.answer.assert_called_once()
         self.assertEqual(self.answer.call_args.args[-1], "Raw question 4?")
 
+    def test_explicit_atlas_dataset_needs_no_corpus_and_keeps_gold_outside_calls(self):
+        path = self.dataset.with_name("atlas.json")
+        dataset = json.loads(self.dataset.read_text())
+        dataset.update(dataset_id="atlas-fixture", source_state={
+            "source_state_id": "atlas-fixture-state", "sources_manifest": {"path": "MISSING-CORPUS.json"}})
+        dataset["questions"] = [{"question_id": qid, "question": f"Raw {qid}?",
+                                  "expected_answer": "SECRET GOLD", "evidence": [{"text": "SECRET EVIDENCE"}]}
+                                 for qid in ("P07", "P08", "P09", "P19")]
+        path.write_text(json.dumps(dataset))
+        self.assertEqual(main(["--dataset", str(path), "--all", "--call-api"]), 0)
+        self.assertEqual([call.args[-1] for call in self.answer.call_args_list], [q["question"] for q in dataset["questions"]])
+        report = json.loads(Path(json.loads(self.stdout.getvalue())["report"]).read_text())
+        self.assertEqual(report["dataset_path"], str(path.resolve()))
+        self.assertEqual(report["dataset"]["dataset_id"], "atlas-fixture")
+        self.assertFalse(report["retrieval_enabled"])
+        self.assertNotIn("SECRET GOLD", json.dumps(report))
+        self.assertNotIn("SECRET EVIDENCE", json.dumps(report))
+        self.assertEqual(self.connect.call_count, 1)
+
     def test_unknown_id_fails_before_connecting_to_db_or_api(self):
         with self.assertRaises(SystemExit) as caught:
             main(["--question-id", "P99", "--call-api"])

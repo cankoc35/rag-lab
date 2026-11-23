@@ -41,8 +41,8 @@ hash and local file path are recorded in each download's separate manifest.
 All four selected pages have saved, hash-verified HTML snapshots. The PG-STATS
 target section ID was checked in saved HTML. Snapshot IDs/hashes are in STATUS.
 Two Atlas Markdown sources now have pinned local snapshots, parsed blocks
-and 12 verified chunks, now committed to the DB. Atlas has no embeddings yet;
-the complete pilot corpus is not ready. The HTML parser is implemented and verified
+and 12 verified chunks, now imported and embedded in a separate Atlas-only index.
+Changed document states and DB fixtures remain. The HTML parser is implemented and verified
 against all four saved HTML sources.
 
 | Source ID | Source | Use |
@@ -177,10 +177,16 @@ renaming these questions; keep related scenario families within one split.
 3. **Atlas references complete:** The 12 local chunks support verified
    P07–P09 references; P19 has a complete two-document absence review and no
    positive evidence. The four-question file is separate from the unchanged
-   six-question baseline. No Atlas answer/retrieval run has occurred.
-4. **Atlas import complete:** Two snapshots/12 chunks were committed and
-   repeated without duplicates. Proposed next: Atlas-scoped index selection/
-   embedding, then explicit runner dataset selection before new answer runs.
+   six-question baseline. The first Atlas retrieval diagnostic is now complete;
+   the later Atlas answer pair is complete, with P09's reporting-role omission retained.
+4. **Atlas import/index complete:** Two snapshots/12 chunks were committed and
+   repeated without duplicates. A later source-filtered run committed a
+   separate Atlas index/12 vectors, preserving the PostgreSQL index/49 vectors.
+   The diagnostic now supports dataset selection and exact index scope checks;
+   all positive annotations rank in the top three. Both answer runners now
+   select datasets; the first pair found two complete Simple answers/one partial
+   P09 and three honest LLM-only abstentions on answerable questions. Both
+   appropriately abstained on P19. Proposed next: a versioned changed-evidence control.
 5. Broaden answer/control checks and project-owned traces. Then create DB
    fixtures/tools, verify tool questions and implement enhanced/agentic workflows.
 

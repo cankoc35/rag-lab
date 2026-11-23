@@ -1,11 +1,12 @@
 # Terminal command reference
 
-Copyable commands for the current implementation, checked against CLI help
-on 2026-11-18. Run them from the repository root. Initial dependency, database
+Copyable commands for the current implementation, updated on 2026-11-23.
+Run them from the repository root. Initial dependency, database
 and model setup are covered in [README](../README.md),
 [PostgreSQL setup](POSTGRES_SETUP.md) and [embedding setup](EMBEDDING_SETUP.md).
 
-Jump to [Simple RAG](#simple-rag), [LLM-only](#llm-only-control), [retrieval](#retrieval-without-answer-generation),
+Jump to [ask the LLM directly](#ask-the-llm-directly), [Simple RAG](#simple-rag),
+[LLM-only](#llm-only-control), [retrieval](#retrieval-without-answer-generation),
 [PostgreSQL](#postgresql-and-migrations), [tests](#tests-and-local-checks) or
 [corpus preparation](#corpus-preparation-and-embedding-tools).
 
@@ -39,6 +40,39 @@ uv options go **before** the script; script options go **after** it. On a fresh
 machine, omit `--offline` once to install dependencies. Chunking/token counting
 use their uv script environments; `.venv` alone does not include their tokenizer.
 
+## Ask the LLM directly
+
+For a simple question and answer, copy the whole block into the terminal.
+Change only the `question` line. It uses the existing `.venv` with the
+`generation` dependencies and reads `OPENAI_API_KEY` from `.env`.
+Each execution makes **one paid API request** using the generator settings
+in `configs/pilot.toml` (currently Luna). It prints only the answer text.
+No dataset, retrieval, embedding model or database is used; no project trace
+or report is saved. This is a manual question, not an evaluation run.
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python - <<'PY'
+from openai import OpenAI
+from rag_workflow_lab.config import load_settings
+from rag_workflow_lab.llm import generate_text
+
+question = "What is a PostgreSQL index?"
+settings = load_settings("configs/pilot.toml").generator
+with OpenAI(base_url="https://api.openai.com/v1", timeout=30, max_retries=0) as client:
+    result = generate_text(
+        client, settings, prompt=question,
+        instructions="Answer concisely in English. If you do not know, say so rather than guessing.",
+    )
+if result["status"] != "completed" or not result["answer"].strip():
+    raise SystemExit("The model did not return a complete answer.")
+print(result["answer"])
+PY
+```
+
+`--offline` prevents dependency downloads; the API request still needs internet.
+Each execution is independent and has no conversation history. Use the
+[LLM-only control](#llm-only-control) for dataset questions with DB tracing.
+
 ## Simple RAG
 
 Run one development question; change `P01` to another ID from P01–P06:
@@ -59,7 +93,8 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 | --- | --- | --- |
 | `--index-id ID` | Yes | Select the stored embedding index. |
 | `--question-id P01` | Choose this or `--all` | Run one dataset question. |
-| `--all` | Choose this or `--question-id` | Run every question in the pinned dataset; currently six. |
+| `--all` | Choose this or `--question-id` | Run every question in the selected dataset: six PostgreSQL or four Atlas. |
+| `--dataset PATH` | Optional | Development question JSON; default: PostgreSQL P01–P06. |
 | `--call-api` | Yes for execution | Allow one paid Luna call per question and DB trace writes. |
 | `--help` | Optional | Print usage and exit without running the workflow. |
 
@@ -68,6 +103,18 @@ settings are in [pilot.toml](../configs/pilot.toml). Tracing is always enabled
 for this runner: each question has its own trace, linked by the batch run ID.
 Raw results go to `outputs/answers/<run_id>.json`; exact prompts and step
 records go to `traces` / `spans`. Quality review happens after generation.
+
+Run the four Atlas questions with their separate index:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_simple_rag.py \
+  --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf --all --call-api
+```
+
+Replace `--all` with `--question-id P07` for one Atlas question. The complete
+pinned dataset scope must match the index before model loading, trace writes
+or paid calls. Dataset path/hash and the scope-check code are recorded as provenance.
 
 ## LLM-only control
 
@@ -86,7 +133,8 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 | Script option | Required? | Meaning |
 | --- | --- | --- |
 | `--question-id P01` | Choose this or `--all` | Select one unchanged development question. |
-| `--all` | Choose this or `--question-id` | Select all six pinned questions. |
+| `--all` | Choose this or `--question-id` | Select all questions in the chosen dataset. |
+| `--dataset PATH` | Optional | Development question JSON; default: PostgreSQL P01–P06. |
 | `--call-api` | Yes for execution | Allow one paid call and trace writes per question. |
 | `--help` | Optional | Print usage without calling services. |
 
@@ -106,9 +154,21 @@ unknown cost stays NULL. Correct answers do not prove training-data membership.
 The first live LLM-only batch completed; see the
 [paired development comparison](LLM_ONLY_COMPARISON.md).
 
+Run the same four Atlas questions without retrieval:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_llm_only.py \
+  --dataset data/evaluation/dev/atlas_questions.json --all --call-api
+```
+
+Dataset selection still reads no corpus files and adds no source-specific
+facts to the prompt. The first Atlas pair completed; see the
+[comparison](LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+
 ## Retrieval without answer generation
 
-Check P01–P06 evidence ranks at 5/10/20 with local Nomic and read-only SQL:
+Check evidence ranks at 5/10/20 with local Nomic and read-only SQL. The default
+dataset remains PostgreSQL P01–P06:
 
 ```sh
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
@@ -118,11 +178,25 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 | Script option | Required? | Meaning |
 | --- | --- | --- |
 | `--index-id ID` | Yes | Select the stored embedding index. |
+| `--dataset PATH` | Optional | Development dataset JSON; defaults to PostgreSQL P01–P06. |
 | `--trace` | Optional | Also persist question/retrieval traces in PostgreSQL. |
 | `--help` | Optional | Print usage and exit. |
 
 Append `--trace` to the command to enable DB logging. Without it, the command
 writes only a local report under `outputs/retrieval/`. Neither mode calls Luna.
+
+For Atlas's P07–P09/P19 and its separate 12-vector index:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf
+```
+
+The index must match the dataset's complete pinned snapshot/chunk/input scope;
+wrong, incomplete or expanded index membership fails before model loading.
+P19's positive evidence scoring is N/A; its returned Atlas context is retained
+for inspection. No LLM answer or abstention is tested by this command.
 
 ## PostgreSQL and migrations
 
@@ -343,10 +417,22 @@ imports preserve rows and conflicting existing IDs fail. The legacy
 `source_snapshots.downloaded_at` stores `captured_at` for local Markdown.
 No migration or embedding generation is performed by the importer.
 
-The indexer accepts `--config PATH` (default pilot config) and currently reads
-all 61 stored chunks. Atlas has no vectors yet; Atlas-only selection is not
-implemented. Index identity includes code/runtime provenance; select the
+The indexer accepts `--config PATH` (default pilot config) and repeatable
+`--source-id ID`. Without source flags it selects all stored chunks. To embed
+only Atlas's 12 chunks (already committed locally):
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
+  --source-id LOCAL-INVENTORY --source-id LOCAL-POLICY
+```
+
+Every requested source must have stored chunks; otherwise it fails before
+inference/writes. Sorted unique source IDs are recorded in index settings.
+The Atlas index is separate from the preserved PostgreSQL index/49 vectors;
+see [STATUS](STATUS.md) for both IDs. Index identity includes code/runtime
+provenance, so avoid unnecessary re-indexing after code changes. Select the
 intended stored index explicitly when running questions afterward.
+The diagnostic and both paid answer runners support explicit dataset selection.
 
 ## Finding command options
 

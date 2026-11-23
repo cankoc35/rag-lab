@@ -14,8 +14,11 @@ P05 has no annotated evidence in the top five. See
 
 **Atlas follow-up, 2026-11-18:** The DB now contains six snapshots/61 chunks
 after importing two Atlas sources/12 chunks. The original PostgreSQL index/49
-vectors is unchanged; Atlas has no vectors yet. The current indexer reads all
-stored chunks. Explicit Atlas-only selection is a proposed next step.
+vectors is unchanged. Atlas now has a separate source-filtered index/12 vectors;
+both use the same pinned Nomic settings. Total: two indexes/61 vectors.
+The Atlas retrieval diagnostic now works with explicit dataset selection and
+all positive annotations in the top three. The first Atlas answer pair is
+also complete; see [the review](LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
 
 ## Language decision and starting proposal
 

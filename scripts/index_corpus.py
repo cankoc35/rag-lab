@@ -8,7 +8,7 @@
 #   "psycopg[binary]==3.3.8",
 # ]
 # ///
-"""Embed all stored corpus chunks locally and commit one reproducible index."""
+"""Embed stored chunks locally, optionally selecting specific source IDs."""
 
 import argparse
 from hashlib import sha256
@@ -47,11 +47,26 @@ def build_index(chunks: list[tuple[str, str, int]], embedding: EmbeddingSettings
     return {"index_id": index_id, **index}
 
 
-def index_corpus(connection, embedder: NomicEmbedder, runtime: dict) -> dict:
+def index_corpus(connection, embedder: NomicEmbedder, runtime: dict,
+                 source_ids: list[str] | None = None) -> dict:
     """Generate exact document inputs and save the index in the caller's transaction."""
+    source_ids = sorted(set(source_ids or []))
     with connection.cursor() as cursor:
-        cursor.execute("SELECT chunk_id, embedding_text, token_count FROM chunks ORDER BY chunk_id")
-        chunks = cursor.fetchall()
+        if source_ids:
+            cursor.execute("""
+                SELECT c.chunk_id, c.embedding_text, c.token_count, s.source_id
+                FROM chunks c JOIN source_snapshots s USING (snapshot_id)
+                WHERE s.source_id = ANY(%s) ORDER BY c.chunk_id
+            """, (source_ids,))
+            rows = cursor.fetchall()
+            missing = set(source_ids) - {row[3] for row in rows}
+            if missing:
+                raise ValueError(f"No stored chunks for source IDs: {', '.join(sorted(missing))}")
+            chunks = [row[:3] for row in rows]
+            runtime = {**runtime, "source_ids": source_ids}
+        else:
+            cursor.execute("SELECT chunk_id, embedding_text, token_count FROM chunks ORDER BY chunk_id")
+            chunks = cursor.fetchall()
     if not chunks:
         raise ValueError("No stored chunks. Run scripts/import_corpus.py first.")
     print(f"Found {len(chunks)} chunks.", file=sys.stderr, flush=True)
@@ -73,6 +88,7 @@ def index_corpus(connection, embedder: NomicEmbedder, runtime: dict) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "configs/pilot.toml")
+    parser.add_argument("--source-id", action="append", help="Select a source ID; repeat for multiple sources. Default: all stored chunks.")
     args = parser.parse_args()
     print("Starting corpus indexing...", file=sys.stderr, flush=True)
     try:
@@ -105,7 +121,7 @@ def main() -> None:
         with psycopg.connect(
             **database.connect_kwargs(), options="-c statement_timeout=5000"
         ) as connection:
-            result = index_corpus(connection, embedder, runtime)
+            result = index_corpus(connection, embedder, runtime, args.source_id)
     except psycopg.Error:
         parser.exit(2, "Corpus indexing failed. Check the database connection and schema.\n")
     except (OSError, ValueError) as exc:

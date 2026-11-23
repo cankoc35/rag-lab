@@ -26,6 +26,7 @@ DATASET = ROOT / "data/evaluation/dev/document_questions.json"
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dataset", type=Path, default=DATASET, help="Development dataset JSON; default: PostgreSQL P01–P06.")
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--question-id", help="Run one development question, for example P01.")
     selection.add_argument("--all", action="store_true", help="Run all pinned development questions.")
@@ -42,7 +43,7 @@ def main(argv=None) -> int:
     created = datetime.now(timezone.utc)
     run_id = created.strftime("llm-only-%Y%m%dT%H%M%S%fZ")
     try:
-        dataset_bytes = DATASET.read_bytes()
+        dataset_bytes = args.dataset.read_bytes()
         dataset = json.loads(dataset_bytes)
         questions = select_questions(dataset, args.question_id)
         generator = load_settings(ROOT / "configs/pilot.toml").generator
@@ -51,6 +52,7 @@ def main(argv=None) -> int:
         provenance = {
             "dataset": {"dataset_id": dataset["dataset_id"], "dataset_version": dataset["dataset_version"]},
             "dataset_sha256": sha256(dataset_bytes).hexdigest(),
+            "dataset_path": str(args.dataset.resolve()),
             "source_state_id": dataset["source_state"]["source_state_id"],
             "libraries": {name: version(name) for name in ("openai", "psycopg")},
             "git_head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),

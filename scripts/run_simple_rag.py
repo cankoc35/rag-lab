@@ -51,6 +51,7 @@ def run_questions(connection, writer, embedder, client, generator, index_id: str
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index-id", required=True, help="Existing embedding index to use.")
+    parser.add_argument("--dataset", type=Path, default=DATASET, help="Development dataset JSON; default: PostgreSQL P01–P06.")
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--question-id", help="Run one development question, for example P01.")
     selection.add_argument("--all", action="store_true", help="Run all questions in the pinned development dataset.")
@@ -64,6 +65,7 @@ def main(argv=None) -> int:
     import psycopg
     from openai import OpenAI, OpenAIError
     from check_document_questions import validate
+    from check_retrieval import validate_index_scope
 
     os.environ["HF_HUB_OFFLINE"] = "1"
     os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -72,14 +74,15 @@ def main(argv=None) -> int:
     run_id = created.strftime("simple-%Y%m%dT%H%M%S%fZ")
     try:
         print("Checking pinned references and selecting questions...", file=sys.stderr, flush=True)
-        dataset_check = validate(DATASET)
-        dataset = json.loads(DATASET.read_text())
+        dataset_check = validate(args.dataset)
+        dataset = json.loads(args.dataset.read_text())
         questions = select_questions(dataset, args.question_id)
         settings = load_settings(ROOT / "configs/pilot.toml")
         if settings.generator is None or settings.embedding is None:
             raise ValueError("Pilot config requires generator and embedding settings.")
         provenance = {
-            "dataset": dataset_check, "dataset_sha256": file_sha256(DATASET),
+            "dataset": dataset_check, "dataset_sha256": file_sha256(args.dataset),
+            "dataset_path": str(args.dataset.resolve()),
             "source_state_id": dataset["source_state"]["source_state_id"],
             "libraries": {name: version(name) for name in (
                 "sentence-transformers", "transformers", "torch", "tokenizers", "psycopg", "openai",
@@ -89,7 +92,7 @@ def main(argv=None) -> int:
             "git_dirty": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)),
             "code_sha256": {name: file_sha256(ROOT / name) for name in (
                 "scripts/run_simple_rag.py", "scripts/run_simple_rag.py.lock",
-                "scripts/check_document_questions.py", "configs/pilot.toml",
+                "scripts/check_document_questions.py", "scripts/check_retrieval.py", "configs/pilot.toml",
                 "src/rag_workflow_lab/config.py", "src/rag_workflow_lab/llm.py",
                 "src/rag_workflow_lab/evaluation/dataset.py",
                 "src/rag_workflow_lab/workflows/simple.py", "src/rag_workflow_lab/prompts/answer_v1.md",
@@ -98,12 +101,13 @@ def main(argv=None) -> int:
             )},
         }
         print(f"Selected {len(questions)} question(s); run {run_id}.", file=sys.stderr, flush=True)
-        print("Loading the cached Nomic model once...", file=sys.stderr, flush=True)
-        embedder = NomicEmbedder.from_local(settings.embedding)
         database = load_database_settings()
         with psycopg.connect(**database.connect_kwargs(), options="-c statement_timeout=5000") as connection:
             connection.read_only = True
             index = get_embedding_index(connection, args.index_id)
+            validate_index_scope(connection, args.index_id, dataset)
+            print("Loading the cached Nomic model once...", file=sys.stderr, flush=True)
+            embedder = NomicEmbedder.from_local(settings.embedding)
             with psycopg.connect(**database.connect_kwargs(), autocommit=True,
                                   options="-c statement_timeout=5000") as writer, \
                     OpenAI(base_url="https://api.openai.com/v1", timeout=30, max_retries=0) as client:

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="2200" height="1260" preserveAspectRatio="xMinYMin meet" viewBox="0 0 2200 1260" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="2200" height="1260"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-1260)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="2200" height="1260" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="60" y="1217" style="font-family: Helvetica-Bold; font-size: 15px;fill: rgb(4%,45%,38%); stroke:none;" transform="translate(0,2434) scale(1,-1)">RAG WORKFLOW LAB</text>
+			<text x="60" y="1175" style="font-family: Helvetica-Bold; font-size: 35px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,2350) scale(1,-1)">Pipeline and implementation status</text>
+			<text x="60" y="1145" style="font-family: Helvetica; font-size: 17px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,2290) scale(1,-1)">Supervisor discussion | 23 November 2026 | Basic = Simple in the codebase</text>
+			<rect x="1535" y="1188" width="49.200000000000045" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="1545" y="1195" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2390) scale(1,-1)">DONE</text>
+			<rect x="1635" y="1188" width="85.70000000000005" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<text x="1645" y="1195" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2390) scale(1,-1)">NOT BUILT</text>
+			<rect x="1790" y="1188" width="122.20000000000005" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(66%,35%,7%); fill-rule: evenodd;"/>
+			<text x="1800" y="1195" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2390) scale(1,-1)">PARTIAL / OPEN</text>
+			<text x="1535" y="1154" style="font-family: Helvetica; font-size: 14px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,2308) scale(1,-1)">Solid green: current path | Dashed: proposed routing</text>
+			<text x="60" y="1100" style="font-family: Helvetica-Bold; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,2200) scale(1,-1)">A. SOURCE PREPARATION - BEFORE QUESTIONS; SHARED EVIDENCE FOR THE RAG PATHS</text>
+			<rect x="60" y="952" width="490" height="120" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="78" y="1034" width="49.2" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="88" y="1041" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2082) scale(1,-1)">DONE</text>
+			<text x="78" y="1009" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,2018) scale(1,-1)">1  Select sources</text>
+			<text x="78" y="986" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1972) scale(1,-1)">4 PostgreSQL docs + 2 synthetic Atlas docs.</text>
+			<path d="M 550 1012 L 590 1012 " style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd;"/>
+			<polygon points="590 1012, 579 1016, 579 1008" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<rect x="590" y="952" width="490" height="120" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="608" y="1034" width="49.200000000000045" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="618" y="1041" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2082) scale(1,-1)">DONE</text>
+			<text x="608" y="1009" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,2018) scale(1,-1)">2  Snapshot and parse</text>
+			<text x="608" y="986" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1972) scale(1,-1)">Versioned HTML / Markdown; source IDs retained.</text>
+			<path d="M 1080 1012 L 1120 1012 " style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd;"/>
+			<polygon points="1120 1012, 1109 1016, 1109 1008" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<rect x="1120" y="952" width="490" height="120" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="1138" y="1034" width="49.200000000000045" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="1148" y="1041" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2082) scale(1,-1)">DONE</text>
+			<text x="1138" y="1009" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,2018) scale(1,-1)">3  Chunk and embed</text>
+			<text x="1138" y="986" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1972) scale(1,-1)">Whole SQL/tables preserved; local Nomic, 768-D.</text>
+			<path d="M 1610 1012 L 1650 1012 " style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd;"/>
+			<polygon points="1650 1012, 1639 1016, 1639 1008" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<rect x="1650" y="952" width="490" height="120" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="1668" y="1034" width="49.200000000000045" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="1678" y="1041" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,2082) scale(1,-1)">DONE</text>
+			<text x="1668" y="1009" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,2018) scale(1,-1)">4  Store evidence</text>
+			<text x="1668" y="986" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1972) scale(1,-1)">PostgreSQL + pgvector: 61 chunks / vectors.</text>
+			<text x="1668" y="966" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1932) scale(1,-1)">Separate PostgreSQL and Atlas embedding sets.</text>
+			<text x="60" y="906" style="font-family: Helvetica-Bold; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1812) scale(1,-1)">B. QUESTION TIME - TARGET FLOW: QUESTION -&gt; ROUTER -&gt; ONE RAG -&gt; OUTPUT VALIDATION -&gt; RESPONSE</text>
+			<rect x="60" y="597" width="220" height="113" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="78" y="672" width="144.1" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="88" y="679" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1358) scale(1,-1)">ENTRY / CLI READY</text>
+			<text x="78" y="647" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,1294) scale(1,-1)">User question</text>
+			<text x="78" y="624" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1248) scale(1,-1)">Raw question text.</text>
+			<rect x="355" y="568" width="315" height="160" rx="12" ry="12" style="stroke: rgb(66%,35%,7%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(100%,95%,89%); fill-rule: evenodd;"/>
+			<rect x="373" y="690" width="187.89999999999998" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(66%,35%,7%); fill-rule: evenodd;"/>
+			<text x="383" y="697" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1394) scale(1,-1)">NOT BUILT / METHOD OPEN</text>
+			<text x="373" y="665" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,1330) scale(1,-1)">Workflow router</text>
+			<text x="373" y="642" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1284) scale(1,-1)">Select one RAG from runtime signals.</text>
+			<text x="373" y="622" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1244) scale(1,-1)">Rules / classifier / LLM: undecided.</text>
+			<text x="373" y="602" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1204) scale(1,-1)">No gold question-type labels.</text>
+			<rect x="750" y="735" width="480" height="140" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="768" y="837" width="129.5" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="778" y="844" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1688) scale(1,-1)">DONE / BASELINE</text>
+			<text x="768" y="812" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,1624) scale(1,-1)">Basic / Simple RAG</text>
+			<text x="768" y="789" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1578) scale(1,-1)">Query embedding -&gt; dense top 5 -&gt; Luna answer.</text>
+			<text x="768" y="769" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1538) scale(1,-1)">Evidence-only prompt; no reranking or DB tools.</text>
+			<rect x="750" y="570" width="480" height="140" rx="12" ry="12" style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(94%,95%,97%); fill-rule: evenodd;"/>
+			<rect x="768" y="672" width="260.9000000000001" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<text x="778" y="679" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1358) scale(1,-1)">NOT BUILT / INITIAL DESIGN AGREED</text>
+			<text x="768" y="647" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,1294) scale(1,-1)">Enhanced RAG</text>
+			<text x="768" y="624" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1248) scale(1,-1)">Dense + full-text -&gt; rank fusion -&gt; reranking.</text>
+			<text x="768" y="604" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1208) scale(1,-1)">Fixed Python tool steps; then one answer.</text>
+			<text x="768" y="584" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1168) scale(1,-1)">Reranker, budgets and tool conditions: OPEN.</text>
+			<rect x="750" y="405" width="480" height="140" rx="12" ry="12" style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(94%,95%,97%); fill-rule: evenodd;"/>
+			<rect x="768" y="507" width="231.70000000000005" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<text x="778" y="514" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1028) scale(1,-1)">NOT BUILT / CONTROL LOOP OPEN</text>
+			<text x="768" y="482" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,964) scale(1,-1)">Agentic RAG</text>
+			<text x="768" y="459" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,918) scale(1,-1)">Model chooses retrieval / DB tools and may repeat.</text>
+			<text x="768" y="439" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,878) scale(1,-1)">LangGraph selected; graph and limits undecided.</text>
+			<text x="768" y="419" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,838) scale(1,-1)">Frozen sandbox data and DB tools: NOT BUILT.</text>
+			<rect x="1335" y="534" width="455" height="193" rx="12" ry="12" style="stroke: rgb(66%,35%,7%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(100%,95%,89%); fill-rule: evenodd;"/>
+			<rect x="1353" y="689" width="217.0999999999999" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(66%,35%,7%); fill-rule: evenodd;"/>
+			<text x="1363" y="696" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1392) scale(1,-1)">PARTIAL / SHARED SCOPE OPEN</text>
+			<text x="1353" y="664" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,1328) scale(1,-1)">Output validation</text>
+			<text x="1353" y="641" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1282) scale(1,-1)">Exists: completed + nonempty response check.</text>
+			<text x="1353" y="621" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1242) scale(1,-1)">Planned: citation-label validity (S1-S5).</text>
+			<text x="1353" y="601" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1202) scale(1,-1)">Grounding and failure/retry policy: OPEN.</text>
+			<text x="1353" y="581" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1162) scale(1,-1)">Extra LLM verification: undecided.</text>
+			<rect x="1870" y="555" width="270" height="145" rx="12" ry="12" style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(91%,96%,94%); fill-rule: evenodd;"/>
+			<rect x="1888" y="662" width="129.5" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="1898" y="669" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,1338) scale(1,-1)">DONE FOR SIMPLE</text>
+			<text x="1888" y="637" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,1274) scale(1,-1)">Response</text>
+			<text x="1888" y="614" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1228) scale(1,-1)">Answer with citations</text>
+			<text x="1888" y="594" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1188) scale(1,-1)">or insufficient evidence.</text>
+			<text x="1888" y="574" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1148) scale(1,-1)">Output, not a new LLM call.</text>
+			<path d="M 280 654 L 320 654 L 320 648 L 355 648 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="355 648, 344 652, 344 644" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<path d="M 670 648 L 710 648 L 710 805 L 750 805 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="750 805, 739 809, 739 801" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<path d="M 670 648 L 710 648 L 710 640 L 750 640 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="750 640, 739 644, 739 636" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<path d="M 670 648 L 710 648 L 710 475 L 750 475 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="750 475, 739 479, 739 471" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<path d="M 170 710 L 170 805 L 750 805 " style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 3; fill: none; fill-rule: evenodd;"/>
+			<polygon points="750 805, 739 809, 739 801" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="355" y="821" style="font-family: Helvetica-Bold; font-size: 15px;fill: rgb(4%,45%,38%); stroke:none;" transform="translate(0,1642) scale(1,-1)">CURRENT: CLI selects Simple directly</text>
+			<path d="M 1230 805 L 1280 805 L 1280 654 L 1335 654 " style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 2.7; fill: none; fill-rule: evenodd;"/>
+			<polygon points="1335 654, 1324 658, 1324 650" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<path d="M 1230 640 L 1335 640 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="1335 640, 1324 644, 1324 636" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<path d="M 1230 475 L 1300 475 L 1300 605 L 1335 605 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="1335 605, 1324 609, 1324 601" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<path d="M 1790 630 L 1870 630 " style="stroke: rgb(4%,45%,38%); stroke-linecap: butt; stroke-width: 2.7; fill: none; fill-rule: evenodd;"/>
+			<polygon points="1870 630, 1859 634, 1859 626" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(4%,45%,38%); fill-rule: evenodd;"/>
+			<text x="1335" y="500" style="font-family: Helvetica; font-size: 14px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,1000) scale(1,-1)">A valid source label does not prove that its claim is supported.</text>
+			<text x="1335" y="476" style="font-family: Helvetica-Bold; font-size: 14px;fill: rgb(66%,35%,7%); stroke:none;" transform="translate(0,952) scale(1,-1)">New citation/grounding checks are proposed, not implemented.</text>
+			<rect x="60" y="293" width="2080" height="92" rx="12" ry="12" style="stroke: rgb(82%,87%,90%); stroke-linecap: butt; stroke-width: 1; fill: rgb(96%,97%,98%); fill-rule: evenodd;"/>
+			<text x="80" y="355" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(66%,35%,7%); stroke:none;" transform="translate(0,710) scale(1,-1)">TRACING - PARTIAL COVERAGE</text>
+			<text x="80" y="327" style="font-family: Helvetica; font-size: 17px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,654) scale(1,-1)">DONE: retrieval + LLM spans record prompts, ranked chunks, answers, tokens and timings during execution.</text>
+			<text x="80" y="305" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,610) scale(1,-1)">NOT BUILT: router/tool logging and a dedicated validation stage log. This status belongs to tracing only.</text>
+			<text x="60" y="252" style="font-family: Helvetica-Bold; font-size: 19px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,504) scale(1,-1)">C. EVALUATION FOR THE THESIS - A SEPARATE EXPERIMENT PROCESS</text>
+			<text x="60" y="225" style="font-family: Helvetica; font-size: 17px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,450) scale(1,-1)">Offline = outside live user traffic, not without internet. Run every method on the same cases; LLM-only is a comparison control.</text>
+			<rect x="60" y="61" width="490" height="143" rx="12" ry="12" style="stroke: rgb(66%,35%,7%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(100%,95%,89%); fill-rule: evenodd;"/>
+			<rect x="78" y="166" width="71.1" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(66%,35%,7%); fill-rule: evenodd;"/>
+			<text x="88" y="173" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,346) scale(1,-1)">PARTIAL</text>
+			<text x="78" y="141" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,282) scale(1,-1)">1  Fix questions and evidence</text>
+			<text x="78" y="118" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,236) scale(1,-1)">Give every method the same question text</text>
+			<text x="78" y="98" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,196) scale(1,-1)">and the same document / DB version.</text>
+			<text x="78" y="78" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,156) scale(1,-1)">10 dev questions; final test set: NOT BUILT.</text>
+			<path d="M 550 133 L 590 133 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="590 133, 579 137, 579 129" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<rect x="590" y="61" width="490" height="143" rx="12" ry="12" style="stroke: rgb(66%,35%,7%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(100%,95%,89%); fill-rule: evenodd;"/>
+			<rect x="608" y="166" width="71.10000000000002" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(66%,35%,7%); fill-rule: evenodd;"/>
+			<text x="618" y="173" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,346) scale(1,-1)">PARTIAL</text>
+			<text x="608" y="141" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,282) scale(1,-1)">2  Run every method</text>
+			<text x="608" y="118" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,236) scale(1,-1)">Run Simple, Enhanced and Agentic per question.</text>
+			<text x="608" y="98" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,196) scale(1,-1)">Also run LLM-only without documents.</text>
+			<text x="608" y="78" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,156) scale(1,-1)">Done: Simple + LLM-only. Others: NOT BUILT.</text>
+			<path d="M 1080 133 L 1120 133 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="1120 133, 1109 137, 1109 129" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<rect x="1120" y="61" width="490" height="143" rx="12" ry="12" style="stroke: rgb(66%,35%,7%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(100%,95%,89%); fill-rule: evenodd;"/>
+			<rect x="1138" y="166" width="166.0" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(66%,35%,7%); fill-rule: evenodd;"/>
+			<text x="1148" y="173" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,346) scale(1,-1)">PARTIAL / RULES OPEN</text>
+			<text x="1138" y="141" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,282) scale(1,-1)">3  Compare the outcomes</text>
+			<text x="1138" y="118" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,236) scale(1,-1)">Check answer quality, evidence, tokens, cost and time.</text>
+			<text x="1138" y="98" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,196) scale(1,-1)">Early reviews and usage records exist.</text>
+			<text x="1138" y="78" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,156) scale(1,-1)">Final scoring / cost rules: OPEN.</text>
+			<path d="M 1610 133 L 1650 133 " style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 2.2; fill: none; fill-rule: evenodd; stroke-dasharray: 7, 5;"/>
+			<polygon points="1650 133, 1639 137, 1639 129" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<rect x="1650" y="61" width="490" height="143" rx="12" ry="12" style="stroke: rgb(37%,46%,54%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(94%,95%,97%); fill-rule: evenodd;"/>
+			<rect x="1668" y="166" width="180.5999999999999" height="24" rx="5" ry="5" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(37%,46%,54%); fill-rule: evenodd;"/>
+			<text x="1678" y="173" style="font-family: Helvetica-Bold; font-size: 12px;fill: rgb(100%,100%,100%); stroke:none;" transform="translate(0,346) scale(1,-1)">NOT BUILT / STUDY OPEN</text>
+			<text x="1668" y="141" style="font-family: Helvetica-Bold; font-size: 22px;fill: rgb(7%,17%,24%); stroke:none;" transform="translate(0,282) scale(1,-1)">4  Test whether routing helps</text>
+			<text x="1668" y="118" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,236) scale(1,-1)">Compare routing with always using one RAG method.</text>
+			<text x="1668" y="98" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,196) scale(1,-1)">Count the router's own tokens, cost and time.</text>
+			<text x="1668" y="78" style="font-family: Helvetica; font-size: 16px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,156) scale(1,-1)">Final held-out comparison: NOT BUILT.</text>
+			<text x="60" y="36" style="font-family: Helvetica-Bold; font-size: 16px;fill: rgb(4%,45%,38%); stroke:none;" transform="translate(0,72) scale(1,-1)">Example: the same Atlas lag-limit question -&gt; four answer conditions -&gt; compare answers and resource use. Gold answers stay outside model inputs.</text>
+			<text x="60" y="12" style="font-family: Helvetica; font-size: 12px;fill: rgb(31%,40%,46%); stroke:none;" transform="translate(0,24) scale(1,-1)">Code inspected 23 Nov; last development results 18 Nov 2026. Diagram revision only: no new model run, validation implementation or live DB check.</text>
+		</g>
+	</g>
+</svg>

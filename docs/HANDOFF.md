@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-18. Use [STATUS](STATUS.md) for the current boundary and
+**Updated:** 2026-11-23. Use [STATUS](STATUS.md) for the current boundary and
 [STATUS_HISTORY](STATUS_HISTORY.md) for dated evidence. Scaffolds are not features.
 
 ## Read first
@@ -38,9 +38,16 @@ ablations. Exact tools, reranker and final budgets remain open. See
 
 Four PostgreSQL sources produce 49 chunks; their Nomic index/49 vectors are preserved.
 The later Atlas import adds two snapshots/12 chunks: six snapshots/61 chunks
-are now committed, while Atlas has no embeddings yet.
+are committed. Atlas now has a separate index/12 vectors; total vectors: 61.
 Dense retrieval and the P01–P06 checker work. P05's evidence ranks 17/11/46
 show wording sensitivity; review the [diagnostic](../data/evaluation/dev/README.md#p05-wording-diagnosis).
+The checker now accepts `--dataset` and validates exact index scope before
+model loading. The Atlas check found all six positive annotations in the top
+three across P07–P09. P19 returned Atlas policy text, not a Boreal answer.
+The later live answer pair found P07/P08 complete and P09 partial (explicit
+reporting role omitted) in Simple; LLM-only honestly abstained on all three.
+Both appropriately abstained on P19. See the
+[Atlas diagnostic](../data/evaluation/dev/README.md#atlas-retrieval-diagnostic--2026-11-18).
 Revision `0002` and retrieval tracing are applied; one real P04 trace/span is
 verified. The separate full-ranking traced retrieval-diagnostic batch has not run.
 
@@ -76,7 +83,7 @@ and offline snapshot/parser command. The first run produced 37 blocks under
 `data/local/markdown/atlas-docs-v1-ssme1pql/`. Its 25 content blocks now form
 12 local chunks in `data/local/chunks/atlas-docs-v1-section-blocks-v1/`,
 with complete inputs between 59 and 268 tokens. Both snapshots and all 12
-chunks are now in the DB; Atlas is not yet in an embedding index.
+chunks are in the DB and embedded in an Atlas-only index.
 The HTML-only manifest and existing source artifacts are unchanged.
 
 ## Code and local artifacts
@@ -96,11 +103,11 @@ The HTML-only manifest and existing source artifacts are unchanged.
 | [workflows/llm_only.py](../src/rag_workflow_lab/workflows/llm_only.py) | Own-knowledge answer, raw question only, one trace/LLM span; DB used solely for logging |
 | [evaluation/dataset.py](../src/rag_workflow_lab/evaluation/dataset.py) | Shared selection that retains only question IDs/text and excludes gold from workflows |
 | [import_corpus.py](../scripts/import_corpus.py) | Validate snapshots/chunks and commit one corpus transaction |
-| [index_corpus.py](../scripts/index_corpus.py) | Embed all stored chunks and commit index/vectors; flushed progress |
-| [check_retrieval.py](../scripts/check_retrieval.py) | Full ranks and annotated hits at 5/10/20; optional `--trace` |
+| [index_corpus.py](../scripts/index_corpus.py) | Embed stored chunks; repeatable `--source-id` filter, one index transaction, flushed progress |
+| [check_retrieval.py](../scripts/check_retrieval.py) | `--dataset`, exact pinned index scope, full ranks/hits at 5/10/20, N/A for no positive evidence; optional `--trace` |
 | [llm_smoke.py](../scripts/llm_smoke.py) | Explicit `--call-api`; one fixed English test, no corpus/DB access |
-| [run_simple_rag.py](../scripts/run_simple_rag.py) | Explicit `--call-api` and `--question-id`/`--all`; shared batch resources/run ID, per-question trace and answer records |
-| [run_llm_only.py](../scripts/run_llm_only.py) | Same selection/paid-call flags without an index; question JSON only, one trace writer, no embedding/corpus reads |
+| [run_simple_rag.py](../scripts/run_simple_rag.py) | `--dataset`, exact pinned index scope, explicit `--call-api` and one/all selection; shared resources/run ID, per-question records |
+| [run_llm_only.py](../scripts/run_llm_only.py) | Same dataset/selection/paid-call flags without an index; question JSON only, one trace writer, no embedding/corpus reads |
 | [migrations/versions/](../migrations/versions/) | Applied raw-SQL `0001` retrieval and `0002` trace/span schemas |
 
 Store/search/retrieval functions accept existing connections; callers own
@@ -134,8 +141,11 @@ gold/project/paper documents outside ingestion. Fresh downloads may differ.
 
 Nomic: revision `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 768 dimensions, 1024-token application ceiling. Preserve exact task prefixes
-and normalization. Existing index:
-`nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
+and normalization. Existing indexes:
+
+- PostgreSQL (49): `nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
+- Atlas (12): `nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf`.
+
 Index identity includes code/runtime fingerprints; do not re-index merely
 because progress text or surrounding code changed.
 
@@ -179,9 +189,37 @@ All older row fingerprints and source/dataset/artifact hashes are preserved.
 The local capture time maps to the legacy `downloaded_at` acquisition column;
 no migration was required. All 181 unit/22 DB tests and both reference checks
 passed. Record: `outputs/validation/atlas-import-20261118.json`.
-Proposed next: explicit Atlas index selection/embedding, then runner dataset
-selection before new answer runs. The current indexer reads all 61 chunks;
-do not infer Atlas-only support from the existence of imported rows.
+The subsequent owner-authorized offline run used the new repeatable
+`--source-id LOCAL-INVENTORY --source-id LOCAL-POLICY` filter. It committed
+12 normalized 768-dimensional vectors in a separate Atlas index. Read-back
+verified exact artifact membership/input hashes, norms and index provenance;
+all older row fingerprints are unchanged. Totals: six snapshots/61 chunks,
+two indexes/61 vectors, 14 traces/21 spans. All 181 unit/24 DB tests and Ruff
+passed. Record: `outputs/validation/atlas-index-20261118.json`.
+The default indexer still selects all stored chunks; use the source flags
+for Atlas. The subsequent `--dataset data/evaluation/dev/atlas_questions.json`
+diagnostic checked all four unchanged questions in the Atlas-only index.
+P07 E1 ranks 1, P08 E1/E2 rank 1, P09 E1/E2/E3 rank 1/3/2. P19 has no
+positive evidence score and returns Atlas policy passages; no Boreal answer
+is established. Read-only report: `outputs/retrieval/dense-20261118T202158580023Z.json`;
+validation: `outputs/validation/atlas-retrieval-20261118.json`. All public rows
+and 31 pinned file hashes are unchanged; 184 unit/24 DB tests and Ruff passed.
+The later owner-authorized pair added `--dataset` support to both runners,
+preserving their defaults/prompts/settings and reusing the diagnostic's scope
+check for Simple before model/trace/API work. LLM-only ran first, followed by
+Simple: eight completed paid calls. Runs `llm-only-20261118T203122477461Z` and
+`simple-20261118T203140812238Z` have raw reports in `outputs/answers/`.
+Editorial review: Simple P07/P08 complete, P09 core facts correct but explicit
+reporting role omitted; LLM-only honestly abstains on all three. Both abstain
+on P19 without inventing a Boreal limit. Review/raw pairs:
+`outputs/comparisons/atlas-simple-vs-llm-only-20261118.json`;
+integrity: `outputs/validation/atlas-paired-20261118.json`.
+Read-back verified exact prompts, source text, outputs/usage/settings and
+eight new traces/12 spans. All older rows, 39 protected files and 42 reports
+are preserved. Totals: six snapshots/61 chunks, two indexes/61 vectors,
+22 traces/33 spans, migration `0002`. All 187 unit/24 DB tests and Ruff passed.
+Next proposal: a separately versioned changed-evidence state, preserving both
+baselines and P09's omission. Do not infer general accuracy from this small pair.
 The documents define no live lag or actual index/plan output; DB fixtures/tools follow later.
 Preserve existing questions,
 snapshots, chunks, index and `limit=5`. The current context sends all five
@@ -190,8 +228,26 @@ Synthetic-source ingestion/tools, Enhanced and Agentic follow the Simple baselin
 
 ## Checks and resume commands
 
+Supervisor materials prepared on 2026-11-23 are in
+[presentations/2026-11-23/](presentations/2026-11-23/README.md): annotated
+pipeline PDF/PNG/SVG and a one-page briefing PDF with editable Markdown.
+Code/design were inspected; the results summarized remain the 2026-11-18
+development checks. Router, Enhanced, Agentic and sandbox tools are still
+scaffolds. Router method remains open, not implicitly selected as an LLM.
+No application code, corpus, dataset, experiment or service state changed
+while preparing these materials.
+The chart was subsequently revised at the owner's request: C explains the
+separate thesis evaluation process, tracing's partial status is in its heading,
+and a shared Output validation box precedes Response. Only completion/nonempty
+checks currently exist; citation checks are planned and grounding/failure/retry
+behavior is open. The diagram change did not implement a validator or alter
+the experiment. The briefing PDF/Markdown remain unchanged.
+
 The [command reference](COMMANDS.md) lists runnable commands, short descriptions
 and supported options. Update it when commands or their options change.
+Its [direct LLM section](COMMANDS.md#ask-the-llm-directly) has a free-form
+question/answer snippet using the existing client, without dataset/retrieval/
+DB access or saved traces. It was checked with a mock, not a paid call.
 
 From the repository root:
 

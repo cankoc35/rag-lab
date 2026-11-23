@@ -110,8 +110,58 @@ Both dataset checks and all 178 offline unit tests passed, including five new
 reference-boundary/gold-isolation tests; 64 protected files remained unchanged.
 Record: `outputs/validation/atlas-questions-v1-20261118.json`.
 The two Atlas snapshots/12 chunks were subsequently imported and verified;
-Atlas has no embeddings or retrieval/answer run yet. The paid answer runners
-still select P01–P06; Atlas index/dataset selection support is later work.
+Atlas now has its own verified Nomic index/12 vectors; the original PostgreSQL
+index/49 vectors is preserved. The first Atlas retrieval run is recorded below.
+The paid answer runners now accept `--dataset`, preserving P01–P06 by default;
+their first Atlas pair is recorded in the
+[comparison](../../../docs/LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+Dataset `verification` counters describe annotation creation;
+later execution records are separate and do not rewrite the pinned JSON.
+
+## Atlas retrieval diagnostic — 2026-11-18
+
+`check_retrieval.py --dataset data/evaluation/dev/atlas_questions.json` now
+supports the separate Atlas dataset; omission preserves P01–P06. Before model
+loading, it checks the selected index against every pinned chunk, snapshot and
+exact embedding input/hash. A PostgreSQL-index/Atlas-dataset mismatch was
+rejected in a live read-only check. Only unchanged raw questions reach retrieval;
+gold is used afterward to inspect ranks, never to guide search.
+
+Run: `dense-20261118T202158580023Z`, Atlas-only index/12 vectors, pinned local
+Nomic settings, no query rewriting, hybrid search or reranking.
+
+| Question | Annotated evidence ranks | Result in the first five |
+| --- | --- | --- |
+| P07 | E1: 1 | Database/schema names present in the first chunk |
+| P08 | E1/E2: 1/1, the same chunk | 5-second inclusive limit present in the first chunk |
+| P09 | E1/E2/E3: 1/3/2 | Replica identity, policy scope and rule all present |
+| P19 | N/A: no positive answer evidence | Atlas lag criterion ranks first; it does not approve a Boreal limit |
+
+All six positive evidence annotations across the three answerable questions
+appear in the top three and therefore at 5/10/20. These are annotation hits,
+not six distinct chunks or four correct generated answers. The index has only
+12 chunks; cutoffs 10/20 expose most/all of it. Three answerable development
+questions do not establish general retrieval quality or answer improvement.
+
+P19 returns related Atlas passages, with policy scope at rank 3 explaining that
+the threshold is local to Atlas. Correct abstention must be checked in generation;
+the retriever does not detect unanswerability. No similarity threshold was tuned.
+P07 also returns a metadata-only chunk at rank 4; no filtering was introduced.
+
+The read-only run wrote a local report and no traces or answers. Independent
+read-back recomputed ranks/hits, checked all 12 ranked memberships/source fields,
+unchanged raw-question hashes and code provenance. All six public-table
+fingerprints and 31 pinned source/dataset/artifact hashes stayed unchanged.
+All 184 unit/24 DB integration tests and Ruff passed.
+
+Records: `outputs/retrieval/dense-20261118T202158580023Z.json` and
+`outputs/validation/atlas-retrieval-20261118.json`, with a separate before record.
+The subsequent live pair found Simple P07/P08 complete and P09 partial because
+the reporting role was not explicit; LLM-only honestly abstained on the three
+answerable questions. Both appropriately abstained on P19. All eight calls
+completed; corpus/index and older records were preserved. See the
+[Atlas answer review](../../../docs/LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+Proposed next: a separately versioned changed-evidence control.
 
 ## Historical PostgreSQL verification
 

@@ -216,8 +216,13 @@ chunks; `parse.py` remains HTML-only and the importer now accepts explicit
 Markdown inputs. Both Atlas snapshots/all 12 chunks are committed. The separate
 `atlas_questions.json` contains verified P07–P09/P19 references; the checker
 handles Markdown records and the unanswerable corpus-scope case. The shared
-selector still emits only question IDs/text. Atlas embedding/index selection and runner
-dataset selection are next. Broader controls
+selector still emits only question IDs/text. The indexer now accepts repeatable
+`--source-id` filters; Atlas has its own committed index/12 vectors, preserving
+the PostgreSQL index/49 vectors. The retrieval diagnostic now accepts `--dataset`
+and requires an exact pinned index scope; Atlas's first check found all positive
+annotations in the top three. Both answer runners now accept `--dataset`;
+Simple reuses the exact scope check before model/trace/API work. The first
+Atlas pair is complete, with P09's explicit-role omission retained. Broader controls
 and other workflows remain open.
 Tools, full evaluation and LangGraph remain scaffolds.
 See [chunking](CHUNKING.md), [embedding setup](EMBEDDING_SETUP.md),

@@ -67,6 +67,14 @@ experiment. Valid alternative evidence remains relevant. The cutoff sweep
 does not choose a production context budget or change the five-result baseline.
 See the [development results](../data/evaluation/dev/README.md#repeatable-retrieval-checker).
 
+The Atlas diagnostic was subsequently run on 2026-11-18 with explicit
+`--dataset` and an exact index/snapshot/chunk/input scope check. All six positive
+annotations across P07–P09 rank within the first three. P19 has no positive
+evidence score; its returned Atlas policy text does not establish a Boreal
+limit. This is a 12-chunk development check, with no answer/abstention grading
+or LLM-only comparison. See the
+[Atlas results](../data/evaluation/dev/README.md#atlas-retrieval-diagnostic--2026-11-18).
+
 ## Candidate metrics and definitions to finalize
 
 | Metric | Proposed measurement | Decision still open |
@@ -90,7 +98,8 @@ The evidence checker validates references/integrity, not answer correctness
 or retrieval performance. These annotations do not finalize the scoring
 rubric. This describes the annotation-preparation step; later Simple/LLM-only
 development runs are recorded below. P07–P09/P19 now have a separate verified
-Atlas subset; P10–P18/P20 remain drafts. Atlas has no answer/retrieval run yet.
+Atlas subset; P10–P18/P20 remain drafts. Atlas retrieval has now run; its answer
+comparison and abstention checks were subsequently completed as recorded below.
 The subsequent [embedding runtime check](EMBEDDING_SETUP.md) produced two
 vectors; it reports no retrieval or answer-quality metric.
 
@@ -138,6 +147,18 @@ The first live P01–P06 comparison is recorded in
 requirements on four questions, LLM-only on three. This small non-blind
 development review does not freeze the judging protocol or establish causality.
 
+**Atlas follow-up, 2026-11-18:** Both runners now accept `--dataset`; Simple
+requires the complete pinned index scope and LLM-only still reads no corpus.
+With unchanged questions, prompts and generator/settings, all eight calls
+completed. Post-run requirement review found Simple P07/P08 complete and P09
+partial because the reporting role was not explicit; LLM-only honestly abstained
+on all three answerable questions. Both appropriately abstained on P19 without
+assigning an Atlas limit to Boreal. Review criteria were recorded before calls.
+See the [paired Atlas results](LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+This records practical source access in one small pair, not general accuracy
+or an identical-prompt causal retrieval ablation. Preserve the role omission
+and both raw outputs; changed-evidence controls remain pending.
+
 1. Use the same question and source snapshot for every compared arm.
 2. Keep comparable model settings and shared retrieval/tool implementations.
 3. Define metric calculations and exclusion rules on development data.
@@ -169,8 +190,10 @@ training, and do not change the router's action space.
   P07–P09/P19 reference verification is complete in a separate Atlas subset.
   P19 has no positive evidence IDs and a complete two-document absence review;
   its raw question omits the draft's answer-disclosing clause. Atlas snapshots/
-  chunks are now imported. Embedding/indexing, changed states and DB fixtures
-  remain; no Atlas answer comparison has run.
+  chunks are now imported and embedded in a separate verified Atlas-only index.
+  The Atlas retrieval diagnostic has run with all positive annotations in the
+  top three. The first paired answer/abstention check has also run; changed
+  states, broader checks and DB fixtures remain.
 - For selected scenarios, prepare paired source states with the same question
   but a changed relevant fact. For example, a synthetic deployment policy
   permits at most 5 seconds of replica lag; a frozen DB state reports 3 seconds

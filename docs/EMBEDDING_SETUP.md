@@ -6,9 +6,9 @@ model, with a working local document/query adapter. This is a runtime smoke
 check, not a retrieval-quality comparison or a final thesis model verdict.
 
 **Atlas follow-up, 2026-11-18:** Two Atlas snapshots/12 chunks are now imported;
-DB totals are six snapshots/61 chunks. The original PostgreSQL index/49 vectors
-is preserved. Atlas has no embeddings yet; the current indexer reads all stored
-chunks. See [STATUS](STATUS.md) for the proposed scoped-indexing step.
+DB totals are six snapshots/61 chunks and two indexes/61 vectors. Atlas's 12
+vectors are in a separate source-filtered index; the original PostgreSQL
+index/49 vectors is preserved. See [STATUS](STATUS.md) for IDs and verification.
 
 ## Selected setup
 
@@ -137,7 +137,7 @@ workflow comparisons.
 
 ## Corpus indexing command
 
-The [indexing script](../scripts/index_corpus.py) reads every stored chunk's
+The [indexing script](../scripts/index_corpus.py) reads selected chunks'
 exact `embedding_text` and token count from the retrieval DB, using the same
 cached Nomic adapter. Its [lockfile](../scripts/index_corpus.py.lock) retains
 the smoke environment's versions and adds Psycopg for storage.
@@ -145,6 +145,21 @@ the smoke environment's versions and adds Psycopg for storage.
 ```sh
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
 ```
+
+The default selects all stored chunks. Repeat `--source-id ID` to restrict
+membership; Atlas's committed run used:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
+  --source-id LOCAL-INVENTORY --source-id LOCAL-POLICY
+```
+
+Every requested source must have chunks. The normalized source selection is
+recorded in settings and all selected snapshots for those sources are included.
+For a changed source state, validate membership against its pinned artifacts
+before indexing. The verified Atlas run contains exactly the two v1 snapshots/
+12 chunks, with finite normalized 768-dimensional vectors and unchanged older
+rows. Record: `outputs/validation/atlas-index-20261118.json`.
 
 This command **commits** one index and its vectors together. It records a
 sorted chunk/input fingerprint, model revision, prefixes, normalization,
@@ -156,7 +171,7 @@ passed with network blocked and rollback; record:
 and reproducibility, not retrieval quality. Committed indexing is now complete;
 record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
 The script emits flushed phase/chunk progress on stderr and final JSON on
-stdout. The current index needs no rerun.
+stdout. Neither existing index needs a rerun.
 
 ## Query retrieval check
 

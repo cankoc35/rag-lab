@@ -1,6 +1,7 @@
 """Check reference ranks and cutoff coverage without models or a database."""
 
 from contextlib import redirect_stderr, redirect_stdout
+from hashlib import sha256
 from io import StringIO
 import json
 from pathlib import Path
@@ -10,7 +11,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, Mock, call, patch
 
-from scripts.check_retrieval import check_retrieval, main
+from scripts.check_retrieval import check_retrieval, main, validate_index_scope
 
 
 class CheckRetrievalTests(unittest.TestCase):
@@ -56,6 +57,51 @@ class CheckRetrievalTests(unittest.TestCase):
             check_retrieval(self.connection, self.embedder, "empty", {"questions": [self.question]})
         self.search.assert_not_called()
 
+    def test_unanswerable_question_keeps_its_ranking_without_positive_hit_scoring(self):
+        question = {**self.question, "question_id": "P19", "answerability": "unanswerable", "evidence": []}
+        progress = StringIO()
+        with redirect_stderr(progress):
+            result = check_retrieval(self.connection, self.embedder, "index", {"questions": [question]})
+        record = result["questions"][0]
+        self.assertFalse(record["positive_evidence_applicable"])
+        self.assertEqual(record["answerability"], "unanswerable")
+        self.assertEqual(record["evidence_ranks"], {})
+        self.assertEqual(len(record["ranking"]), 49)
+        self.assertIn("N/A (no positive evidence", progress.getvalue())
+        self.assertNotIn("0/0", progress.getvalue())
+
+    def test_index_scope_requires_exact_pinned_membership_snapshots_and_inputs(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            text = "search_document: A pinned source"
+            (root / "chunks.json").write_text(json.dumps({"chunks": [{"chunk_id": "chunk", "embedding_text": text}]}))
+            dataset = {"source_state": {"sources": [{"snapshot_id": "snapshot", "files": {"chunks": {"path": "chunks.json"}}}]}}
+            row = ("chunk", "snapshot", text, sha256(text.encode()).hexdigest())
+            cursor = self.connection.cursor.return_value.__enter__.return_value
+            with patch("scripts.check_retrieval.ROOT", root):
+                cursor.fetchall.return_value = [row]
+                validate_index_scope(self.connection, "index", dataset)
+                for rows in ([], [row, ("extra", *row[1:])], [("chunk", "other-snapshot", *row[2:])],
+                             [("chunk", "snapshot", text + "changed", row[3])], [(*row[:3], "0" * 64)]):
+                    with self.subTest(rows=rows), self.assertRaisesRegex(ValueError, "complete pinned chunk/input scope"):
+                        cursor.fetchall.return_value = rows
+                        validate_index_scope(self.connection, "index", dataset)
+        self.embedder.assert_not_called()
+
+    def test_cli_passes_an_explicit_dataset_to_reference_validation_before_model_loading(self):
+        validate = Mock(side_effect=ValueError("fixture validation stop"))
+        with (
+            patch.dict(sys.modules, {"psycopg": SimpleNamespace(Error=RuntimeError),
+                                    "check_document_questions": SimpleNamespace(validate=validate)}),
+            patch("sys.argv", ["check_retrieval.py", "--index-id", "index", "--dataset", "atlas.json"]),
+            patch("scripts.check_retrieval.NomicEmbedder.from_local") as load_model,
+            self.assertRaises(SystemExit) as stopped,
+        ):
+            main()
+        self.assertEqual(stopped.exception.code, 2)
+        validate.assert_called_once_with(Path("atlas.json"))
+        load_model.assert_not_called()
+
     def test_tracing_links_each_question_to_its_trace_and_batch_without_changing_ranks(self):
         writer = Mock()
         with patch("scripts.check_retrieval.retrieve_with_trace", return_value=(self.matches, "trace")) as traced:
@@ -89,6 +135,7 @@ class CheckRetrievalTests(unittest.TestCase):
                 patch("scripts.check_retrieval.load_database_settings", return_value=SimpleNamespace(connect_kwargs=lambda: {})),
                 patch("scripts.check_retrieval.NomicEmbedder.from_local", return_value=self.embedder),
                 patch("scripts.check_retrieval.get_embedding_index", return_value={"index_id": "index"}),
+                patch("scripts.check_retrieval.validate_index_scope"),
                 patch("scripts.check_retrieval.check_retrieval", return_value=result) as check,
                 patch("scripts.check_retrieval.file_sha256", return_value="fixture-hash"),
                 patch("scripts.check_retrieval.version", return_value="fixture-version"),

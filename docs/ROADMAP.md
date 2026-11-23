@@ -27,15 +27,15 @@ the final corpus/evaluation protocol remain open.
   synthetic deployment runbooks for the PostgreSQL assistant pilot.
   Two English Atlas documents are authored as Markdown, version 1.0/state
   `atlas-docs-v1`; offline snapshot/parsing now produces 37 blocks. They are
-  now chunked into 12 chunks and imported with their two snapshots. Atlas
-  embeddings/index remain pending; the original PostgreSQL index is preserved.
+  now chunked into 12 chunks, imported and embedded in a separate Atlas-only
+  index. The original PostgreSQL index/49 vectors is preserved.
 - The initial docs [allowlist](../data/corpus/sources.json), its offline loader,
   and single-source downloader are implemented. All four selected sources are
   downloaded, hash-verified, parsed and chunked with source/section metadata.
   A separate local Markdown manifest/reader is implemented and verified;
   synthetic-source token measurement/chunking and Atlas reference checks
   are verified. The Markdown import is committed and idempotence-checked;
-  Atlas embedding/indexing remains.
+  Atlas's source-filtered index is committed and independently verified.
 - Verify the [20 draft development questions](PILOT_SCOPE.md) against the
   saved documents and sandbox fixtures. Record expected answers and evidence.
   P01–P06 now have a [source-verified development subset](../data/evaluation/dev/README.md);
@@ -175,15 +175,19 @@ the [paired editorial comparison](LLM_ONLY_COMPARISON.md) found Simple more
 complete on P02/P04 and LLM-only on P05, with both partial on P03.
 The Atlas inventory and policy now have verified local snapshots/parsed blocks.
 Atlas token measurement/chunking and P07–P09/P19 references are complete.
-The two Atlas snapshots/12 chunks are now imported and independently verified.
-Proposed next: explicit Atlas index selection/embedding, then runner dataset
-selection before answer runs. Changed/missing-evidence variants
-follow. Preserve
+The two Atlas snapshots/12 chunks are imported and embedded in a separate,
+verified index. The first Atlas retrieval diagnostic found all positive
+annotations in the top three across P07–P09; P19 returns Atlas policy text
+without establishing a Boreal limit. Both runners now support dataset selection
+and the first Atlas answer pair is complete: Simple has two complete answers
+and one partial P09 (explicit reporting role omitted); LLM-only abstains on
+the three answerable questions. Both abstain appropriately on P19. Proposed
+next: a separate versioned changed-evidence state. Preserve
 both baselines and all six public questions. Final scoring remains open.
 
 Preserve the P01–P06 questions and five-result baseline. Build Simple before
 hybrid/RRF/reranking and fixed tools; Agentic details come later. Use
 [HANDOFF](HANDOFF.md) for code/local inputs, [STATUS](STATUS.md) for checks and
-[PROJECT_CONTEXT](PROJECT_CONTEXT.md) for decisions. Synthetic-source indexing
-and the final protocol still need work; review the method design with the supervisor
+[PROJECT_CONTEXT](PROJECT_CONTEXT.md) for decisions. Changed source states, DB
+fixtures/tools and the final protocol still need work; review the method design with the supervisor
 and continue literature research in parallel.

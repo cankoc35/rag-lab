@@ -898,3 +898,106 @@ Records: `outputs/validation/atlas-import-before-20261118.json`,
 directory. Proposed next: explicitly select/index the 12 Atlas chunks without
 changing the original PostgreSQL index, then expose dataset selection and
 perform Atlas retrieval/answer checks. The current indexer reads all 61 rows.
+
+## Atlas source-filtered embedding index — 2026-11-18
+
+The owner authorized the next scoped indexing step. Added repeatable
+`--source-id` flags to `index_corpus.py`; the parameterized join selects source
+chunks, rejects any requested source without chunks before inference/writes
+and records sorted unique source IDs in index settings. The default continues
+to select all stored chunks. DB tests cover source isolation (including a
+quoted source ID), missing sources, repeated selection and separate indexes.
+All 181 offline unit tests, 24 temporary-table DB integration tests and Ruff
+passed. Fresh `check-db`/Compose checks passed; Alembic remained `0002`.
+
+Before inference, independent read-back matched all 12 Atlas DB inputs to the
+saved chunk artifacts (1,861 tokens) and confirmed zero Atlas vectors. Captured
+all six public-table fingerprints and the original PostgreSQL index ID.
+The offline locked Nomic command selected `LOCAL-INVENTORY` and `LOCAL-POLICY`,
+then committed a new index/12 vectors:
+`nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf`.
+
+A fresh read-only connection verified all 12 memberships/input hashes, finite
+768-dimensional vectors, L2 norms and reproduced index identity from stored
+inputs/settings. Current code, lock and model-manifest hashes matched. Every
+older logical row fingerprint was preserved, including the original index/49
+vectors; source/dataset/chunk artifacts were unchanged by indexing. Totals:
+six snapshots/61 chunks, two indexes/61 vectors, 14 traces/21 spans. Records:
+`outputs/validation/atlas-index-before-20261118.json` and
+`outputs/validation/atlas-index-20261118.json`.
+
+No hosted API call, Atlas query retrieval or answer run occurred. Proposed next:
+Atlas dataset/index selection in the retrieval diagnostic, then paired answer
+runner selection. No migration or model/chunking setting change was needed.
+
+## Atlas retrieval diagnostic — 2026-11-18
+
+The owner requested the next Atlas retrieval check. Added `--dataset` to the
+existing diagnostic, preserving the PostgreSQL default. Before model loading,
+exact snapshot/chunk/input/hash membership must match the complete pinned
+dataset scope; a live Atlas-dataset/PostgreSQL-index pairing was rejected.
+Unanswerable questions retain ranked results with positive evidence scoring
+marked N/A. Schema-version-2 reports include answerability and dataset path.
+All 184 offline unit/24 local DB tests and Ruff passed; service/version/head
+checks confirmed PostgreSQL 18.6, pgvector 0.8.7 and `0002`.
+
+Run `dense-20261118T202158580023Z` used local pinned Nomic, the Atlas-only
+12-vector index and all four unchanged questions. P07 E1 ranks 1; P08 E1/E2
+rank 1 in the same chunk; P09 E1/E2/E3 rank 1/3/2. All six positive annotations
+appear in the top three. P19 returns the Atlas lag rule first and scope third;
+these do not establish a Boreal limit. No rewrite, reranking, cutoff tuning,
+LLM answer or abstention grading was introduced. P07 also returns a metadata-only
+chunk at rank 4. The small scoped check establishes evidence availability for
+these questions, not general quality or retrieval's answer-level contribution.
+
+Independent read-back checked ranking order, recomputed evidence ranks/hits and checked source fields,
+raw-query/code hashes and all 12 memberships. All six public-table fingerprints
+and 31 pinned file hashes remained unchanged: six snapshots/61 chunks, two
+indexes/61 vectors, 14 traces/21 spans. No API call or trace write ran.
+Raw report: `outputs/retrieval/dense-20261118T202158580023Z.json`.
+Verification: `outputs/validation/atlas-retrieval-20261118.json`, with a before
+record in the same directory. Proposed next: enable Atlas in the paired answer
+runners, then inspect source-supported answers and P19 abstention.
+
+## Atlas paired Simple/LLM-only answers — 2026-11-18
+
+The owner authorized the next paired answer step. Added `--dataset` to both
+answer runners, preserving PostgreSQL defaults, prompts and generator settings.
+Simple reuses the diagnostic's exact index/snapshot/chunk/input scope check
+before loading the model or opening trace/API clients. LLM-only reads only
+question JSON, with no corpus/index validation or source context. Both record
+dataset path/hash. All 187 unit/24 DB tests and Ruff passed; the locked script
+environments needed no dependency changes. No migration was required.
+
+Before calls, recorded a requirement-based editorial review plan, table
+fingerprints, old trace/span IDs and protected file/report hashes. The unchanged
+Atlas v1.0.0 dataset then ran LLM-only first, followed by Simple with its own
+12-vector index/top-five context: eight completed independent Luna calls.
+Runs: `llm-only-20261118T203122477461Z`, `simple-20261118T203140812238Z`.
+
+Review: Simple P07/P08 meet requirements and cite supporting S1. P09 gives the
+correct replica/rule/inclusive threshold with S1/S2 support, but R1 is partial
+because it does not explicitly state the `reporting` role. LLM-only honestly
+abstains on all three answerable questions. Both appropriately abstain on P19;
+Simple explicitly separates Atlas's five seconds from the missing Boreal policy.
+These are two complete/one partial positive Simple answers versus three honest
+LLM-only abstentions, plus successful abstention for both on one negative case.
+The small scoped sample and different fixed prompts do not establish general
+accuracy or a pure causal retrieval effect. No prompt was tuned after inspection.
+
+Usage: Simple 6,772 input/186 output/6,958 total, including 6,760 cache-write
+input tokens; LLM-only 321/118/439, no cache writes. Both have zero reasoning/
+cache-read tokens. Workflow times: 6.206 s versus 11.400 s, excluding Simple
+model loading; separate batches do not establish a speed advantage. DB cost
+remains NULL; no new pricing estimate was calculated.
+
+Fresh read-back verified all exact prompt/source/output/usage/settings fields,
+eight new traces/12 spans and input isolation. Every older public row, all 39
+protected files and 42 older reports retained their fingerprints. Totals:
+six snapshots/61 chunks, two indexes/61 vectors, 22 traces/33 spans, head `0002`.
+Raw reports are in `outputs/answers/`; review/raw pairs:
+`outputs/comparisons/atlas-simple-vs-llm-only-20261118.json`.
+Integrity: `outputs/validation/atlas-paired-20261118.json`, with a before record.
+See [the Atlas comparison](LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+Proposed next: a separately versioned changed-evidence state, preserving both
+original document states/baselines and P09's omission.

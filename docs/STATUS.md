@@ -1,6 +1,6 @@
 # Current status
 
-**Last updated:** 2026-11-18. This is the current implementation boundary.
+**Last updated:** 2026-11-23. This is the current implementation boundary.
 Detailed dated records are in [STATUS_HISTORY.md](STATUS_HISTORY.md);
 plans are in [ROADMAP](ROADMAP.md), decisions in [PROJECT_CONTEXT](PROJECT_CONTEXT.md),
 and code/artifact paths in [HANDOFF](HANDOFF.md).
@@ -10,22 +10,25 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 | Area | Current state |
 | --- | --- |
 | Sources | Four saved PostgreSQL 18 HTML snapshots; allowlist, downloader and offline parser |
-| Synthetic sources | Atlas v1.0: two snapshots/12 chunks committed and independently verified; no Atlas vectors yet |
+| Synthetic sources | Atlas v1.0: two snapshots/12 chunks imported and embedded in a separate verified index |
 | Chunking | HTML: 184 parsed blocks → 49 chunks; all content/code/table blocks preserved; target 512 / ceiling 1024; maximum observed 822 tokens |
 | Embedding | Pinned local Nomic; normalized 768-dimensional document/query vectors |
-| Database | Applied Alembic `0002`; six snapshots, 61 chunks, original index/49 vectors, 14 traces/21 spans |
+| Database | Applied Alembic `0002`; six snapshots, 61 chunks, two indexes/61 vectors, 22 traces/33 spans |
 | Retrieval | Index/model compatibility checks, query embedding and dense cosine search; default `limit=5` |
-| Diagnostics | P01–P06 full ranks and annotated hits at 5/10/20; immutable JSON reports |
+| Diagnostics | Dataset-selected PostgreSQL/Atlas full ranks and hits at 5/10/20; exact index scope check; immutable JSON reports |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
 | Generator | Luna client, source-linked context, `answer_v1` and Simple workflow; one live P04 answer verified |
-| Answer runner | `run_simple_rag.py`: explicit single-question or all-question selection; shared resources/run ID and per-question records |
+| Answer runners | Simple/LLM-only support `--dataset`, one/all selection, shared resources/run ID and per-question records; Simple requires exact index scope |
 | Live Simple batch | P01–P06 completed; editorial review: P01/P02/P04/P06 meet recorded requirements, P03/P05 partial |
-| LLM-only control | Live P01–P06 completed with one LLM span per question; paired editorial comparison recorded |
+| LLM-only control | Live PostgreSQL and Atlas pairs completed; raw-question-only inputs verified, with one LLM span per question |
 | Questions | P01–P06 baseline unchanged; separate P07–P09/P19 Atlas subset verified, including one unanswerable case; P10–P18/P20 drafts |
 
 Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
-1024-token application limit. Committed index:
-`nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
+1024-token application limit. Committed indexes:
+
+- PostgreSQL, 49 vectors: `nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
+- Atlas, 12 vectors: `nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf`.
+
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
 
 ## Retrieval findings and limits
@@ -272,13 +275,128 @@ Ruff and whitespace checks passed. DB tests used temporary tables/rollback.
 Record: `outputs/validation/atlas-import-20261118.json`, with separate before/
 first-import records in the same directory. No real model inference or API call ran.
 
+## Atlas embedding index — 2026-11-18
+
+Added repeatable `--source-id` selection to `index_corpus.py`. It uses a
+parameterized source/snapshot join, rejects any requested source without
+chunks before inference/writes, and records sorted unique source IDs in index
+settings. Omitting the flag retains the all-stored-chunks behavior.
+
+The owner-authorized offline Nomic run selected `LOCAL-INVENTORY` and
+`LOCAL-POLICY`: exactly 12 artifact-matched chunks, 1,861 input tokens.
+It committed one separate index with 12 normalized 768-dimensional vectors.
+Independent read-back verified exact membership/input hashes, finite vectors,
+norms and reproducible index identity/code/lock/model-manifest fingerprints.
+All older rows, including the PostgreSQL index/49 vectors, retained their
+logical fingerprints. Totals: six snapshots, 61 chunks, two indexes/61 vectors,
+14 traces/21 spans. Revision remains `0002`; no hosted API call ran.
+
+**181 offline unit tests and 24 DB integration tests passed**, including
+source isolation, missing-source rejection, repeatability and preservation of
+other indexes. Ruff passed. Validation:
+`outputs/validation/atlas-index-20261118.json`, with a separate before record.
+
+## Atlas retrieval diagnostic — 2026-11-18
+
+Added `--dataset` to `check_retrieval.py`, retaining the PostgreSQL default.
+Before model loading it verifies exact index membership, snapshots, stored
+inputs and hashes against the complete pinned dataset scope. Wrong Atlas/PG
+pairing was rejected in a live read-only check. Reports use schema version 2;
+unanswerable P19 retains its ranking with positive evidence scoring marked N/A.
+Only unchanged question text enters the query embedder; gold does not guide search.
+
+The offline Atlas run `dense-20261118T202158580023Z` checked all four questions:
+P07 E1 rank 1; P08 E1/E2 rank 1 (one chunk); P09 E1/E2/E3 ranks 1/3/2.
+All six positive annotations are present in the top three. P19 returns the
+Atlas lag rule first and its Atlas-only scope third; these do not establish a
+Boreal limit. No answer or abstention was generated or graded. The 12-chunk/
+three-answerable-question check does not establish general retrieval quality
+or improvement over LLM-only. No settings, rewriting or filtering were tuned.
+
+Independent read-back verified ranks/cutoffs, all 12 memberships/source fields,
+query/code hashes and unchanged fingerprints for all six public tables plus
+31 pinned files. DB totals remain six snapshots/61 chunks, two indexes/61
+vectors and 14 traces/21 spans; no trace, migration or paid call ran.
+**184 unit tests, 24 DB integration tests and Ruff passed.**
+Report: `outputs/retrieval/dense-20261118T202158580023Z.json`.
+Validation: `outputs/validation/atlas-retrieval-20261118.json`.
+See the [Atlas results](../data/evaluation/dev/README.md#atlas-retrieval-diagnostic--2026-11-18).
+
+## Atlas paired answer check — 2026-11-18
+
+Both answer runners now accept `--dataset`, preserving the PostgreSQL default.
+Simple reuses the diagnostic's complete pinned index-scope check before model
+loading or trace/API clients. LLM-only reads only question JSON and passes only
+raw text to generation. Reports/configuration record dataset path/hash;
+the prompts, model/settings and workflow behavior are unchanged.
+
+The owner-authorized pair made eight independent completed Luna calls, first
+LLM-only then Simple using the Atlas-only index/top five. Editorial review
+against the pinned requirements found P07/P08 complete with supported citations;
+P09 gives the correct replica/rule/inclusive limit but omits the explicit
+`reporting` role (R1 partial). LLM-only honestly abstains on all three answerable
+questions. Both appropriately abstain on P19; Simple mentions five seconds only
+as an Atlas limit and rejects transfer to Boreal. No numeric Boreal limit was invented.
+
+This shows practical access to source-specific facts in this pair, not general
+accuracy or a pure causal retrieval estimate. One generation per arm, different
+fixed prompts and the 12-chunk development scope remain limitations.
+Simple used 6,772 input/186 output tokens; LLM-only 321/118. No price estimate
+was added; DB cost remains NULL. See the [comparison](LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
+
+Fresh read-back verified exact prompts/full source text, output/usage/settings,
+eight new traces and 12 spans. Older rows, 39 protected files and 42 prior reports
+retained their fingerprints. Totals: six snapshots/61 chunks, two indexes/61
+vectors, 22 traces/33 spans; revision remains `0002`.
+**187 unit tests, 24 DB integration tests and Ruff passed.**
+Runs: `simple-20261118T203140812238Z`, `llm-only-20261118T203122477461Z`.
+Records: `outputs/comparisons/atlas-simple-vs-llm-only-20261118.json` and
+`outputs/validation/atlas-paired-20261118.json`; raw reports are in `outputs/answers/`.
+
+## Supervisor discussion materials — 2026-11-23
+
+Prepared the [presentation package](presentations/2026-11-23/README.md):
+one-page pipeline PDF, slide PNG, editable SVG and a one-page briefing PDF
+with Markdown source. The chart separates source preparation, question-time
+routing, cross-cutting tracing and offline experiments, with explicit
+DONE / NOT BUILT / PARTIAL / OPEN notes. It shows the current direct Simple
+path and the proposed router selecting one workflow; router method is undecided.
+The response is an output, not an extra model call after a RAG workflow.
+
+Checked current code/design and the saved Atlas comparison. Experimental
+results remain the 2026-11-18 development records. Both PDFs were rendered
+and visually inspected; page counts, text and local links were checked.
+This was an artifact/documentation update: no application code, corpus,
+dataset, model experiment, migration or service state changed. Application
+tests were not repeated for presentation-only work.
+
+The owner then requested a clearer C section, an unambiguous tracing status
+and an output-validation box. Revised the PDF/PNG/SVG in place: C now explains
+the separate thesis evaluation process in four numbered steps, with an example
+and an explicit definition of "offline". The partial-coverage label is integrated
+into the tracing heading. RAG outputs now pass through a depicted shared
+validation stage before Response. Its completion/nonempty checks exist in
+Simple; citation checks are planned and grounding/failure/retry policy remains
+open. No new validator or extra LLM call was implemented. The revised page was
+rendered and visually checked; application/source files and the briefing PDF/
+Markdown are unchanged. The next implementation step below remains a proposal.
+
+## Direct LLM terminal command — 2026-11-23
+
+Added a copyable free-form question/answer block to
+[COMMANDS](COMMANDS.md#ask-the-llm-directly). It reuses the existing client and
+configured generator, prints plain answer text and requires no corpus, dataset
+or DB. It makes one explicitly invoked paid request and saves no project trace
+or report. Syntax and mock-client checks passed without a real API call.
+No application code, dependency, prompt file or experiment default changed.
+
 ## Next small step
 
-Atlas references and DB import are complete. Proposed next small step: add
-explicit corpus selection to the indexer and embed the 12 Atlas chunks into
-their own index, matching the two-document reference state and preserving the
-original PostgreSQL index. Then expose runner dataset selection and test
-Atlas retrieval/answers. The current indexer reads every stored chunk (61).
+Atlas references, import, scoped indexing, retrieval and the first paired
+answer/abstention checks are complete. Proposed next: prepare a separately
+versioned changed-evidence state and check whether the same question follows
+the changed source fact. Preserve the original Atlas state, its pair and
+P09's explicit-role omission; no prompt was tuned to these results.
 Keep all six public questions and both
 raw baselines, including LLM-only-correct questions, P03's shared omission and
 P05's retrieval gap. Keep gold outside generation; final scoring remains open.
@@ -299,7 +417,7 @@ Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 
 - Broader paired evaluation and source-specific/abstention/changed-evidence checks.
 - Hybrid/full-text search, RRF, reranker and Enhanced tool conditions.
-- Atlas embedding/index selection and runner dataset selection, changed document states, frozen DB fixtures and validated tools.
+- Changed document states, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.
 - Verified P10–P18/P20 answers, a held-out test set, rubric/judges, metrics,
   quality margin, final model/settings choices, sample size and result runner.
