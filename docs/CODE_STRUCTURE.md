@@ -106,8 +106,8 @@ rag-workflow-lab/
 | `contracts.py` | Define shared source/section, chunk, retrieved-evidence, answer, tool-result and usage fields. | Simple data types without orchestration or database-driver dependencies. Add types as needed. |
 | `ingestion/` | Download/read, clean and split sources, then coordinate indexing steps. | Never scan gold answers, evaluation directories or the entire repository. HTML and Markdown should share a section contract. |
 | `embeddings.py` | Generate document/query embeddings with the same model/revision and compatible settings. | No database or workflow decisions; models may expose distinct query/document methods. |
-| `store.py` | Execute source/chunk upserts and metadata-filtered vector-search SQL. | No LLM calls. Reject queries with mismatched model/index identity or vector dimensions. |
-| `retrieval.py` | Embed questions, search the correct corpus/index scope and return scored evidence. | Does not generate answers; workflows and the retrieval tool share this implementation. |
+| `store.py` | Execute immutable writes and index-scoped dense/full-text SQL. | No LLM calls. Preserve citation fields and caller-owned transactions. |
+| `retrieval.py` | Dense query orchestration, equal-weight RRF and bounded hybrid search in one index scope. | No answer generation or gold access; preserve source ranks and citation fields. |
 | `llm.py` and `prompts/` | Provider calls, selected model settings, usage/errors and versioned prompts. | Does not select a retriever or access gold data. One concrete adapter is sufficient initially; avoid a generic provider framework. |
 | `workflows/` | Determine the order of source access and model/tool calls. | Do not reimplement shared retrieval/storage. Simple and LLM-only do not require LangGraph. |
 | `tools/` | Expose retrieval and validated read-only operations on a separate sandbox. | Cannot open evaluation gold, other states, retrieval storage or trace records. |
@@ -217,7 +217,9 @@ Markdown inputs. Both Atlas snapshots/all 12 chunks are committed. The separate
 `atlas_questions.json` contains verified P07–P09/P19 references; the checker
 handles Markdown records and the unanswerable corpus-scope case. The shared
 selector still emits only question IDs/text. The indexer now accepts repeatable
-`--source-id` filters; Atlas has its own committed index/12 vectors, preserving
+`--source-id` filters and exact `--snapshot-id` selection (mutually exclusive).
+Source filters include all versions. Atlas v1/v2 have separate indexes with
+12 vectors each, preserving
 the PostgreSQL index/49 vectors. The retrieval diagnostic now accepts `--dataset`
 and requires an exact pinned index scope; Atlas's first check found all positive
 annotations in the top three. Both answer runners now accept `--dataset`;
@@ -225,5 +227,12 @@ Simple reuses the exact scope check before model/trace/API work. The first
 Atlas pair is complete, with P09's explicit-role omission retained. Broader controls
 and other workflows remain open.
 Tools, full evaluation and LangGraph remain scaffolds.
+`store.search_chunks_full_text()` and the existing diagnostic's `--method
+full-text` path now provide index-scoped English OR search without a model.
+Dense remains the default; full-text results use `text_score` and support no
+trace writer yet. `retrieval.py` now adds `reciprocal_rank_fusion()` and
+`retrieve_hybrid()` with equal weights, `k=60` and 20 candidates per method.
+The diagnostic accepts `--method hybrid` and records component/fused ranks.
+Reranking and the full Enhanced answer workflow remain separate.
 See [chunking](CHUNKING.md), [embedding setup](EMBEDDING_SETUP.md),
 [DB setup](POSTGRES_SETUP.md) and [tracing](TRACING_PLAN.md) for contracts.

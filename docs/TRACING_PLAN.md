@@ -82,6 +82,11 @@ to totals. No tool spans are claimed.
 
 ## Checker modes
 
+`--method dense` remains the default and supports `--trace`. The newer
+`--method full-text` and `--method hybrid` diagnostics are read-only/untraced; combining either with
+`--trace` is rejected before service access. Instrumentation for the eventual
+Enhanced workflow is separate work.
+
 The existing command without `--trace` still uses read-only SQL and writes only
 its JSON report. No trace connection or DB records are created. JSON has
 `read_only: true`, `retrieval_read_only: true`, `tracing_enabled: false`.

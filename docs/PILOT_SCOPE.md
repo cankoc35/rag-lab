@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-18. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-23. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -17,6 +17,18 @@ annotations and later retrieval diagnostics. P07–P09/P19 now have a separate
 P04 answer passed post-run editorial review on 2026-11-17. A later P01–P06
 batch completed; editorial review found P03/P05 partial and the other four
 meeting recorded requirements. Held-out evaluation has not run.
+
+**Coverage audit, 2026-11-23:** Dense, full-text and equal-weight RRF have now
+been compared on all ten verified unique questions, plus the P08 Atlas v2
+state variant (eleven question/state observations). The live retrieval DB has
+eight snapshots/73 chunks and three indexes/73 vectors: PostgreSQL 49,
+Atlas v1 12 and Atlas v2 12. These contain all chunks in the selected source
+scopes, not only annotated answer passages. P10–P18/P20 are still unverified
+drafts; most require index/observation/plan fixtures and tool outputs that do
+not exist yet. P18/P20 also need a verified insufficient-evidence scope.
+Existing embeddings alone do not make all twenty records evaluation-ready.
+See the [three-method results](HYBRID_RETRIEVAL.md) and local audit
+`outputs/comparisons/pilot-retrieval-coverage-20261123.json`.
 
 **Language decision (owner, 2026-11-05):** All repository content and RAG
 artifacts use English: corpus/synthetic documents, questions/datasets, prompts,
@@ -42,7 +54,9 @@ All four selected pages have saved, hash-verified HTML snapshots. The PG-STATS
 target section ID was checked in saved HTML. Snapshot IDs/hashes are in STATUS.
 Two Atlas Markdown sources now have pinned local snapshots, parsed blocks
 and 12 verified chunks, now imported and embedded in a separate Atlas-only index.
-Changed document states and DB fixtures remain. The HTML parser is implemented and verified
+An additional Atlas v2 state now changes the lag policy from 5 to 8 seconds;
+its separate two snapshots/12 chunks are indexed. DB fixtures remain.
+The HTML parser is implemented and verified
 against all four saved HTML sources.
 
 | Source ID | Source | Use |
@@ -186,7 +200,9 @@ renaming these questions; keep related scenario families within one split.
    all positive annotations rank in the top three. Both answer runners now
    select datasets; the first pair found two complete Simple answers/one partial
    P09 and three honest LLM-only abstentions on answerable questions. Both
-   appropriately abstained on P19. Proposed next: a versioned changed-evidence control.
+   appropriately abstained on P19. The subsequent changed-evidence control
+   and dense/full-text/RRF development diagnostics are complete; sandbox
+   fixture/tool questions remain drafts.
 5. Broaden answer/control checks and project-owned traces. Then create DB
    fixtures/tools, verify tool questions and implement enhanced/agentic workflows.
 

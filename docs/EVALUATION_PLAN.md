@@ -1,6 +1,6 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-17. The owner approved the initial
+**Status:** Working draft, updated 2026-11-23. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
 sample sizes, and the complete final protocol remain open. This is a planning
@@ -74,6 +74,27 @@ evidence score; its returned Atlas policy text does not establish a Boreal
 limit. This is a 12-chunk development check, with no answer/abstention grading
 or LLM-only comparison. See the
 [Atlas results](../data/evaluation/dev/README.md#atlas-retrieval-diagnostic--2026-11-18).
+
+The [full-text development check](FULL_TEXT_RETRIEVAL.md) was completed on
+2026-11-23 using the same pinned question/index pairs. Initial plain AND
+returned no candidates in all eleven state observations; those reports are
+preserved. English OR over normalized raw-question lexemes was then selected
+on development data. At five results, P05 has 2/3 annotated evidence records
+versus dense 0/3; other top-five counts match, although individual ranks can
+worsen. No gold terms, query rewrite, RRF or answer generation were used.
+P19 has no positive evidence score. P08's two states are related variants,
+not independent test questions. This does not freeze the lexical policy,
+establish general recall/answer quality or tune a held-out protocol.
+
+The later [RRF development check](HYBRID_RETRIEVAL.md) uses equal method
+weights, `k=60` and 20 candidates per method, selected before the live runs.
+It combines unchanged raw-question results in the same pinned index scope.
+P05 has 1/3 annotations at five and 2/3 at ten, versus dense 0/3 and full-text
+2/3 at five; other top-five counts match. E3 is outside both candidate windows.
+The mixed result is preserved without parameter retuning. Every fused score,
+source rank and union was reconstructed from the saved component reports.
+These are development defaults, not final thesis budgets or proof that fusion
+improves answer quality. Reranking and answer-level comparisons follow later.
 
 ## Candidate metrics and definitions to finalize
 
@@ -157,7 +178,20 @@ assigning an Atlas limit to Boreal. Review criteria were recorded before calls.
 See the [paired Atlas results](LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
 This records practical source access in one small pair, not general accuracy
 or an identical-prompt causal retrieval ablation. Preserve the role omission
-and both raw outputs; changed-evidence controls remain pending.
+and both raw outputs. The source-change control was still pending at that stage.
+
+**Changed-evidence follow-up, 2026-11-23:** The owner authorized a complete
+one-question document-state pair. Atlas v2 changes the lag limit from 5 to
+8 seconds inclusive, with consistent boundary examples and version metadata.
+P08 wording, `answer_v1`, generator/settings and the dense top-five workflow
+stay fixed. Its full v2 source scope is pinned in a separate dataset/index;
+v1 and all earlier results are preserved. Two new Simple calls return the
+corresponding inclusive limit with supported S1 citations. Exact prompt/source/
+response/usage persistence and scope isolation passed read-back checks.
+Review requirements were recorded before calls. This is one development
+source-sensitivity check; it does not establish universal grounding, training
+membership or general accuracy. No new LLM-only call was needed for this
+document-change pair. See [CHANGED_EVIDENCE_CHECK](CHANGED_EVIDENCE_CHECK.md).
 
 1. Use the same question and source snapshot for every compared arm.
 2. Keep comparable model settings and shared retrieval/tool implementations.
@@ -193,7 +227,8 @@ training, and do not change the router's action space.
   chunks are now imported and embedded in a separate verified Atlas-only index.
   The Atlas retrieval diagnostic has run with all positive annotations in the
   top three. The first paired answer/abstention check has also run; changed
-  states, broader checks and DB fixtures remain.
+  broader checks and DB fixtures remain. The later v1/v2 P08 document-change
+  pair is complete as recorded above; additional state pairs remain open.
 - For selected scenarios, prepare paired source states with the same question
   but a changed relevant fact. For example, a synthetic deployment policy
   permits at most 5 seconds of replica lag; a frozen DB state reports 3 seconds

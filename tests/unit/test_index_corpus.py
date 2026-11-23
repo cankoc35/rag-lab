@@ -83,6 +83,14 @@ class IndexIdentityTests(unittest.TestCase):
                         "Embedding chunk 1/1", "Saving index and embeddings", "Index committed"):
             self.assertIn(message, progress.getvalue())
 
+    def test_cli_rejects_mixed_source_and_snapshot_selection_before_loading(self):
+        with (patch("sys.argv", ["index_corpus.py", "--source-id", "fixture", "--snapshot-id", "snapshot"]),
+              patch("scripts.index_corpus.NomicEmbedder.from_local") as load,
+              redirect_stderr(StringIO()), self.assertRaises(SystemExit) as error):
+            main()
+        self.assertEqual(error.exception.code, 2)
+        load.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "dataset_id": "atlas-changed-evidence-dev",
+  "dataset_version": "2.0.0",
+  "split": "dev",
+  "language": "en",
+  "status": "source_verified",
+  "verified_on": "2026-11-23",
+  "verification": {
+    "review": "The P08 reference and inclusive 8-second boundary were reviewed against the complete Atlas v2 documents. Only the lag threshold and version metadata differ from v1.",
+    "reference_checks": "Pinned file hashes, source/state/snapshot/chunk identities, exact block/span references, support modes and negative-case scope are checked offline.",
+    "model_answer_runs": 0,
+    "retrieval_runs": 0
+  },
+  "reference_policy": {
+    "requirements": "Requirements annotate reference claims, not a frozen grading rubric. any means alternative supporting records; all means complementary selected support. corpus_scope is used only for an unanswerable case with no positive answer evidence.",
+    "coverage": "Selected reference evidence is not an exhaustive list of valid passages. Future evaluation must allow equivalent sufficient evidence, including a different valid passage or chunk.",
+    "limits": "This annotation does not implement a scoring metric, freeze a held-out set, or establish irreducible multi-document reasoning.",
+    "span_coordinates": "Zero-based Python Unicode character offsets in the original parsed block text; end is exclusive.",
+    "model_input": "Use only the question as the model-visible query. Gold answers, requirements and evidence remain evaluation data outside ingestion.",
+    "versioning": "Changing the source snapshot, parser, chunker, tokenizer or chunk settings requires revalidating references and versioning this development dataset.",
+    "scope": "This changed-evidence development check uses the complete pinned Atlas v2 state. Pair P08 with its unchanged v1 question; retain both variants in the same split."
+  },
+  "source_state": {
+    "source_state_id": "atlas-docs-v2-section-blocks-v1",
+    "document_state": "atlas-docs-v2",
+    "sources_manifest": {
+      "path": "data/corpus/synthetic/atlas-docs-v2/sources.json",
+      "sha256": "8caa08eba1d272bcaa4d1b4d37eaa7ea04bf47af0361d8b5aecfbe95b4bc955d"
+    },
+    "chunking": {
+      "chunker_version": "section-blocks-v1",
+      "serialization_version": "chunk-context-v1",
+      "tokenizer": {
+        "identifier": "nomic-ai/nomic-embed-text-v1.5",
+        "revision": "e9b6763023c676ca8431644204f50c2b100d9aab",
+        "fingerprint": "193209d0efaf65a10abebfccaa2d1d0a39566c167e757aff7951c06802b7afd8",
+        "max_input_tokens": 8192
+      },
+      "settings": {
+        "target_tokens": 512,
+        "max_tokens": 1024,
+        "document_prefix": "search_document: "
+      }
+    },
+    "sources": [
+      {
+        "source_id": "LOCAL-INVENTORY",
+        "snapshot_id": "LOCAL-INVENTORY-45793a301230aad6",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-docs-v2/atlas_inventory.md",
+        "title": "Atlas environment inventory",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-docs-v2-3jvgwbl6/LOCAL-INVENTORY-45793a301230aad6/manifest.json",
+            "sha256": "9b3e98f9074a0fccba69377743964f79a4b5a8b9ff3192c8052d4bb10a89274d"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-docs-v2-3jvgwbl6/LOCAL-INVENTORY-45793a301230aad6/atlas_inventory.md",
+            "sha256": "442a6233b1344638b5c59bab729ead97f9a9980d2277a01fa3632e78cc5a210e"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-docs-v2-3jvgwbl6/LOCAL-INVENTORY-45793a301230aad6/parsed.json",
+            "sha256": "b855aa139114264310ef363f160724719a7b7a6ac7700351a3418fd5bcd66e04"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-docs-v2-section-blocks-v1/LOCAL-INVENTORY-45793a301230aad6.json",
+            "sha256": "170334550f907a4699acb3f57700a74d23d7c0b7e2ede2df707e7dd638c1a7f9"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-POLICY",
+        "snapshot_id": "LOCAL-POLICY-41c47f77f549370a",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-docs-v2/atlas_operations_policy.md",
+        "title": "Atlas operations policy",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-docs-v2-3jvgwbl6/LOCAL-POLICY-41c47f77f549370a/manifest.json",
+            "sha256": "08790ab6495921354296a86c41d98aa97ff80cd4f46fec1e5903e25f0623c0c0"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-docs-v2-3jvgwbl6/LOCAL-POLICY-41c47f77f549370a/atlas_operations_policy.md",
+            "sha256": "6255e28614478809e54af82e2ae1990433e5731b7c506be4ddc473f3753ccae5"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-docs-v2-3jvgwbl6/LOCAL-POLICY-41c47f77f549370a/parsed.json",
+            "sha256": "2372ca66148cded329179398011961eac15c75cdc4ac7222c47f2aecad2761c9"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-docs-v2-section-blocks-v1/LOCAL-POLICY-41c47f77f549370a.json",
+            "sha256": "8f1cfe30e3f90e3c2a71ce156a9559c5ad89a1d3c092176003b383018a30a30e"
+          }
+        }
+      }
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "P08",
+      "question_type": "direct_document",
+      "question": "What is the maximum lag allowed by the Atlas replica lag rule?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The Atlas reporting-replica lag limit is 8 seconds, inclusive: exactly 8 seconds satisfies the lag criterion.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P08-R1",
+          "statement": "State the lag limit as 8 seconds.",
+          "supporting_evidence_ids": [
+            "P08-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P08-R2",
+          "statement": "Treat the maximum as inclusive; exactly 8 seconds is allowed.",
+          "supporting_evidence_ids": [
+            "P08-E1",
+            "P08-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P08-E1",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-41c47f77f549370a",
+          "chunk_id": "LOCAL-POLICY-17ed4525f222c3e45cb498691528146edf019bae501c65c05f4c6580f2833ac0",
+          "block_index": 7,
+          "block_sha256": "0f50a019d06851919fa8acf3a0830eed00c7943dc9b4de5b9245414030d4d3dc",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L25",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-docs-v2/atlas_operations_policy.md#L25",
+          "span": {
+            "start": 0,
+            "end": 117,
+            "text": "The policy identifier is `ATLAS-REPORTING-LAG`. Its maximum permitted numeric\nreplay lag is **8 seconds**, inclusive."
+          }
+        },
+        {
+          "evidence_id": "P08-E2",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-41c47f77f549370a",
+          "chunk_id": "LOCAL-POLICY-17ed4525f222c3e45cb498691528146edf019bae501c65c05f4c6580f2833ac0",
+          "block_index": 9,
+          "block_sha256": "9cb916f1562891ec6cd2413047903226a91ab7d20b7a8f02c7735f51cafde915",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L38",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-docs-v2/atlas_operations_policy.md#L38",
+          "span": {
+            "start": 0,
+            "end": 42,
+            "text": "Exactly 8 seconds satisfies the criterion."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 gives the local rule and inclusive threshold; E2 is alternative explicit support for the boundary. This asks about policy, not a measured current lag."
+    }
+  ],
+  "changed_evidence_control": {
+    "pair_id": "atlas-lag-limit-v1-v2",
+    "baseline_dataset": {
+      "path": "data/evaluation/dev/atlas_questions.json",
+      "sha256": "67c8cf3269c7d72b078dc75a854ac2ac24eee35e6de06b70f36f895f7e62aecb"
+    },
+    "question_id": "P08",
+    "changed_fact": "Maximum permitted Atlas reporting-replica replay lag: 5 to 8 seconds; both inclusive.",
+    "held_constant": "Question text, generator settings, answer_v1 prompt, chunking and top-five dense retrieval.",
+    "split_group": "atlas-lag-limit-dev",
+    "limits": "One source-sensitive development pair, not held-out accuracy, training-membership evidence or a complete grounding test."
+  }
+}

@@ -8,7 +8,7 @@
 #   "psycopg[binary]==3.3.8",
 # ]
 # ///
-"""Embed stored chunks locally, optionally selecting specific source IDs."""
+"""Embed stored chunks locally, selecting sources or exact snapshots when needed."""
 
 import argparse
 from hashlib import sha256
@@ -48,11 +48,25 @@ def build_index(chunks: list[tuple[str, str, int]], embedding: EmbeddingSettings
 
 
 def index_corpus(connection, embedder: NomicEmbedder, runtime: dict,
-                 source_ids: list[str] | None = None) -> dict:
+                 source_ids: list[str] | None = None, *, snapshot_ids: list[str] | None = None) -> dict:
     """Generate exact document inputs and save the index in the caller's transaction."""
     source_ids = sorted(set(source_ids or []))
+    snapshot_ids = sorted(set(snapshot_ids or []))
+    if source_ids and snapshot_ids:
+        raise ValueError("Select source IDs or snapshot IDs, not both.")
     with connection.cursor() as cursor:
-        if source_ids:
+        if snapshot_ids:
+            cursor.execute("""
+                SELECT chunk_id, embedding_text, token_count, snapshot_id
+                FROM chunks WHERE snapshot_id = ANY(%s) ORDER BY chunk_id
+            """, (snapshot_ids,))
+            rows = cursor.fetchall()
+            missing = set(snapshot_ids) - {row[3] for row in rows}
+            if missing:
+                raise ValueError(f"No stored chunks for snapshot IDs: {', '.join(sorted(missing))}")
+            chunks = [row[:3] for row in rows]
+            runtime = {**runtime, "snapshot_ids": snapshot_ids}
+        elif source_ids:
             cursor.execute("""
                 SELECT c.chunk_id, c.embedding_text, c.token_count, s.source_id
                 FROM chunks c JOIN source_snapshots s USING (snapshot_id)
@@ -88,7 +102,9 @@ def index_corpus(connection, embedder: NomicEmbedder, runtime: dict,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "configs/pilot.toml")
-    parser.add_argument("--source-id", action="append", help="Select a source ID; repeat for multiple sources. Default: all stored chunks.")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--source-id", action="append", help="Select all snapshots of a source; repeat for multiple sources.")
+    selection.add_argument("--snapshot-id", action="append", help="Select an exact snapshot; repeat for multiple snapshots. Default: all stored chunks.")
     args = parser.parse_args()
     print("Starting corpus indexing...", file=sys.stderr, flush=True)
     try:
@@ -121,7 +137,7 @@ def main() -> None:
         with psycopg.connect(
             **database.connect_kwargs(), options="-c statement_timeout=5000"
         ) as connection:
-            result = index_corpus(connection, embedder, runtime, args.source_id)
+            result = index_corpus(connection, embedder, runtime, args.source_id, snapshot_ids=args.snapshot_id)
     except psycopg.Error:
         parser.exit(2, "Corpus indexing failed. Check the database connection and schema.\n")
     except (OSError, ValueError) as exc:

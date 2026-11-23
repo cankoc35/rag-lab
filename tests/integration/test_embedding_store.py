@@ -11,7 +11,7 @@ from unittest.mock import Mock
 
 from rag_workflow_lab.config import EmbeddingSettings, load_database_settings
 from rag_workflow_lab.embeddings import ADAPTER_VERSION, MODEL_ID, MODEL_REVISION, EmbeddingResult
-from rag_workflow_lab.retrieval import retrieve
+from rag_workflow_lab.retrieval import retrieve, retrieve_hybrid
 from rag_workflow_lab.store import get_embedding_index, save_chunks, save_embedding_index, save_embeddings, save_snapshots, search_chunks
 from scripts.index_corpus import build_index, index_corpus
 
@@ -183,6 +183,30 @@ class EmbeddingStoreTests(unittest.TestCase):
         text = "search_document: SELECT 'quoted';\n  -- Unicode: π"
         self.assertEqual([call.args[0] for call in self.embedder.embed_document.call_args_list], [text, text])
 
+    def test_hybrid_merges_live_sql_results_without_reading_another_index(self):
+        text = "search_document: Replica lag rule."
+        save_chunks(self.connection, [{"chunk_id": "policy", "snapshot_id": "snapshot",
+                                      "text": "Replica lag rule.", "embedding_text": text, "token_count": 12}])
+        original_text = "search_document: SELECT 'quoted';\n  -- Unicode: π"
+        index = build_index([("chunk", original_text, 12), ("policy", text, 12)], self.embedder.settings, {})
+        save_embedding_index(self.connection, index)
+        save_embeddings(self.connection, index["index_id"], [("chunk", self.result), ("policy", replace(
+            self.result, input_sha256=sha256(text.encode()).hexdigest(), vector=(0.0, 1.0) + (0.0,) * 766))])
+        save_chunks(self.connection, [{"chunk_id": "unindexed-policy", "snapshot_id": "snapshot",
+                                      "text": "Replica lag rule.", "embedding_text": text, "token_count": 12}])
+        save_embedding_index(self.connection, self.index)
+        save_embeddings(self.connection, "index", [("unindexed-policy", replace(
+            self.result, input_sha256=sha256(text.encode()).hexdigest()))])
+        self.embedder.embed_query = Mock(return_value=replace(
+            self.result, task="query", vector=(1.0,) + (0.0,) * 767))
+        matches = retrieve_hybrid(self.connection, self.embedder, index["index_id"], "replica lag", limit=1)
+        self.embedder.embed_query.assert_called_once_with("replica lag")
+        self.assertEqual([match["chunk_id"] for match in matches], ["policy"])
+        self.assertEqual((matches[0]["dense_rank"], matches[0]["full_text_rank"]), (2, 1))
+        self.assertAlmostEqual(matches[0]["rrf_score"], 1/62 + 1/61)
+        self.assertEqual(matches[0]["source_id"], "fixture")
+        self.assertEqual(matches[0]["url"], "https://example.org")
+
     def test_indexer_selects_sources_and_preserves_other_indexes(self):
         source_id = "other' OR TRUE --"
         text = "search_document: Another source"
@@ -214,6 +238,42 @@ class EmbeddingStoreTests(unittest.TestCase):
         for source_ids in (["missing"], ["fixture", "missing"]):
             with self.subTest(source_ids=source_ids), self.assertRaisesRegex(ValueError, "No stored chunks for source IDs: missing"):
                 index_corpus(self.connection, self.embedder, {}, source_ids)
+        self.embedder.embed_document.assert_not_called()
+        self.assertEqual(self.counts(), (0, 0))
+
+    def test_indexer_keeps_snapshots_of_the_same_source_separate(self):
+        text = "search_document: Revised fixture"
+        save_snapshots(self.connection, [{
+            "snapshot_id": "revised-snapshot", "source": {
+                "source_id": "fixture", "title": "Fixture", "url": "https://example.org"},
+            "sha256": "c" * 64, "downloaded_at": "2026-11-23T00:00:00Z",
+        }])
+        save_chunks(self.connection, [{"chunk_id": "revised-chunk", "snapshot_id": "revised-snapshot",
+                                      "text": "Revised", "embedding_text": text, "token_count": 12}])
+        self.embedder.embed_document.side_effect = lambda value: replace(
+            self.result, input_sha256=sha256(value.encode()).hexdigest())
+
+        indexes = []
+        for snapshot_id, expected_text in (("snapshot", "search_document: SELECT 'quoted';\n  -- Unicode: π"),
+                                          ("revised-snapshot", text)):
+            self.embedder.embed_document.reset_mock()
+            selected = index_corpus(self.connection, self.embedder, {}, snapshot_ids=[snapshot_id, snapshot_id])
+            self.embedder.embed_document.assert_called_once_with(expected_text)
+            self.assertEqual(selected["chunks"], 1)
+            self.assertEqual(get_embedding_index(self.connection, selected["index_id"])["settings"]["snapshot_ids"], [snapshot_id])
+            self.assertEqual(index_corpus(self.connection, self.embedder, {}, snapshot_ids=[snapshot_id]), selected)
+            indexes.append(selected["index_id"])
+        self.assertNotEqual(*indexes)
+        self.assertEqual(self.counts(), (2, 2))
+        for index_id, chunk_id in zip(indexes, ("chunk", "revised-chunk")):
+            self.assertEqual([match["chunk_id"] for match in search_chunks(self.connection, index_id, self.result.vector)], [chunk_id])
+
+    def test_indexer_rejects_missing_snapshots_and_mixed_selection_before_embedding(self):
+        for snapshot_ids in (["missing' OR TRUE --"], ["snapshot", "missing"]):
+            with self.subTest(snapshot_ids=snapshot_ids), self.assertRaisesRegex(ValueError, "No stored chunks for snapshot IDs"):
+                index_corpus(self.connection, self.embedder, {}, snapshot_ids=snapshot_ids)
+        with self.assertRaisesRegex(ValueError, "not both"):
+            index_corpus(self.connection, self.embedder, {}, ["fixture"], snapshot_ids=["snapshot"])
         self.embedder.embed_document.assert_not_called()
         self.assertEqual(self.counts(), (0, 0))
 

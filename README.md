@@ -18,11 +18,11 @@ contain an annotated pipeline diagram and a one-page project briefing.
 
 | Area | Implemented | Remaining |
 | --- | --- | --- |
-| Corpus | Four PostgreSQL HTML + two Atlas Markdown snapshots; all 61 chunks imported | Sandbox fixtures and changed document states |
-| Embeddings / DB | Six snapshots, 61 chunks; separate PostgreSQL/Atlas indexes with 49/12 vectors | Broader corpus coverage |
-| Retrieval | Dense search and dataset-selected checks; Atlas positive evidence ranks 1–3 | Hybrid search and reranking |
+| Corpus | Four PostgreSQL HTML + Atlas v1/v2 Markdown snapshots; all 73 chunks imported | Sandbox fixtures and broader source coverage |
+| Embeddings / DB | Eight snapshots, 73 chunks; separate PostgreSQL/Atlas v1/v2 indexes with 49/12/12 vectors | Broader corpus coverage |
+| Retrieval | Dense, full-text and equal-weight RRF diagnostics; P05 top-five annotations 0/3, 2/3 and 1/3 respectively | Reranking and the complete Enhanced workflow |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
-| Generation | Simple/LLM-only PostgreSQL and Atlas batches compared; Atlas P19 abstention verified | Changed-evidence controls and broader evaluation |
+| Generation | Simple/LLM-only pairs and Atlas P19 abstention verified; P08 follows a 5 → 8 second source change | Broader evaluation |
 | Evaluation | Ten verified development questions in separate PostgreSQL/Atlas subsets | P10–P18/P20 verification, held-out set and final protocol |
 
 The first dense diagnostic found annotated evidence in the top five for five
@@ -47,8 +47,19 @@ limit. The later [Atlas answer comparison](docs/LLM_ONLY_COMPARISON.md#atlas-sou
 found two complete Simple answers and one partial P09 (the reporting role is
 not explicit); LLM-only abstained on all three answerable questions. Both
 abstained on P19 without assigning Boreal a numeric limit.
-**Proposed next step:** a separately versioned changed-evidence control.
-Enhanced, tools, LangGraph and the router remain unimplemented.
+The [changed-evidence check](docs/CHANGED_EVIDENCE_CHECK.md) is now complete:
+the same P08 question yields 5 seconds inclusive with Atlas v1 and 8 seconds
+inclusive with separate v2 sources. Both cite the corresponding policy. This
+is one source-sensitive development pair, not general accuracy evidence.
+The first [full-text component](docs/FULL_TEXT_RETRIEVAL.md) is now implemented
+and checked on the unchanged questions, with English OR matching. It improves
+P05's annotated top-five coverage in this development check; no new answers
+were generated. [Equal-weight RRF](docs/HYBRID_RETRIEVAL.md) is now implemented
+with `k=60` and at most 20 candidates per method. P05 has 1/3 annotated records
+at five and 2/3 at ten, trailing full-text alone at five. These are development
+retrieval checks, not answer-quality results. **Proposed next step:** select
+and add a reranker while preserving these baselines.
+The complete Enhanced workflow, tools, LangGraph and router remain unimplemented.
 See [STATUS](docs/STATUS.md).
 
 ## Working design
@@ -173,17 +184,19 @@ PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/
 Imports use one transaction; repeating identical inputs preserves records.
 No migration was needed. For local snapshots, the legacy `downloaded_at`
 column stores their `captured_at` acquisition time. Importing does not generate
-embeddings. Index only Atlas's 12 chunks with the repeatable source filter
+embeddings. Index only Atlas v1's 12 chunks with exact snapshot selection
 (already committed locally):
 
 ```sh
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
-  --source-id LOCAL-INVENTORY --source-id LOCAL-POLICY
+  --snapshot-id LOCAL-INVENTORY-246a17e09e73d871 --snapshot-id LOCAL-POLICY-d7124ea3bb39455d
 ```
 
-Without `--source-id`, the indexer selects all stored chunks. A requested
-source without chunks fails before inference or writes. Source selection is
-recorded in index settings; the original PostgreSQL index/49 vectors are preserved.
+Without selection flags, the indexer selects all stored chunks. `--source-id`
+includes every snapshot of that source; use `--snapshot-id` for one versioned
+state. The flags are mutually exclusive and repeatable. Missing selections
+fail before inference or writes, and the selection is recorded in index settings.
+Existing indexes remain available; avoid unnecessary re-indexing.
 
 The importer validates saved source/chunk provenance and preserves exact
 embedding inputs. Identical records are accepted; conflicting IDs roll back
@@ -220,6 +233,28 @@ See the [Atlas results](data/evaluation/dev/README.md#atlas-retrieval-diagnostic
 
 Add `--trace` for a separate autocommit writer and one trace/span per question;
 without it no trace records are written. See [checker modes](docs/TRACING_PLAN.md#checker-modes).
+
+For full-text diagnostics without a cached model, use the existing DB `.venv`:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/check_retrieval.py \
+  --method full-text --index-id nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447
+```
+
+Dense remains the default; `--trace` supports dense only. The full-text path
+uses the same exact dataset/index scope checks and saves `text_score` instead
+of `distance`. See the [commands](docs/COMMANDS.md#full-text-only) for Atlas.
+
+Use `--method hybrid` in the locked Nomic environment for RRF diagnostics:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --method hybrid --index-id nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447
+```
+
+This reads the same selected index, records both component ranks and
+`rrf_score`, and makes no answer/API call or trace write. See
+[hybrid commands](docs/COMMANDS.md#hybrid-rrf-only) for the separate Atlas states.
 
 For application code, load the model once and pass a caller-owned connection:
 

@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import Mock
 
-from rag_workflow_lab.store import search_chunks
+from rag_workflow_lab.store import search_chunks, search_chunks_full_text
 
 
 class SearchValidationTests(unittest.TestCase):
@@ -27,6 +27,12 @@ class SearchValidationTests(unittest.TestCase):
         for limit in (0, -1):
             with self.subTest(limit=limit), self.assertRaisesRegex(ValueError, "limit"):
                 search_chunks(self.connection, "index", self.query, limit=limit)
+        self.connection.cursor.assert_not_called()
+
+    def test_full_text_rejects_nonpositive_limits_before_database_access(self):
+        for limit in (0, -1):
+            with self.subTest(limit=limit), self.assertRaisesRegex(ValueError, "limit"):
+                search_chunks_full_text(self.connection, "index", "replica lag", limit=limit)
         self.connection.cursor.assert_not_called()
 
 

@@ -1,6 +1,6 @@
 # Project context
 
-**Updated:** 2026-11-18. This file records purpose and lasting decisions.
+**Updated:** 2026-11-23. This file records purpose and lasting decisions.
 Use [STATUS](STATUS.md) for progress, [ROADMAP](ROADMAP.md) for sequence,
 [HANDOFF](HANDOFF.md) for code/artifacts and [history](STATUS_HISTORY.md) for
 dated implementation details. Repository: `/Users/cankoc/Desktop/rag-workflow-lab`.
@@ -25,10 +25,13 @@ This is not the MOTIF-RAG evaluation library.
 - **2026-11-17:** Author the first two English Atlas corpus documents as
   Markdown under `data/corpus/synthetic/`. Version 1.0 uses document state
   `atlas-docs-v1`; all deployment facts and policy rules are explicitly synthetic.
+- **2026-11-23:** Complete a controlled Atlas v2 source-change check using
+  unchanged P08, a separately versioned 8-second policy, identical Simple
+  settings and isolated snapshot/index scope. Preserve v1 and its results.
 
 The first source allowlist selects PostgreSQL 18: Using EXPLAIN, Multicolumn
 Indexes, Partial Indexes and the `pg_stat_replication` statistics section.
-Four saved HTML snapshots and two authored Atlas Markdown documents exist.
+Four saved HTML snapshots, two Atlas v1 documents and separate v2 copies exist.
 The [inventory](../data/corpus/synthetic/atlas_inventory.md) defines
 `atlas_telemetry`, schema `atlas_app`, 120 application tables and 10.0 GB;
 the [policy](../data/corpus/synthetic/atlas_operations_policy.md) defines a
@@ -37,21 +40,32 @@ and offline Markdown reader now preserve both sources as snapshots/blocks.
 Atlas now has 12 local chunks using the existing 512/1024-token rules and
 cached tokenizer. P07–P09/P19 have a separate verified reference subset;
 P19 records insufficient evidence across the complete pinned Atlas scope.
-Both Atlas snapshots and all 12 chunks are now committed; the DB contains
-six snapshots/61 chunks. Atlas's 12 normalized Nomic vectors are committed in
+Both v1 Atlas snapshots and all 12 chunks are committed. Their 12 normalized
+Nomic vectors are committed in
 a separate source-filtered index; the original PostgreSQL index/49 vectors is
 preserved. The retrieval diagnostic now selects either dataset and verifies
 the complete pinned index scope. Its first Atlas run found all positive
 annotations in the top three. Both answer runners now select either dataset;
 the first Atlas pair found two complete Simple answers, one partial P09 and
 three honest LLM-only abstentions on answerable questions. Both abstained on
-P19 without inventing a Boreal limit. Changed states and DB fixtures remain;
+P19 without inventing a Boreal limit. Broader controls and DB fixtures remain;
 the deployment facts
 are not live measurements. Local acquisition time is stored in the legacy
 `source_snapshots.downloaded_at` column using the manifest's `captured_at`.
 P01–P06 and P07–P09/P19 have verified references in separate datasets; the
 original six-question file/defaults are preserved. P10–P18/P20 are drafts. The 20-question
 pilot is development material, not the final sample size or a held-out set.
+
+The first [changed-evidence pair](CHANGED_EVIDENCE_CHECK.md) is complete.
+`atlas-docs-v2` uses separate files under `data/corpus/synthetic/atlas-docs-v2/`;
+only the lag threshold changes as a domain fact, to 8 seconds inclusive.
+Version metadata/state references also change. Its two snapshots/12 chunks
+and separate index preserve v1. Two fresh P08 calls follow the 5 → 8 second
+change, with corresponding citations; question, prompt and generator settings
+match. This is one development check, not general accuracy or a full grounding
+evaluation. Current verified totals: eight snapshots/73 chunks, three indexes/
+73 vectors and 24 traces/37 spans. Use snapshot IDs to select one source version
+when indexing; source IDs include all stored versions.
 
 ## Selected direction and earlier alternatives
 
@@ -85,6 +99,21 @@ Use dense-only → hybrid-only → hybrid + reranking as development ablations,
 not extra main workflows. Build the Simple baseline before orchestration or UI.
 Ingestion, retrieval, model calls, tools and evaluation remain separate modules.
 Tool retrieval/reranking is only a proposal if a larger tool catalog warrants it.
+
+The first Enhanced component, [index-scoped full-text search](FULL_TEXT_RETRIEVAL.md),
+is now implemented. Its initial development policy OR-combines English lexemes
+from the raw question and ranks chunk bodies with `ts_rank_cd`. Plain AND was
+first measured and returned no candidates on the current question/state checks;
+both stages are recorded. This policy is not a frozen final-test setting.
+Full-text runs without an embedding model; Simple remains dense-only.
+
+The owner subsequently approved equal-weight RRF. The implemented
+[hybrid component](HYBRID_RETRIEVAL.md) uses `k=60` and at most 20 candidates
+per method as initial development settings, chosen before its live check.
+It retains both component ranks and deduplicates by chunk ID. P05 has 1/3
+annotated evidence records at five versus dense 0/3 and full-text 2/3; the
+mixed result is preserved. Parameters were not retuned to that question.
+Reranking, final study budgets and the complete Enhanced workflow remain open.
 
 **Evaluation controls approved, 2026-11-01:**
 
@@ -149,7 +178,7 @@ private corpus content to a hosted provider without an explicit decision.
 the exact capacity above that threshold is unspecified. Local generator
 comparison may follow later without confounding workflow comparisons.
 
-**Still open:** Full corpus coverage, broader answer/control checks, changed source states, DB fixtures and tool
+**Still open:** Full corpus coverage, broader answer/control checks, additional changed source states, DB fixtures and tool
 contracts, reranker, candidate/context/fusion budgets, Enhanced tool conditions,
 Agentic/router design, final model count, rubric/judges, metrics, quality margin,
 held-out set and sample size. No comparative or held-out thesis result exists.

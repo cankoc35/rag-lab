@@ -57,6 +57,47 @@ class CheckRetrievalTests(unittest.TestCase):
             check_retrieval(self.connection, self.embedder, "empty", {"questions": [self.question]})
         self.search.assert_not_called()
 
+    def test_full_text_uses_raw_question_without_embedding_or_gold_and_keeps_its_score(self):
+        match = {key: value for key, value in self.matches[0].items() if key != "distance"}
+        match["text_score"] = 0.2
+        with patch("scripts.check_retrieval.search_chunks_full_text", return_value=[match]) as search:
+            result = check_retrieval(self.connection, None, "index", {"questions": [self.question]}, method="full-text")
+        search.assert_called_once_with(self.connection, "index", self.question["question"], limit=49)
+        record = result["questions"][0]
+        self.assertEqual(record["ranking"], [match])
+        self.assertEqual(record["returned_chunks"], 1)
+        self.assertEqual(record["query_input_sha256"], sha256(self.question["question"].encode()).hexdigest())
+        self.assertTrue(all(rank is None for rank in record["evidence_ranks"].values()))
+        self.search.assert_not_called()
+
+    def test_full_text_empty_results_are_not_padded_with_unmatched_chunks(self):
+        with patch("scripts.check_retrieval.search_chunks_full_text", return_value=[]):
+            result = check_retrieval(self.connection, None, "index", {"questions": [self.question]}, method="full-text")
+        record = result["questions"][0]
+        self.assertEqual(record["ranking"], [])
+        self.assertEqual(record["evidence_hits_at_k"], {"5": [], "10": [], "20": []})
+        self.search.assert_not_called()
+
+    def test_hybrid_passes_only_raw_question_and_records_component_ranks(self):
+        match = {**self.matches[4], "rrf_score": 1/61 + 1/62, "dense_rank": 1,
+                 "full_text_rank": 2, "text_score": .7}
+        with patch("scripts.check_retrieval.retrieve_hybrid", return_value=[match]) as search:
+            result = check_retrieval(self.connection, self.embedder, "index", {"questions": [self.question]}, method="hybrid")
+        search.assert_called_once_with(self.connection, self.embedder, "index", self.question["question"], limit=49)
+        self.assertEqual(result["questions"][0]["ranking"], [match])
+        self.assertEqual(result["questions"][0]["evidence_ranks"]["E1"], 1)
+        self.search.assert_not_called()
+
+    def test_cli_rejects_full_text_tracing_before_loading_or_connecting(self):
+        for method in ("full-text", "hybrid"):
+            with (self.subTest(method=method),
+                  patch("sys.argv", ["check_retrieval.py", "--index-id", "index", "--method", method, "--trace"]),
+                  patch("scripts.check_retrieval.NomicEmbedder.from_local") as load,
+                  self.assertRaises(SystemExit) as stopped):
+                main()
+            self.assertEqual(stopped.exception.code, 2)
+            load.assert_not_called()
+
     def test_unanswerable_question_keeps_its_ranking_without_positive_hit_scoring(self):
         question = {**self.question, "question_id": "P19", "answerability": "unanswerable", "evidence": []}
         progress = StringIO()
@@ -151,6 +192,41 @@ class CheckRetrievalTests(unittest.TestCase):
             self.assertTrue(report["retrieval_read_only"] and report["tracing_enabled"])
             self.assertFalse(report["read_only"])
             self.assertEqual(report["questions"][0]["trace_id"], "trace")
+
+    def test_cli_full_text_needs_no_model_settings_weights_or_ml_packages(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "questions.json"
+            dataset.write_text(json.dumps({"source_state": {"source_state_id": "fixture-state"}}))
+            reader = MagicMock()
+            reader.__enter__.return_value = reader
+            driver = SimpleNamespace(Error=RuntimeError, connect=Mock(return_value=reader))
+            output = StringIO()
+            with (
+                patch.dict(sys.modules, {"psycopg": driver, "check_document_questions": SimpleNamespace(validate=Mock(return_value={}))}),
+                patch("sys.argv", ["check_retrieval.py", "--index-id", "index", "--dataset", str(dataset), "--method", "full-text"]),
+                patch("scripts.check_retrieval.ROOT", root),
+                patch("scripts.check_retrieval.load_settings", side_effect=AssertionError("No model settings needed")),
+                patch("scripts.check_retrieval.NomicEmbedder.from_local", side_effect=AssertionError("No model loading")),
+                patch("scripts.check_retrieval.load_database_settings", return_value=SimpleNamespace(connect_kwargs=lambda: {})),
+                patch("scripts.check_retrieval.get_embedding_index", return_value={"index_id": "index"}),
+                patch("scripts.check_retrieval.validate_index_scope"),
+                patch("scripts.check_retrieval.check_retrieval", return_value={"questions": []}) as check,
+                patch("scripts.check_retrieval.file_sha256", return_value="fixture-hash"),
+                patch("scripts.check_retrieval.version", return_value="fixture-version") as version,
+                patch("scripts.check_retrieval.subprocess.check_output", side_effect=["fixture-head", ""]),
+                redirect_stdout(output),
+            ):
+                main()
+            report = json.loads(Path(json.loads(output.getvalue())["report"]).read_text())
+            version.assert_called_once_with("psycopg")
+            self.assertTrue(reader.read_only and report["read_only"])
+            self.assertEqual(driver.connect.call_count, 1)
+            self.assertIsNone(check.call_args.args[1])
+            self.assertEqual(check.call_args.kwargs["method"], "full-text")
+            self.assertEqual(report["query_prefix"], "")
+            self.assertEqual(report["full_text_settings"]["operator"], "OR")
+            self.assertNotIn("model_manifest_sha256", report)
 
 
 if __name__ == "__main__":

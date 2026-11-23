@@ -29,6 +29,9 @@ the final corpus/evaluation protocol remain open.
   `atlas-docs-v1`; offline snapshot/parsing now produces 37 blocks. They are
   now chunked into 12 chunks, imported and embedded in a separate Atlas-only
   index. The original PostgreSQL index/49 vectors is preserved.
+  A later separate Atlas v2 state changes the lag limit from 5 to 8 seconds;
+  its two snapshots/12 chunks and isolated index are committed. The unchanged
+  P08 question follows this change in two fresh Simple calls.
 - The initial docs [allowlist](../data/corpus/sources.json), its offline loader,
   and single-source downloader are implemented. All four selected sources are
   downloaded, hash-verified, parsed and chunked with source/section metadata.
@@ -181,9 +184,27 @@ annotations in the top three across P07–P09; P19 returns Atlas policy text
 without establishing a Boreal limit. Both runners now support dataset selection
 and the first Atlas answer pair is complete: Simple has two complete answers
 and one partial P09 (explicit reporting role omitted); LLM-only abstains on
-the three answerable questions. Both abstain appropriately on P19. Proposed
-next: a separate versioned changed-evidence state. Preserve
-both baselines and all six public questions. Final scoring remains open.
+the three answerable questions. Both abstain appropriately on P19. The subsequent
+[changed-evidence pair](CHANGED_EVIDENCE_CHECK.md) is complete: P08 returns
+5 seconds inclusive for v1 and 8 seconds inclusive for v2, both supported by
+their own policy. The original states, baselines and P09 omission are preserved.
+Final scoring remains open.
+
+The [full-text component](FULL_TEXT_RETRIEVAL.md) is now implemented with
+index-scoped English OR matching and read-only diagnostics. P05 has 2/3
+annotated evidence records in the first five versus 0/3 for dense; other
+top-five counts match. This is development evidence coverage, not answer quality.
+The initial unsuccessful AND reports are preserved.
+
+The [equal-weight RRF component](HYBRID_RETRIEVAL.md) is also complete with
+initial development settings `k=60` and 20 candidates per method. P05 has
+1/3 annotations at five and 2/3 at ten; full-text alone has 2/3 at five.
+The mixed finding and the original baselines are preserved.
+
+**Proposed next small step:** choose/pin a reranker and candidate/context
+limits, then add reranking and compare against the three retrieval baselines.
+Simple remains dense-only; Enhanced answer generation and fixed tools are
+separate work. Final thesis settings are not frozen.
 
 Preserve the P01–P06 questions and five-result baseline. Build Simple before
 hybrid/RRF/reranking and fixed tools; Agentic details come later. Use

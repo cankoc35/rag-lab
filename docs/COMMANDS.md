@@ -6,6 +6,7 @@ and model setup are covered in [README](../README.md),
 [PostgreSQL setup](POSTGRES_SETUP.md) and [embedding setup](EMBEDDING_SETUP.md).
 
 Jump to [ask the LLM directly](#ask-the-llm-directly), [Simple RAG](#simple-rag),
+[changed evidence](#changed-evidence-control),
 [LLM-only](#llm-only-control), [retrieval](#retrieval-without-answer-generation),
 [PostgreSQL](#postgresql-and-migrations), [tests](#tests-and-local-checks) or
 [corpus preparation](#corpus-preparation-and-embedding-tools).
@@ -116,6 +117,29 @@ Replace `--all` with `--question-id P07` for one Atlas question. The complete
 pinned dataset scope must match the index before model loading, trace writes
 or paid calls. Dataset path/hash and the scope-check code are recorded as provenance.
 
+## Changed-evidence control
+
+Repeat the same P08 question against the separate Atlas states. Both runs are
+already completed; rerunning makes **two paid calls** and adds new DB traces.
+Each command retrieves only its selected index's chunks. v1 should answer
+5 seconds inclusive; v2 should answer 8 seconds inclusive.
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_simple_rag.py \
+  --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf \
+  --question-id P08 --call-api
+
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_simple_rag.py \
+  --dataset data/evaluation/dev/atlas_changed_evidence_v2.json \
+  --index-id nomic-5710f4359df83e693a0d994cbf59c45d6ebe9b08695f0ff4d9f75ec062825a55 \
+  --question-id P08 --call-api
+```
+
+See [CHANGED_EVIDENCE_CHECK](CHANGED_EVIDENCE_CHECK.md) for the comparison,
+trace IDs, preparation artifacts and limitations. The model receives the same
+raw question and prompt instructions; expected answers stay outside generation.
+
 ## LLM-only control
 
 Run one unchanged question using Luna's own knowledge:
@@ -179,10 +203,11 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 | --- | --- | --- |
 | `--index-id ID` | Yes | Select the stored embedding index. |
 | `--dataset PATH` | Optional | Development dataset JSON; defaults to PostgreSQL P01–P06. |
-| `--trace` | Optional | Also persist question/retrieval traces in PostgreSQL. |
+| `--method dense` / `full-text` / `hybrid` | Optional | Retrieval method; default: dense. Full-text needs no cached model; hybrid uses Nomic and RRF. |
+| `--trace` | Optional, dense only | Also persist question/retrieval traces in PostgreSQL. |
 | `--help` | Optional | Print usage and exit. |
 
-Append `--trace` to the command to enable DB logging. Without it, the command
+Append `--trace` to a dense command to enable DB logging. Without it, the command
 writes only a local report under `outputs/retrieval/`. Neither mode calls Luna.
 
 For Atlas's P07–P09/P19 and its separate 12-vector index:
@@ -197,6 +222,76 @@ The index must match the dataset's complete pinned snapshot/chunk/input scope;
 wrong, incomplete or expanded index membership fails before model loading.
 P19's positive evidence scoring is N/A; its returned Atlas context is retained
 for inspection. No LLM answer or abstention is tested by this command.
+
+### Full-text only
+
+Search with PostgreSQL's English lexemes, OR matching and `ts_rank_cd`. This
+uses the existing `.venv` DB dependency without loading Nomic or calling Luna.
+It writes only a local `full-text-*.json` report; `--trace` is not supported.
+Scores are `text_score` (higher first), distinct from dense cosine `distance`.
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/check_retrieval.py \
+  --method full-text --index-id "$RAG_INDEX_ID"
+```
+
+For Atlas v1, use both its dataset and matching index:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/check_retrieval.py \
+  --method full-text --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf
+```
+
+For the v2 P08 variant:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/check_retrieval.py \
+  --method full-text --dataset data/evaluation/dev/atlas_changed_evidence_v2.json \
+  --index-id nomic-5710f4359df83e693a0d994cbf59c45d6ebe9b08695f0ff4d9f75ec062825a55
+```
+
+The same pinned reference/index-scope checks apply to both methods. Full-text
+returns matching chunks only, so its ranking may be shorter than the index.
+See [FULL_TEXT_RETRIEVAL](FULL_TEXT_RETRIEVAL.md) for the query-policy check,
+dense comparison, raw report paths and limits. RRF/reranking are not run by
+the full-text mode.
+
+### Hybrid RRF only
+
+Merge up to 20 dense and 20 full-text candidates with equal-weight RRF,
+`k=60`, deduplicating by chunk ID. This needs cached Nomic, the pinned artifacts
+and the DB. It saves a local `hybrid-*.json` diagnostic, with no answer call or
+trace write; `--trace` supports dense only. The report contains component
+ranks/scores and `rrf_score`, with annotated evidence hits at 5/10/20.
+
+PostgreSQL P01–P06:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --method hybrid --index-id "$RAG_INDEX_ID"
+```
+
+Atlas v1 P07–P09/P19:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --method hybrid --dataset data/evaluation/dev/atlas_questions.json \
+  --index-id nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf
+```
+
+Atlas v2 P08:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --method hybrid --dataset data/evaluation/dev/atlas_changed_evidence_v2.json \
+  --index-id nomic-5710f4359df83e693a0d994cbf59c45d6ebe9b08695f0ff4d9f75ec062825a55
+```
+
+These are development defaults recorded in the report, not CLI tuning options
+or final thesis budgets. The diagnostic returns the bounded union (at most
+40 chunks), not the complete index ranking. See
+[HYBRID_RETRIEVAL](HYBRID_RETRIEVAL.md) for the mixed P05 result and limitations.
 
 ## PostgreSQL and migrations
 
@@ -418,18 +513,25 @@ imports preserve rows and conflicting existing IDs fail. The legacy
 No migration or embedding generation is performed by the importer.
 
 The indexer accepts `--config PATH` (default pilot config) and repeatable
-`--source-id ID`. Without source flags it selects all stored chunks. To embed
-only Atlas's 12 chunks (already committed locally):
+`--source-id ID` or `--snapshot-id ID`, mutually exclusive. With neither it
+selects all stored chunks. Source IDs include all versions; snapshot IDs select
+exact versions. To embed only Atlas v1's 12 chunks (already committed locally):
 
 ```sh
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
-  --source-id LOCAL-INVENTORY --source-id LOCAL-POLICY
+  --snapshot-id LOCAL-INVENTORY-246a17e09e73d871 --snapshot-id LOCAL-POLICY-d7124ea3bb39455d
 ```
 
-Every requested source must have stored chunks; otherwise it fails before
-inference/writes. Sorted unique source IDs are recorded in index settings.
-The Atlas index is separate from the preserved PostgreSQL index/49 vectors;
-see [STATUS](STATUS.md) for both IDs. Index identity includes code/runtime
+For Atlas v2's separate 12 chunks (also committed locally):
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
+  --snapshot-id LOCAL-INVENTORY-45793a301230aad6 --snapshot-id LOCAL-POLICY-41c47f77f549370a
+```
+
+Every requested source or snapshot must have stored chunks; otherwise it fails
+before inference/writes. Sorted unique selections are recorded in index settings.
+See [STATUS](STATUS.md) for the three separate index IDs. Index identity includes code/runtime
 provenance, so avoid unnecessary re-indexing after code changes. Select the
 intended stored index explicitly when running questions afterward.
 The diagnostic and both paid answer runners support explicit dataset selection.

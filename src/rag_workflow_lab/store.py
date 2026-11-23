@@ -1,4 +1,4 @@
-"""Raw-SQL database checks, immutable storage and dense chunk search."""
+"""Raw-SQL database checks, immutable storage and index-scoped chunk search."""
 
 from dataclasses import dataclass
 import json
@@ -219,4 +219,37 @@ def search_chunks(connection, index_id: str, query_vector: tuple[float, ...], li
             ORDER BY distance, c.chunk_id
             LIMIT %s
         """, (vector, index_id, limit))
+        return cursor.fetchall()
+
+
+def search_chunks_full_text(connection, index_id: str, question: str, limit: int = 5) -> list[dict]:
+    """Search chunk bodies for any English lexeme from the raw question.
+
+    Return source-linked matches by text_score descending, then chunk ID.
+    Empty/stop-word queries or unknown indexes return no matches. The caller
+    owns the connection and transaction; no model or database writes are used.
+    """
+    if limit < 1:
+        raise ValueError("Result limit must be positive.")
+
+    from psycopg.rows import dict_row
+
+    with connection.cursor(row_factory=dict_row) as cursor:
+        cursor.execute("""
+            WITH query AS (
+                SELECT string_agg(quote_literal(term), ' | ')::tsquery AS value
+                FROM unnest(tsvector_to_array(to_tsvector('english', %s))) AS terms(term)
+            )
+            SELECT c.chunk_id, c.snapshot_id, c.text, c.token_count, c.metadata,
+                   s.source_id, s.title, s.url,
+                   ts_rank_cd(to_tsvector('english', c.text), query.value) AS text_score
+            FROM chunk_embeddings AS e
+            JOIN chunks AS c ON c.chunk_id = e.chunk_id
+            JOIN source_snapshots AS s ON s.snapshot_id = c.snapshot_id
+            CROSS JOIN query
+            WHERE e.index_id = %s
+              AND to_tsvector('english', c.text) @@ query.value
+            ORDER BY text_score DESC, c.chunk_id
+            LIMIT %s
+        """, (question, index_id, limit))
         return cursor.fetchall()

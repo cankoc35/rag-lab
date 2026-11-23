@@ -161,7 +161,51 @@ the reporting role was not explicit; LLM-only honestly abstained on the three
 answerable questions. Both appropriately abstained on P19. All eight calls
 completed; corpus/index and older records were preserved. See the
 [Atlas answer review](../../../docs/LLM_ONLY_COMPARISON.md#atlas-source-specific-comparison--2026-11-18).
-Proposed next: a separately versioned changed-evidence control.
+The later [changed-evidence control](../../../docs/CHANGED_EVIDENCE_CHECK.md)
+is complete, as recorded below.
+
+## Atlas changed-evidence control — 2026-11-23
+
+[atlas_changed_evidence_v2.json](atlas_changed_evidence_v2.json) pins the two
+Atlas v2 sources and the unchanged P08 question. Its expected maximum is
+8 seconds inclusive, paired with v1's 5-second requirement. Both variants
+belong to the same development scenario; they are not additional held-out
+questions. Existing JSON datasets and earlier reviews are unchanged.
+
+Both new Simple answers follow their corresponding source version and cite
+the first-ranked policy passage. The pair uses the same prompt/settings and
+five-chunk dense path. This is one source-change diagnostic, not general
+accuracy or proof of universal grounding. See the linked check for frozen
+review requirements, commands, trace IDs and persistence verification.
+
+Check references offline:
+
+```sh
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/atlas_changed_evidence_v2.json
+```
+
+## Full-text development diagnostic — 2026-11-23
+
+The same pinned questions/indexes were checked with index-scoped PostgreSQL
+full-text retrieval. Plain AND returned no candidates; the recorded final
+development policy uses English normalized lexemes with OR and `ts_rank_cd`.
+Neither stage rewrites questions or passes gold into search.
+
+P05 E1/E2 have full-text ranks 3/2 versus dense 17/11: 2/3 annotated records
+at five results versus 0/3. E3 stays low at 43 versus 46. Other top-five counts
+match, with some rank regressions. This does not imply an answer-quality gain.
+Atlas v1/v2 scopes remain separate; P19's related Atlas matches establish no
+Boreal limit. No new answer/abstention or LLM call was made.
+
+See [FULL_TEXT_RETRIEVAL](../../../docs/FULL_TEXT_RETRIEVAL.md) for every
+question's counts, raw report IDs, the preserved AND check and limitations.
+Existing dataset JSON files and earlier results are unchanged. The later
+[RRF check](../../../docs/HYBRID_RETRIEVAL.md) uses equal weights, `k=60` and
+20 candidates per method. P05 has 1/3 annotations at five and 2/3 at ten;
+full-text alone has 2/3 at five. E3 lies outside both candidate windows.
+All other top-five counts match. This mixed result was retained without
+parameter retuning; no answer-quality improvement is claimed. Reranking is
+the next proposed component.
 
 ## Historical PostgreSQL verification
 

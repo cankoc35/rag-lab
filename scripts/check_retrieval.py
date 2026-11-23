@@ -8,7 +8,7 @@
 #   "psycopg[binary]==3.3.8",
 # ]
 # ///
-"""Check a development dataset's evidence ranks with local inference and read-only SQL."""
+"""Check development evidence ranks with dense, full-text or hybrid retrieval."""
 
 import argparse
 from contextlib import ExitStack
@@ -24,14 +24,17 @@ from time import perf_counter
 
 from rag_workflow_lab.config import load_database_settings, load_settings
 from rag_workflow_lab.embeddings import NomicEmbedder, QUERY_PREFIX, file_sha256
-from rag_workflow_lab.retrieval import retrieve
-from rag_workflow_lab.store import get_embedding_index
+from rag_workflow_lab.retrieval import HYBRID_CANDIDATES, RRF_K, retrieve, retrieve_hybrid
+from rag_workflow_lab.store import get_embedding_index, search_chunks_full_text
 from rag_workflow_lab.tracing import retrieve_with_trace
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "data/evaluation/dev/document_questions.json"
 CUTOFFS = (5, 10, 20)
+FULL_TEXT_SETTINGS = {"configuration": "english", "query_parser": "normalized_lexemes_or_v1",
+                      "operator": "OR", "ranking": "ts_rank_cd", "normalization": 0,
+                      "document_field": "chunks.text"}
 
 
 def validate_index_scope(connection, index_id: str, dataset: dict) -> None:
@@ -55,8 +58,15 @@ def validate_index_scope(connection, index_id: str, dataset: dict) -> None:
 
 
 def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
-                    trace_connection=None, run_id=None, configuration=None) -> dict:
+                    trace_connection=None, run_id=None, configuration=None, method="dense") -> dict:
     """Retrieve each raw question once, then inspect annotated evidence IDs."""
+    if method != "dense" and trace_connection is not None:
+        raise ValueError("Only dense diagnostic tracing is implemented.")
+    score_fields = {
+        "dense": ("distance",), "full-text": ("text_score",),
+        "hybrid": ("rrf_score", "dense_rank", "full_text_rank", "distance", "text_score"),
+    }[method]
+    query_prefix = "" if method == "full-text" else QUERY_PREFIX
     with connection.cursor() as cursor:
         cursor.execute("SELECT count(*) FROM chunk_embeddings WHERE index_id = %s", (index_id,))
         count = cursor.fetchone()[0]
@@ -68,7 +78,11 @@ def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
         print(f"Retrieving {question['question_id']}...", file=sys.stderr, flush=True)
         start = perf_counter()
         trace_id = None
-        if trace_connection is None:
+        if method == "hybrid":
+            matches = retrieve_hybrid(connection, embedder, index_id, question["question"], limit=count)
+        elif method == "full-text":
+            matches = search_chunks_full_text(connection, index_id, question["question"], limit=count)
+        elif trace_connection is None:
             matches = retrieve(connection, embedder, index_id, question["question"], limit=count)
         else:
             matches, trace_id = retrieve_with_trace(
@@ -84,11 +98,12 @@ def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
             "question_id": question["question_id"], "question": question["question"],
             "answerability": question.get("answerability", "answerable"),
             "positive_evidence_applicable": bool(evidence_ranks),
-            "query_input_sha256": sha256((QUERY_PREFIX + question["question"]).encode()).hexdigest(),
+            "query_input_sha256": sha256((query_prefix + question["question"]).encode()).hexdigest(),
+            "returned_chunks": len(matches),
             "elapsed_seconds": elapsed, "evidence_ranks": evidence_ranks, "evidence_hits_at_k": hits,
             "ranking": [{key: match[key] for key in (
-                "chunk_id", "source_id", "snapshot_id", "url", "distance", "token_count",
-            )} for match in matches],
+                "chunk_id", "source_id", "snapshot_id", "url", "token_count",
+            ) + score_fields} for match in matches],
         })
         if trace_id is not None:
             records[-1]["trace_id"] = trace_id
@@ -103,8 +118,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--index-id", required=True, help="Existing embedding index to inspect.")
     parser.add_argument("--dataset", type=Path, default=DATASET, help="Development dataset JSON; default: PostgreSQL P01–P06.")
-    parser.add_argument("--trace", action="store_true", help="Write question traces; requires applied migration 0002.")
+    parser.add_argument("--method", choices=("dense", "full-text", "hybrid"), default="dense", help="Retrieval method; default: dense.")
+    parser.add_argument("--trace", action="store_true", help="Write dense diagnostic traces; requires applied migration 0002.")
     args = parser.parse_args()
+    if args.method != "dense" and args.trace:
+        parser.error("--trace currently supports only the dense diagnostic.")
 
     import psycopg
     from check_document_questions import validate
@@ -116,16 +134,15 @@ def main() -> None:
         print("Checking pinned development references...", file=sys.stderr, flush=True)
         dataset_check = validate(args.dataset)
         dataset = json.loads(args.dataset.read_text())
-        settings = load_settings(ROOT / "configs/pilot.toml")
         created = datetime.now(timezone.utc)
-        run_id = created.strftime("dense-%Y%m%dT%H%M%S%fZ")
+        run_id = args.method + created.strftime("-%Y%m%dT%H%M%S%fZ")
+        libraries = ("psycopg",) if args.method == "full-text" else (
+            "sentence-transformers", "transformers", "torch", "tokenizers", "psycopg",
+        )
         provenance = {
             "dataset": dataset_check, "dataset_path": str(args.dataset.resolve()),
             "source_state_id": dataset["source_state"]["source_state_id"],
-            "libraries": {name: version(name) for name in (
-                "sentence-transformers", "transformers", "torch", "tokenizers", "psycopg",
-            )},
-            "model_manifest_sha256": file_sha256(settings.embedding.model_dir / "model_manifest.json"),
+            "libraries": {name: version(name) for name in libraries},
             "git_head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
             "git_dirty": bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)),
             "code_sha256": {name: file_sha256(ROOT / name) for name in (
@@ -135,6 +152,16 @@ def main() -> None:
                 "src/rag_workflow_lab/embeddings.py", "src/rag_workflow_lab/tracing.py",
             )},
         }
+        if args.method != "full-text":
+            settings = load_settings(ROOT / "configs/pilot.toml")
+            provenance["model_manifest_sha256"] = file_sha256(settings.embedding.model_dir / "model_manifest.json")
+        if args.method != "dense":
+            provenance["full_text_settings"] = FULL_TEXT_SETTINGS
+        if args.method == "hybrid":
+            provenance["fusion_settings"] = {
+                "method": "rrf", "rank_constant": RRF_K, "candidates_per_method": HYBRID_CANDIDATES,
+                "weights": {"dense": 1.0, "full_text": 1.0},
+            }
         print("Connecting to PostgreSQL in read-only mode...", file=sys.stderr, flush=True)
         database = load_database_settings()
         with ExitStack() as stack:
@@ -144,15 +171,17 @@ def main() -> None:
             connection.read_only = True
             index = get_embedding_index(connection, args.index_id)
             validate_index_scope(connection, args.index_id, dataset)
-            print("Loading the cached Nomic model once...", file=sys.stderr, flush=True)
-            embedder = NomicEmbedder.from_local(settings.embedding)
+            embedder = None
+            if args.method != "full-text":
+                print("Loading the cached Nomic model once...", file=sys.stderr, flush=True)
+                embedder = NomicEmbedder.from_local(settings.embedding)
             writer = None
             if args.trace:
                 print("Opening a separate trace writer...", file=sys.stderr, flush=True)
                 writer = stack.enter_context(psycopg.connect(
                     **database.connect_kwargs(), autocommit=True, options="-c statement_timeout=5000"
                 ))
-            result = check_retrieval(connection, embedder, args.index_id, dataset,
+            result = check_retrieval(connection, embedder, args.index_id, dataset, method=args.method,
                                      trace_connection=writer, run_id=run_id,
                                      configuration={**provenance, "index": index})
 
@@ -161,7 +190,8 @@ def main() -> None:
             "scope": "Development annotation-ID diagnostics, not answer-quality grades or a held-out benchmark.",
             "index": index, "read_only": not args.trace, "retrieval_read_only": True,
             "tracing_enabled": args.trace,
-            "query_prefix": QUERY_PREFIX, **provenance,
+            "method": args.method, "query_prefix": "" if args.method == "full-text" else QUERY_PREFIX,
+            **provenance,
             **result,
         }
         output = ROOT / "outputs/retrieval" / f"{run_id}.json"

@@ -10,24 +10,26 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 | Area | Current state |
 | --- | --- |
 | Sources | Four saved PostgreSQL 18 HTML snapshots; allowlist, downloader and offline parser |
-| Synthetic sources | Atlas v1.0: two snapshots/12 chunks imported and embedded in a separate verified index |
+| Synthetic sources | Atlas v1 and v2: two snapshots/12 chunks each, in separate verified indexes; lag limit changes 5 → 8 seconds |
 | Chunking | HTML: 184 parsed blocks → 49 chunks; all content/code/table blocks preserved; target 512 / ceiling 1024; maximum observed 822 tokens |
 | Embedding | Pinned local Nomic; normalized 768-dimensional document/query vectors |
-| Database | Applied Alembic `0002`; six snapshots, 61 chunks, two indexes/61 vectors, 22 traces/33 spans |
-| Retrieval | Index/model compatibility checks, query embedding and dense cosine search; default `limit=5` |
-| Diagnostics | Dataset-selected PostgreSQL/Atlas full ranks and hits at 5/10/20; exact index scope check; immutable JSON reports |
+| Database | Applied Alembic `0002`; eight snapshots, 73 chunks, three indexes/73 vectors, 24 traces/37 spans (verified 2026-11-23) |
+| Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); Simple remains dense with `limit=5` |
+| Diagnostics | `--method dense` (default), `full-text` or `hybrid`; exact index scope, ranks/scores/hits at 5/10/20 and immutable reports |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
 | Generator | Luna client, source-linked context, `answer_v1` and Simple workflow; one live P04 answer verified |
 | Answer runners | Simple/LLM-only support `--dataset`, one/all selection, shared resources/run ID and per-question records; Simple requires exact index scope |
 | Live Simple batch | P01–P06 completed; editorial review: P01/P02/P04/P06 meet recorded requirements, P03/P05 partial |
 | LLM-only control | Live PostgreSQL and Atlas pairs completed; raw-question-only inputs verified, with one LLM span per question |
 | Questions | P01–P06 baseline unchanged; separate P07–P09/P19 Atlas subset verified, including one unanswerable case; P10–P18/P20 drafts |
+| Changed evidence | P08 is unchanged across v1/v2; fresh Simple answers follow the source limit, 5 → 8 seconds, with supporting citations |
 
 Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 1024-token application limit. Committed indexes:
 
 - PostgreSQL, 49 vectors: `nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
 - Atlas, 12 vectors: `nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf`.
+- Atlas v2, 12 vectors: `nomic-5710f4359df83e693a0d994cbf59c45d6ebe9b08695f0ff4d9f75ec062825a55`.
 
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
 
@@ -390,13 +392,117 @@ or DB. It makes one explicitly invoked paid request and saves no project trace
 or report. Syntax and mock-client checks passed without a real API call.
 No application code, dependency, prompt file or experiment default changed.
 
+## Atlas changed-evidence control — 2026-11-23
+
+Completed the owner-authorized one-question source-change check. Separate Atlas
+v2 documents change only the lag limit as a domain fact, from 5 to 8 seconds;
+version metadata and references are updated consistently. Existing documents,
+datasets, prompts, indexes and raw results remain preserved, including P09's
+earlier reporting-role omission. The v2 dataset pins only the unchanged P08.
+
+The existing ingestion/chunking/import pipeline produced two new snapshots and
+12 chunks, all below 512 tokens. The import was repeated successfully.
+The indexer now supports mutually exclusive, repeatable `--snapshot-id` and
+`--source-id` filters. Exact snapshots keep v1/v2 separate; a source filter
+includes all versions. No schema change was needed.
+
+Two fresh Luna calls with identical question, `answer_v1`, generator settings
+and top-five dense workflow answered **5 seconds inclusive** for v1 and
+**8 seconds inclusive** for v2, each citing its own first-ranked policy chunk.
+A fresh read-only check verified both complete prompts, source text, responses,
+usage, two new traces/four spans and unchanged older DB rows/artifacts.
+Both wrong-state index/dataset pairings were rejected before calls.
+
+**188 offline unit and 26 DB integration tests passed**, including exact
+same-source snapshot isolation, missing-selection rejection and unchanged
+default/source selection behavior. All three reference checks, Ruff and
+whitespace checks passed. Usage: 3,457 input / 60 output tokens; two paid
+calls, no new LLM-only run or price estimate. One development pair does not
+establish general accuracy or universal grounding.
+
+See [CHANGED_EVIDENCE_CHECK](CHANGED_EVIDENCE_CHECK.md) for commands, trace IDs,
+source versions and limits. Local records:
+`outputs/comparisons/atlas-changed-evidence-20261123.json` and
+`outputs/validation/atlas-changed-evidence-20261123.json`.
+
+## Full-text retrieval component — 2026-11-23
+
+Added `store.search_chunks_full_text()` using parameterized SQL, exact selected
+index membership, English lexemes and `ts_rank_cd`. Results retain citation
+metadata and expose `text_score` descending with deterministic chunk-ID ties.
+The generic OR query policy uses only the unchanged raw question. No migration,
+new dependency, embedding update or Simple workflow change was needed.
+
+The existing diagnostic now accepts `--method full-text`; it uses the DB only,
+without a cached model or ML runtime. Dense remains the default with its
+existing optional tracing. Full-text diagnostics are read-only and untraced;
+the unsupported `--trace` combination is rejected before service access.
+
+The initial plain AND policy returned no candidates for all eleven question/
+state observations. Those reports are preserved. OR was then selected on
+development data and compared with dense on the same pinned datasets/indexes.
+P05 E1/E2 rank 3/2 with full-text versus 17/11 with dense; top-five annotation
+coverage is 2/3 versus 0/3. E3 remains low. Other top-five annotation counts
+match dense, although some ranks worsen. P19 returns related Atlas text,
+without establishing a Boreal limit. No answer/abstention quality was measured.
+
+**193 offline unit tests and 31 DB integration tests passed**, including
+stemming/OR matching, ranking/ties/limits, source-version isolation, quoted
+input, transaction ownership and a CLI path without model dependencies. All
+three reference checks passed; live rankings/scores were independently checked.
+All DB rows/counts and 69 protected source/dataset/artifact/report file hashes
+are unchanged. No API call or trace write occurred. Migration remains `0002`.
+See [FULL_TEXT_RETRIEVAL](FULL_TEXT_RETRIEVAL.md) and the local records
+`outputs/comparisons/dense-vs-full-text-20261123.json` and
+`outputs/validation/full-text-retrieval-20261123.json`.
+
+## Equal-weight RRF component — 2026-11-23
+
+The owner approved equal method weights. Added `reciprocal_rank_fusion()` and
+`retrieve_hybrid()` in `retrieval.py`: one index, unchanged raw question,
+at most 20 candidates per method, `k=60`, rank-based summation and chunk-ID
+deduplication. These development defaults were recorded before live runs and
+were not tuned afterward. Results retain citation fields, both component
+ranks/scores and `rrf_score`; missing component values are NULL.
+
+The diagnostic now accepts `--method hybrid` using the cached Nomic runtime,
+read-only SQL and the same exact dataset/index scope checks. It returns the
+bounded union for cutoff analysis. Simple's dense function, full-text SQL,
+prompts, corpus, indexes and older reports remain unchanged. Hybrid diagnostics
+are untraced; the complete Enhanced answer workflow is not implemented yet.
+
+Three real-model diagnostics covered PostgreSQL, Atlas v1 and the v2 P08
+variant. P05 RRF evidence ranks are E1=9, E2=4, E3=absent from the candidate
+union: 1/3 at five versus dense 0/3 and full-text 2/3; at ten RRF has 2/3.
+Other top-five counts match the prior methods. This mixed result was retained;
+RRF does not guarantee an improvement. No answer quality was measured.
+
+**201 offline unit tests and 32 DB integration tests passed**, including
+known score calculations, equal weights, missing/overlapping candidates,
+tie order, citation preservation and index-isolated live SQL integration.
+All three reference checks passed. Independent reconstruction from the preserved
+component reports verified every union, score and component rank for all eleven
+question/state observations. All DB rows/counts and 79 protected source/data/
+artifact/report hashes are unchanged. No API call, trace write or migration ran.
+See [HYBRID_RETRIEVAL](HYBRID_RETRIEVAL.md),
+`outputs/comparisons/dense-full-text-rrf-20261123.json` and
+`outputs/validation/rrf-retrieval-20261123.json`.
+
+A subsequent read-only coverage audit reconfirmed all three dataset/index
+scopes and the live 8/73/3/73 snapshot/chunk/index/vector counts. Existing
+three-method results cover all ten verified unique questions plus P08 v2,
+not all twenty pilot drafts. P10–P18/P20 need fixture/scope/reference work;
+the sandbox tool module remains a scaffold. No inference or API call was
+repeated. Audit: `outputs/comparisons/pilot-retrieval-coverage-20261123.json`.
+
 ## Next small step
 
-Atlas references, import, scoped indexing, retrieval and the first paired
-answer/abstention checks are complete. Proposed next: prepare a separately
-versioned changed-evidence state and check whether the same question follows
-the changed source fact. Preserve the original Atlas state, its pair and
-P09's explicit-role omission; no prompt was tuned to these results.
+Dense, full-text and initial RRF diagnostics are complete. Proposed next:
+choose/pin a reranker and its candidate/context limits, then add a reranking
+component and compare it with these baselines. Simple remains dense-only;
+the Enhanced answer workflow and fixed tools follow separately. Final thesis
+budgets remain open. Preserve both Atlas states, their results and P09's
+explicit-role omission; no prompt was tuned to these results.
 Keep all six public questions and both
 raw baselines, including LLM-only-correct questions, P03's shared omission and
 P05's retrieval gap. Keep gold outside generation; final scoring remains open.
@@ -415,9 +521,9 @@ Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 
 ## Not yet completed
 
-- Broader paired evaluation and source-specific/abstention/changed-evidence checks.
-- Hybrid/full-text search, RRF, reranker and Enhanced tool conditions.
-- Changed document states, frozen DB fixtures and validated tools.
+- Broader paired evaluation and additional source-specific/abstention/changed-evidence cases.
+- Reranker, the complete Enhanced workflow and its tool conditions.
+- Additional changed document states, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.
 - Verified P10–P18/P20 answers, a held-out test set, rubric/judges, metrics,
   quality margin, final model/settings choices, sample size and result runner.

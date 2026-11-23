@@ -146,18 +146,19 @@ the smoke environment's versions and adds Psycopg for storage.
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py
 ```
 
-The default selects all stored chunks. Repeat `--source-id ID` to restrict
-membership; Atlas's committed run used:
+The default selects all stored chunks. Repeat `--source-id ID` to include every
+snapshot of a source, or `--snapshot-id ID` to select exact versions. These
+flags are mutually exclusive. Atlas v1's exact 12-chunk membership is selected by:
 
 ```sh
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
-  --source-id LOCAL-INVENTORY --source-id LOCAL-POLICY
+  --snapshot-id LOCAL-INVENTORY-246a17e09e73d871 --snapshot-id LOCAL-POLICY-d7124ea3bb39455d
 ```
 
-Every requested source must have chunks. The normalized source selection is
-recorded in settings and all selected snapshots for those sources are included.
-For a changed source state, validate membership against its pinned artifacts
-before indexing. The verified Atlas run contains exactly the two v1 snapshots/
+Every requested source or snapshot must have chunks. The normalized selection
+is recorded in settings. Source IDs alone now include both Atlas v1 and v2;
+use exact snapshot IDs to keep their states separate. The original verified
+Atlas run contains exactly the two v1 snapshots/
 12 chunks, with finite normalized 768-dimensional vectors and unchanged older
 rows. Record: `outputs/validation/atlas-index-20261118.json`.
 
@@ -171,7 +172,8 @@ passed with network blocked and rollback; record:
 and reproducibility, not retrieval quality. Committed indexing is now complete;
 record: `outputs/validation/corpus-indexing-committed-2026-11-12.json`.
 The script emits flushed phase/chunk progress on stderr and final JSON on
-stdout. Neither existing index needs a rerun.
+stdout. Existing indexes need no rerun. Atlas v2's separate index and the
+source-change comparison are documented in [CHANGED_EVIDENCE_CHECK](CHANGED_EVIDENCE_CHECK.md).
 
 ## Query retrieval check
 
