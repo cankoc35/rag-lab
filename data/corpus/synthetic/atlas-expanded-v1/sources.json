@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "document_state": "atlas-expanded-v1",
+  "sources": [
+    {
+      "source_id": "LOCAL-INVENTORY",
+      "title": "Atlas environment inventory",
+      "format": "markdown",
+      "path": "atlas_inventory.md",
+      "document_version": "1.1",
+      "sha256": "8eb08c66a38907686ffbba6f5c6b4bdc452dcfd51ea73dee4c7f23f4e22f8fca"
+    },
+    {
+      "source_id": "LOCAL-POLICY",
+      "title": "Atlas operations policy",
+      "format": "markdown",
+      "path": "atlas_operations_policy.md",
+      "document_version": "1.1",
+      "sha256": "c1fbe68fa6635c232968895de5f908e7f4f040339ad8d1fc8550c5367a1decd0"
+    },
+    {
+      "source_id": "LOCAL-QUERY-CATALOG",
+      "title": "Atlas query and index catalog",
+      "format": "markdown",
+      "path": "atlas_query_catalog.md",
+      "document_version": "1.0",
+      "sha256": "210140ae2b85c1594151aba74c3e592567d99ee105b78cc96432f3af3010469a"
+    },
+    {
+      "source_id": "LOCAL-BACKUP",
+      "title": "Atlas backup policy",
+      "format": "markdown",
+      "path": "atlas_backup_policy.md",
+      "document_version": "1.0",
+      "sha256": "48f193635d43485c632dac9202025aff47c8f0e83ef4f0184a15bd80655f5d64"
+    },
+    {
+      "source_id": "LOCAL-MAINTENANCE",
+      "title": "Atlas maintenance policy",
+      "format": "markdown",
+      "path": "atlas_maintenance_policy.md",
+      "document_version": "1.0",
+      "sha256": "218d71bdd2de27d5e60e6e40783dd89daa7bb6cf78f76c7ea99e396814d9f0aa"
+    },
+    {
+      "source_id": "LOCAL-ACCESS",
+      "title": "Atlas access policy",
+      "format": "markdown",
+      "path": "atlas_access_policy.md",
+      "document_version": "1.0",
+      "sha256": "f8e7d822be716c9c9acf1b565d2ad1ea664ba46078dd6633ad86a2eddcec54da"
+    }
+  ]
+}

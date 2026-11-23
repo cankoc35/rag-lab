@@ -8,6 +8,310 @@ source-verified English reference answers. The separate
 contains P07–P09/P19 verified on 2026-11-18. There are ten annotated records
 across the two subsets; P10–P18/P20 remain drafts. This is development data,
 not the held-out thesis test set. The original six-question file is unchanged.
+The separate [expanded_questions.json](expanded_questions.json) revalidates
+these same ten questions against the expanded shared corpus; it adds no new
+unique questions. Current cumulative [version 1.7.0](expanded_questions_v1_7.json)
+preserves all earlier records and completes the approved target:
+**120 unique development questions, 100 answerable + 20 unanswerable**.
+All topic budgets are met; this is not a held-out thesis set or a quality result.
+
+## Completed cumulative file — 2026-11-24
+
+Use [expanded_questions_v1_7.json](expanded_questions_v1_7.json) for all 120
+questions. Dataset ID is `postgresql18-atlas-expanded-dev`, version `1.7.0`.
+P81–P130 add 21 PostgreSQL-only, 13 Atlas-only, eight combined and eight
+unanswerable records. All seventy inherited records and the fourteen-source/
+151-chunk state are identical to version 1.6.0, whose file remains hash-pinned
+as the parent. All prior files are preserved.
+
+| Group | Completed total | New IDs |
+| --- | ---: | --- |
+| PostgreSQL-only answerable | 50 | P81–P101 |
+| Atlas-only answerable | 30 | P102–P114 |
+| PostgreSQL + Atlas answerable | 20 | P115–P122 |
+| Unanswerable | 20 | P123–P130 |
+| **Total** | **120** | **50 new records** |
+
+The [topic matrix](../../../docs/RETRIEVAL_DATASET_PLAN.md) maps all records to
+their 23 completed budgets. New coverage includes GiST/BRIN design, predicate
+locks, MVCC/visibility/freezing, temporary tables, primary/exclusion constraints,
+and local query, restore, maintenance and access requirements. Combined cases
+connect exact local facts to PostgreSQL rules; related scenarios retain family
+labels. The eight new negative cases cover missing key-rotation/timeout policy,
+repository URI/physical table mapping, a chosen plan/drill outcome, reclaimable
+space and a query-plan causal diagnosis. Each retains no positive answer evidence
+and a complete-scope editorial review. Useful but insufficient context is listed
+separately in the validation report.
+
+There are 252 requirements and 195 positive evidence records over 134 distinct
+blocks/73 chunks. These are annotations, not independent retrieval hits or a
+frozen grading rubric. Alternative sufficient evidence remains acceptable.
+Ten reference unit tests and all eleven reference-file checks passed;
+196 protected source/data/code files are unchanged. Runtime selection exposes
+only IDs/raw questions; no DB, retrieval, embedding or hosted API call ran.
+Record: `outputs/validation/expanded-questions-complete-20261123T211259Z.json`.
+
+Question preparation is complete. The diagnostic now uses schema 3 and
+`annotated-evidence-v1`: distinct annotated-chunk recall and any/all required-claim
+coverage at 5/10/20, means over answerable questions only, and separate negative
+records. Unannotated results remain candidates for manual review, not automatic
+errors. Definitions and review instructions are in the
+[evaluation plan](../../../docs/EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
+Eighteen diagnostic unit tests and all eleven reference-file checks passed;
+all 120 questions also passed offline compatibility checks through each mocked
+retrieval path. These fixtures do not measure real retrieval quality.
+No dataset/source files, DB records or previous reports changed.
+Verification: `outputs/validation/retrieval-measurements-20261123T215752Z.json`.
+
+Next compare dense/full-text/RRF on the same raw questions and shared index.
+Final scoring and a separate held-out thesis set remain open.
+
+## Sixth new batch — 2026-11-23
+
+`expanded_questions_v1_6.json` preserves the first seventy questions. Dataset ID remains
+`postgresql18-atlas-expanded-dev`; version is `1.6.0`. Its source state and all
+sixty inherited records are identical to version 1.5.0, whose file is preserved
+and hash-pinned as this version's parent. The shared scope stays fourteen
+sources/151 chunks; reference answers remain outside ingestion and generation.
+
+| New ID | Bucket | Verified topic |
+| --- | --- | --- |
+| P71 | PG01 | Non-distinct buffer counts including child-node activity |
+| P72 | PG02 | Later-column index checks versus scan-span reduction |
+| P73 | PG05 | Constant anchored LIKE patterns and locale/operator-class caveat |
+| P74 | AT01 | Selective inventory and the unlisted-table/storage remainder |
+| P75 | AT05 | Routine maintenance window and exclusive end boundary |
+| P76 | AT06 | Access-record fields and out-of-scope grant escalation |
+| P77 | MIX03 | Given write/replay lag values and the local replay-lag threshold |
+| P78 | MIX04 | Capacity approval and temporary rewrite disk space |
+| P79 | NEG03 | Autovacuum setting without a dated inspection |
+| P80 | NEG04 | Actual data-loss window without a usable recovery point |
+
+This batch has three PostgreSQL, three Atlas, two combined and two negative
+records. The cumulative groups are 29 PostgreSQL-only, 17 Atlas-only, 12 combined
+and 12 unanswerable. There are 152 requirements and 109 positive evidence records
+over 76 distinct blocks/51 chunks. Each negative bucket has three records;
+MIX03's three-record budget is complete. Related EXPLAIN, multicolumn, lag
+and vacuum families are retained. All seventy are dev; 50 records remain.
+
+P77 gives hypothetical values in the raw question (2 seconds write lag,
+6 seconds replay lag); the source supplies the required replay-lag field and
+inclusive 5-second threshold. No observation was imported or claimed as measured.
+P79/P80 use full-corpus missing-fact reviews; defaults, intended settings,
+schedules and recovery objectives do not supply the missing observations.
+Ten reference unit tests and all ten reference-file checks passed; 195 protected
+artifacts are unchanged. No code changed; no DB access, retrieval/embedding
+or hosted API call ran. Record:
+`outputs/validation/expanded-questions-batch06-20261123T205144Z.json`.
+
+## Fifth new batch — 2026-11-23
+
+`expanded_questions_v1_5.json` preserves the first sixty questions. Dataset ID is
+`postgresql18-atlas-expanded-dev`; version is `1.5.0`. Its source state and all
+fifty inherited records are identical to version 1.4.0, whose file is preserved
+and hash-pinned as this version's parent. The shared scope stays fourteen
+sources/151 chunks; reference answers remain outside ingestion and generation.
+
+| New ID | Bucket | Verified topic |
+| --- | --- | --- |
+| P61 | PG03 | Unique partial indexes and predicate-limited enforcement |
+| P62 | PG04 | Standby write, flush and replay lag milestones |
+| P63 | PG05 | GIN component entries and membership queries |
+| P64 | PG06 | Snapshot stability versus serializable guarantees |
+| P65 | AT03 | Device-range bounds and unspecified timestamp tie-breaks |
+| P66 | AT04 | Database archive coverage versus cluster rebuild/PITR |
+| P67 | AT05 | Required backup/restore records and age-assessment time |
+| P68 | MIX02 | Plan-node emitted rows and unbilled-query filters |
+| P69 | MIX03 | Conditional asynchronous replay lag and local health limits |
+| P70 | NEG02 | Undocumented primary-server CPU allocation |
+
+This batch has four PostgreSQL, three Atlas, two combined and one negative
+record to follow the remaining group budgets. The cumulative groups are 26
+PostgreSQL-only, 14 Atlas-only, 10 combined and 10 unanswerable. There are 132
+requirements and 98 positive evidence records over 71 distinct blocks/48 chunks.
+Related isolation, query-range, EXPLAIN and lag questions retain their existing
+families. All sixty are dev; 60 records remain toward the approved target.
+
+P70 uses a full-corpus missing-attribute review: a logical primary identifier,
+storage allocation and generic CPU-cost parameters do not establish allocated
+cores. It keeps empty positive answer evidence. Ten reference unit tests and
+all nine reference-file checks passed; 194 protected artifacts are unchanged.
+No application code changed; no DB access, retrieval/embedding or hosted API call ran.
+Record: `outputs/validation/expanded-questions-batch05-20261123T203929Z.json`.
+
+## Fourth new batch — 2026-11-23
+
+`expanded_questions_v1_4.json` preserves the first fifty questions. Dataset ID is
+`postgresql18-atlas-expanded-dev`; version is `1.4.0`. Its source state and all
+forty inherited records are identical to version 1.3.0, whose file is preserved
+and hash-pinned as this version's parent. The shared scope stays fourteen
+sources/151 chunks; reference answers remain outside ingestion and generation.
+
+| New ID | Bucket | Verified topic |
+| --- | --- | --- |
+| P51 | PG01 | EXPLAIN loops, per-execution averages and node total time |
+| P52 | PG06 | Read Uncommitted mapping and dirty-read prevention |
+| P53 | PG07 | Manual ANALYZE for partition-parent statistics |
+| P54 | PG08 | Default NO ACTION versus deferred checks and RESTRICT |
+| P55 | AT02 | Lag-observation identity, units and numeric validity |
+| P56 | AT06 | Intended reporting-table scope versus actual privileges |
+| P57 | MIX04 | Approved routine VACUUM command and space-return limits |
+| P58 | MIX05 | Atlas device/customer foreign key and default delete action |
+| P59 | NEG01 | Unspecified event-row retention period |
+| P60 | NEG04 | Lag-event cause without matching event/diagnostic evidence |
+
+The cumulative groups are 22 PostgreSQL-only, 11 Atlas-only, 8 combined and 9
+unanswerable. There are 109 requirements and 82 positive evidence records over
+61 distinct blocks/42 chunks. P51/P52/P53/P55/P57 retain related EXPLAIN,
+isolation, statistics, lag-policy and vacuum families. P54/P58 share the new
+foreign-key deletion family. All fifty are dev; 70 records remain toward the target.
+
+P59/P60 use full-corpus `missing_fact` reviews. Backup/audit retention cannot
+establish live-event row retention, and a threshold cannot establish an observed
+lag event or its cause. Both keep empty positive answer evidence. Ten reference
+unit tests and all eight reference-file checks passed; 193 protected artifacts
+are unchanged. No application code changed; no DB access, retrieval/embedding
+or hosted API call ran. Record:
+`outputs/validation/expanded-questions-batch04-20261123T202711Z.json`.
+
+## Third new batch — 2026-11-23
+
+`expanded_questions_v1_3.json` preserves the first forty questions. Dataset ID is
+`postgresql18-atlas-expanded-dev`; version is `1.3.0`. Its source state and all
+thirty inherited records are identical to version 1.2.0, whose file is preserved
+and hash-pinned as this version's parent. The shared scope remains fourteen
+sources/151 chunks; reference answers stay outside ingestion and generation.
+
+| New ID | Bucket | Verified topic |
+| --- | --- | --- |
+| P41 | PG02 | Multicolumn GIN conditions on non-leading columns |
+| P42 | PG05 | BRIN block-range summaries and physical-order correlation |
+| P43 | PG06 | Sequence counters: visibility and abort behavior |
+| P44 | PG07 | ANALYZE statistics collection and VACUUM combination |
+| P45 | AT01 | Table footprints and database-size accounting boundaries |
+| P46 | AT04 | Successful backup generations and failed-run retention |
+| P47 | MIX03 | Atlas NULL-lag outcome plus PostgreSQL idle-standby behavior |
+| P48 | MIX01 | Atlas unbilled-index predicate versus a billed = TRUE query |
+| P49 | NEG02 | Unspecified individual GIN index size |
+| P50 | NEG03 | Unobserved current reporting-role membership |
+
+The cumulative groups are 18 PostgreSQL-only, 9 Atlas-only, 6 combined and 7
+unanswerable. There are 87 requirements and 66 positive evidence records over
+50 distinct blocks/37 chunks. All 23 topic buckets now have at least one record,
+including all five combined buckets; this is allocation coverage, not a retrieval
+quality result. P47 retains P04/P33's lag family and P48 retains the existing
+partial-index family. All forty are dev; 80 records remain toward the target.
+
+P49/P50 use the existing full-corpus `missing_fact` reviews: a table footprint
+cannot determine an individual index size, and intended role duties cannot
+identify observed members. Positive answer evidence remains empty for both.
+Ten reference-boundary unit tests and all seven reference-file checks passed;
+192 protected artifacts are unchanged. No application code changed; no DB
+access, retrieval/embedding or hosted API call ran. Record:
+`outputs/validation/expanded-questions-batch03-20261123T201630Z.json`.
+
+## Second new batch — 2026-11-23
+
+`expanded_questions_v1_2.json` preserves the first thirty questions. Dataset ID is
+`postgresql18-atlas-expanded-dev`; version is `1.2.0`. Its source state and all
+twenty inherited records are identical to version 1.1.0, whose file is preserved
+and hash-pinned as this version's parent. The shared scope remains fourteen
+sources/151 chunks; none of the questions or reference answers enters ingestion.
+
+| New ID | Bucket | Verified topic |
+| --- | --- | --- |
+| P31 | PG01 | EXPLAIN cost units versus actual-time milliseconds |
+| P32 | PG03 | Unresolved parameter and partial-index predicate implication |
+| P33 | PG04 | Measured replication lag versus predicted catch-up time |
+| P34 | PG08 | Default UNIQUE/NULL behavior and NULLS NOT DISTINCT |
+| P35 | AT03 | Unbilled queue states and timestamp parameter |
+| P36 | AT05 | SQLSTATE 40001 retry action and attempt limit |
+| P37 | MIX02 | Atlas inspection/benchmark approval plus ANALYZE execution |
+| P38 | MIX05 | Atlas export profile plus PostgreSQL snapshot semantics |
+| P39 | NEG01 | Unspecified emergency promotion decision-maker |
+| P40 | NEG04 | Unmeasured index-versus-Seq-Scan percentage time change |
+
+The cumulative groups are 14 PostgreSQL-only, 7 Atlas-only, 4 combined and 5
+unanswerable. There are 67 requirements and 53 positive evidence records over
+41 distinct blocks/30 chunks. P31/P37 share P01's EXPLAIN family; P32 shares
+P03/P06's partial-index family, P33 shares P04's lag family, and P38 shares
+P22's snapshot family. All thirty remain development data, not independent
+held-out observations. There are 90 records left toward the approved target.
+
+P39/P40 use the existing `missing_fact` format, with full-corpus context scans
+and editorial reviews. The missing promotion policy and performance measurements
+are not inferred from empty search results. Positive answer evidence remains empty.
+Ten reference-boundary unit tests and all six dataset checks passed; 191
+protected source/data/code artifacts are unchanged. No code change, DB access,
+retrieval/embedding or hosted API call ran. Record:
+`outputs/validation/expanded-questions-batch02-20261123T200722Z.json`.
+
+## First new batch — 2026-11-23
+
+`expanded_questions_v1_1.json` preserves the first twenty questions. Dataset ID is
+`postgresql18-atlas-expanded-dev`; version is `1.1.0`. Its fourteen-source/
+151-chunk state and all inherited records are identical to version 1.0.0.
+The previous file is preserved and hash-pinned as this version's parent.
+
+| New ID | Bucket | Verified topic |
+| --- | --- | --- |
+| P21 | PG05 | Hash indexes: equality-only comparisons |
+| P22 | PG06 | Read Committed snapshots across successive SELECTs |
+| P23 | PG07 | Ordinary VACUUM versus FULL: disk return and locking |
+| P24 | PG08 | CHECK/NULL behavior and NOT NULL |
+| P25 | AT04 | Atlas RPO/RTO values and timing boundaries |
+| P26 | AT06 | Temporary access approvals and expiry |
+| P27 | MIX01 | Atlas device-range SQL/index plus PostgreSQL's multicolumn rule |
+| P28 | MIX04 | Atlas VACUUM FULL authorization plus engine locking behavior |
+| P29 | NEG02 | Unspecified Atlas device-event row count |
+| P30 | NEG03 | Backup success without a matching run observation |
+
+The cumulative split is 10 PostgreSQL-only, 5 Atlas-only, 2 combined and 3
+unanswerable. There are 44 requirements and 36 positive evidence records over
+29 distinct blocks/23 chunks. P23/P28 share a scenario family; all twenty are
+development data. P10–P18/P20 remain separate drafts with reserved IDs.
+
+P29/P30 use `unanswerability.review_method: missing_fact`, a present target
+entity, an explicit `missing_fact` and a full-corpus editorial review. They keep
+empty positive evidence and `corpus_scope` requirements. The checker verifies
+scope, entity presence and review metadata; it cannot prove a fact's semantic
+absence. P19 retains its default `absent_entity` check. Schedules/schema/footprints
+can be relevant context without answering an outcome or row-count question.
+
+All five reference checks, 206 offline unit tests and Ruff passed. All 188
+protected artifacts are unchanged. No DB access, retrieval/embedding or hosted
+API call ran. Record:
+`outputs/validation/expanded-questions-batch01-20261123T194352Z.json`.
+The shared index ID below also applies to version 1.1.0 because its complete
+source/chunk state is unchanged. No method comparison has run for this version.
+
+## Initial expanded shared-corpus references — 2026-11-23
+
+`postgresql18-atlas-expanded-dev` / `1.0.0` contains unchanged P01–P09/P19
+question text, expected answers and requirements: nine answerable questions
+and one unanswerable case. Its scope is all eight PostgreSQL sources and six
+Atlas sources in `atlas-expanded-v1`, including non-answer passages: fourteen
+snapshots, 638 parsed blocks and 151 chunks.
+
+The thirteen PostgreSQL evidence records are unchanged. Six Atlas records now
+point to expanded-state snapshots/chunks and updated document-state mentions.
+The combined annotations have 21 requirements and 19 evidence records over
+fourteen distinct blocks/thirteen chunks. `primary_bucket` follows the
+[allocation plan](../../../docs/RETRIEVAL_DATASET_PLAN.md); `scenario_family_id`
+keeps related concepts together for later splitting. All ten are development data.
+
+P19 received a new absence and policy-authority review across the entire scope:
+no selected source supplies Boreal's approved lag limit. Both source manifests
+are pinned in `source_state.sources_manifests`; original single-manifest files
+remain valid. Gold remains outside ingestion and generation.
+
+The matching shared index is
+`nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`.
+A read-only check accepted its exact 151-chunk/input scope and rejected all
+three original smaller indexes for this file. All four reference checks and
+204 offline unit tests passed; old artifacts and DB rows are unchanged.
+No retrieval comparison or model call ran in this reference-preparation step.
+Record: `outputs/validation/expanded-question-references-20261123T190949Z.json`.
 
 ## Contents
 
@@ -65,6 +369,13 @@ From the repository root, using Python 3.11+:
 ```sh
 python3.11 scripts/check_document_questions.py
 python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/atlas_questions.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_1.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_2.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_3.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_4.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_5.json
+python3.11 scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_6.json
 ```
 
 The read-only checker verifies file hashes, source/snapshot/chunk identities,

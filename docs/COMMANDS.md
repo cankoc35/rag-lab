@@ -1,6 +1,6 @@
 # Terminal command reference
 
-Copyable commands for the current implementation, updated on 2026-11-23.
+Copyable commands for the current implementation, updated on 2026-11-24.
 Run them from the repository root. Initial dependency, database
 and model setup are covered in [README](../README.md),
 [PostgreSQL setup](POSTGRES_SETUP.md) and [embedding setup](EMBEDDING_SETUP.md).
@@ -191,7 +191,8 @@ facts to the prompt. The first Atlas pair completed; see the
 
 ## Retrieval without answer generation
 
-Check evidence ranks at 5/10/20 with local Nomic and read-only SQL. The default
+Check unique annotated-chunk recall and required-claim support at 5/10/20 with
+local Nomic and read-only SQL. The default
 dataset remains PostgreSQL P01–P06:
 
 ```sh
@@ -222,6 +223,32 @@ The index must match the dataset's complete pinned snapshot/chunk/input scope;
 wrong, incomplete or expanded index membership fails before model loading.
 P19's positive evidence scoring is N/A; its returned Atlas context is retained
 for inspection. No LLM answer or abstention is tested by this command.
+
+### Expanded 120-question diagnostic
+
+Use the cumulative dataset and its shared fourteen-source/151-chunk index:
+
+```sh
+RAG_EXPANDED_INDEX_ID=nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
+  --dataset data/evaluation/dev/expanded_questions_v1_7.json \
+  --index-id "$RAG_EXPANDED_INDEX_ID" --method dense
+```
+
+Replace `--method dense` with `--method full-text` or `--method hybrid` for the
+other two methods, keeping the same dataset/index. Omit `--trace` for read-only
+DB access. These runs do not call Luna; `--offline` controls dependency downloads.
+They have not run on the expanded set yet.
+
+Schema-3 reports use `annotated-evidence-v1`. Per question,
+`evidence_chunk_recall_at_k` counts distinct annotated chunks and
+`requirement_coverage_at_k` applies each required claim's `any`/`all` evidence
+rule. `summary` averages per-question values over the 100 answerable questions.
+The 20 unanswerable records have `null` positive coverage, with their missing-fact
+reviews and returned rankings retained. Old evidence-ID fields remain inspectable.
+`alternative_evidence_review` lists unannotated candidates as `not_reviewed`;
+the script does not decide their semantic relevance or grade abstention.
+See the [definitions and manual-review procedure](EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
 
 ### Full-text only
 
@@ -362,14 +389,32 @@ Check pinned question references against local artifacts; no model or DB:
 ```sh
 .venv/bin/python scripts/check_document_questions.py
 .venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/atlas_questions.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_1.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_2.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_3.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_4.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_5.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_6.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_7.json
 ```
 
 `--dataset PATH` selects another question JSON file for this reference checker.
 The checker validates references/integrity, not generated-answer quality.
 The default file preserves P01–P06. The Atlas file contains P07–P09/P19,
 including a corpus-scope unanswerable case with no positive answer chunk.
-The current Simple/LLM-only answer runners remain pinned to the original six
-questions; they do not yet expose an Atlas dataset selection option.
+Simple/LLM-only runners also accept `--dataset`; Simple requires an index
+matching that dataset's exact pinned scope. The completed
+`expanded_questions_v1_7.json` contains 120 unique dev questions
+(100 answerable/20 unanswerable), including new P81–P130. No preparation slots
+remain. Earlier `expanded_questions.json` and versions `1.1.0` through `1.6.0`
+preserve the ten- through seventy-question files. All expanded versions pin the
+same fourteen sources/151 chunks and require the shared index
+`nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`
+for retrieval or Simple runs. Original PostgreSQL/Atlas files and defaults remain.
+The negative-case check distinguishes absent entities from editorial reviews
+of missing facts about documented entities; it does not automatically judge
+semantic unanswerability or generated-answer quality.
 
 Run opt-in integration tests against local PostgreSQL with applied `0002`:
 
@@ -392,11 +437,23 @@ The Ruff command assumes the tool is already cached locally.
 
 ## Corpus preparation and embedding tools
 
-Snapshot and parse the two local Atlas Markdown sources offline:
+Snapshot and parse an explicitly selected Atlas Markdown state offline.
+For the original two-document state:
 
 ```sh
 PYTHONPATH=src .venv/bin/python -m rag_workflow_lab ingest-markdown --sources-manifest data/corpus/synthetic/sources.json
 ```
+
+The six expanded documents are authored and hash-pinned; this command creates
+their persistent snapshots/parsed blocks as a separate new run:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m rag_workflow_lab ingest-markdown --sources-manifest data/corpus/synthetic/atlas-expanded-v1/sources.json
+```
+
+The saved expanded run is `data/local/markdown/atlas-expanded-v1-hyrbftbg/`
+(six snapshots/134 blocks). Reuse it for chunking; invoking the command again
+creates a separate new run. It preserves old states and makes no model or DB calls.
 
 `--sources-manifest PATH` is required; `--config PATH` defaults to
 `configs/pilot.toml`. The manifest pins source IDs, versions, state, filenames
@@ -411,8 +468,9 @@ The scoped reader supports ATX headings, paragraphs/lists, triple-backtick
 fences and outer-pipe tables without escaped pipes; inline Markdown is retained.
 Anchors such as `L31` identify one-based source lines.
 
-`parse-source` still uses the original HTML source list. The chunk and import
-runners select Markdown explicitly as shown below.
+`parse-source` defaults to the original HTML list; select all eight with
+`--config configs/corpus_expansion.toml`. The chunk and import runners select
+Markdown explicitly as shown below.
 
 The current pilot corpus is already imported/indexed. The following commands
 prepare artifacts or write corpus/index records; they are separate from
@@ -441,6 +499,35 @@ Both accept `--config PATH`. `--source-id ID` is required; download accepts
 Downloads create new snapshot IDs; existing evaluation references stay pinned
 to their recorded snapshots.
 
+**PostgreSQL expansion snapshots**
+
+The [expansion config](../configs/corpus_expansion.toml) selects eight sources;
+the original config still selects four. Inspect the expanded list offline:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m rag_workflow_lab check-sources --config configs/corpus_expansion.toml
+```
+
+The four added pages are already captured; use this only to request a fresh
+snapshot of one page:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m rag_workflow_lab download-source --config configs/corpus_expansion.toml --source-id PG-INDEX-TYPES --timeout 30
+```
+
+Other added IDs: `PG-ISOLATION`, `PG-VACUUM`, `PG-CONSTRAINTS`. Reuse the saved
+[snapshot IDs/hashes](STATUS.md#saved-official-documentation-snapshots) for
+reproducible work. This config contains no model settings; it is for source
+acquisition/checks and `parse-source`. The saved pages are not yet chunked or
+embedded. Original model/DB commands continue using `configs/pilot.toml`.
+
+All eight HTML parser JSON files are already saved under `data/local/parsed/`.
+To reparse one pinned expansion source offline and print its JSON to stdout:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m rag_workflow_lab parse-source --config configs/corpus_expansion.toml --source-id PG-INDEX-TYPES --manifest data/local/snapshots/PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd/manifest.json
+```
+
 Chunk saved snapshots, or measure saved parser-block token counts:
 
 ```sh
@@ -457,6 +544,24 @@ PYTHONPATH=src uv run --offline --no-project --python 3.11 scripts/chunk_corpus.
 ```
 
 Both Markdown arguments are needed; `--snapshots-dir` applies only to HTML mode.
+
+The expanded runs are already saved (113 PostgreSQL and 38 Atlas chunks):
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --python 3.11 scripts/chunk_corpus.py \
+  --sources-manifest data/corpus/postgres_expanded_v1.json \
+  --output-dir data/local/chunks/postgres-expanded-v1-section-blocks-v1
+
+PYTHONPATH=src uv run --offline --no-project --python 3.11 scripts/chunk_corpus.py \
+  --sources-manifest data/corpus/synthetic/atlas-expanded-v1/sources.json \
+  --markdown-run data/local/markdown/atlas-expanded-v1-hyrbftbg \
+  --output-dir data/local/chunks/atlas-expanded-v1-section-blocks-v1
+```
+
+These exact commands reject their now-existing output directories. Reuse the
+saved runs; choose a new `--output-dir` only for an intentional repeat. No
+embedding or DB write occurs during chunking.
+
 The reader verifies pinned snapshot metadata/raw hashes, reparses the saved
 copies and checks saved blocks before chunking. Each chunk JSON also records
 `block_token_counts` for non-heading blocks: body counts exclude special tokens;
@@ -512,10 +617,55 @@ imports preserve rows and conflicting existing IDs fail. The legacy
 `source_snapshots.downloaded_at` stores `captured_at` for local Markdown.
 No migration or embedding generation is performed by the importer.
 
+Both expanded imports are committed (14 selected snapshots/151 chunks;
+10 snapshots/102 chunks were new). With the DB running, these commands can
+repeat either group while preserving identical existing records:
+
+```sh
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py \
+  --sources-manifest data/corpus/postgres_expanded_v1.json \
+  --chunks-dir data/local/chunks/postgres-expanded-v1-section-blocks-v1
+
+PYTHONPATH=src uv run --offline --no-project --env-file .env --python .venv/bin/python python scripts/import_corpus.py \
+  --sources-manifest data/corpus/synthetic/atlas-expanded-v1/sources.json \
+  --markdown-run data/local/markdown/atlas-expanded-v1-hyrbftbg \
+  --chunks-dir data/local/chunks/atlas-expanded-v1-section-blocks-v1
+```
+
 The indexer accepts `--config PATH` (default pilot config) and repeatable
 `--source-id ID` or `--snapshot-id ID`, mutually exclusive. With neither it
 selects all stored chunks. Source IDs include all versions; snapshot IDs select
-exact versions. To embed only Atlas v1's 12 chunks (already committed locally):
+exact versions.
+
+The expanded shared index is committed:
+`nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`.
+These fourteen snapshots contain exactly 151 chunks. The command below was
+used to generate its local Nomic vectors; reuse the saved index for questions.
+An intentional repeat requires inference again and preserves identical rows:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
+  --snapshot-id PG-EXPLAIN-20261102T173311Z-yhdhybna \
+  --snapshot-id PG-MULTI-20261105T191707Z-96nc6y0c \
+  --snapshot-id PG-PARTIAL-20261105T191707Z-kmf7w4sp \
+  --snapshot-id PG-STATS-20261105T191715Z-zm7b259y \
+  --snapshot-id PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd \
+  --snapshot-id PG-ISOLATION-20261123T175402Z-2_17hssf \
+  --snapshot-id PG-VACUUM-20261123T175402Z-lwwvgshl \
+  --snapshot-id PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f \
+  --snapshot-id LOCAL-INVENTORY-fe15d4078bde0d46 \
+  --snapshot-id LOCAL-POLICY-cb95d1ffabe529d7 \
+  --snapshot-id LOCAL-QUERY-CATALOG-5040c4097f291207 \
+  --snapshot-id LOCAL-BACKUP-680206816dba1b08 \
+  --snapshot-id LOCAL-MAINTENANCE-913bdddf1eb94c40 \
+  --snapshot-id LOCAL-ACCESS-8206771d2a7ea5a3
+```
+
+Exact snapshot selection excludes the original Atlas v1/v2 controls while
+preserving their existing indexes. Prepare the expanded question dataset and
+its scope references before using that new index with the question runners.
+
+To embed only Atlas v1's 12 chunks (already committed locally):
 
 ```sh
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/index_corpus.py \
@@ -531,7 +681,7 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 
 Every requested source or snapshot must have stored chunks; otherwise it fails
 before inference/writes. Sorted unique selections are recorded in index settings.
-See [STATUS](STATUS.md) for the three separate index IDs. Index identity includes code/runtime
+See [STATUS](STATUS.md) for all four index IDs. Index identity includes code/runtime
 provenance, so avoid unnecessary re-indexing after code changes. Select the
 intended stored index explicitly when running questions afterward.
 The diagnostic and both paid answer runners support explicit dataset selection.

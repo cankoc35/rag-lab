@@ -164,3 +164,82 @@ Atlas snapshots/chunks were subsequently imported and embedded in a separate
 verified index/12 vectors. Atlas's first retrieval check found all positive
 annotations in the top three. The first Atlas Simple/LLM-only answer pair is
 also complete, with the original chunks unchanged. See [STATUS](STATUS.md).
+
+## Expanded corpus fit assessment — 2026-11-23
+
+The owner asked whether the existing method suits the expanded documents.
+An offline assessment used the cached pinned tokenizer and unchanged
+`chunk_document()` on the selected eight PostgreSQL and six Atlas sources.
+Chunks were held in memory; no chunk files, vectors or DB records were saved.
+
+| Scope | Content blocks | Candidate chunks | Maximum complete-input tokens |
+| --- | ---: | ---: | ---: |
+| Original four PostgreSQL sources | 176 | 49 | 822 |
+| Four added PostgreSQL sources | 280 | 64 | 508 |
+| Six expanded Atlas sources | 96 | 38 | 380 |
+| **Total** | **552** | **151** | **822** |
+
+All 108 code blocks and nine tables remain intact and occur exactly once.
+No atomic block or candidate chunk exceeds 1024 tokens. Four candidate chunks
+exceed the soft 512 target; all four belong to the original baseline.
+The longest standalone code/table inputs use 658/811 tokens including context.
+Repeated chunk calls are identical. Tokenizer/settings and the original four
+sources' chunk counts/maxima match the saved baseline. All 153 protected
+source/data/code artifacts are unchanged; only an assessment report was saved.
+
+Two review points remain:
+
+- Six Atlas candidates contain only document-header metadata (58–62 tokens).
+  Keeping those fields as metadata rather than independent retrieval content
+  is a possible future cleanup, not a demonstrated quality improvement.
+- Sixteen code/table-to-following-paragraph adjacencies cross chunk boundaries,
+  including three in the added PostgreSQL pages. These are structural flags,
+  not sixteen established errors: a paragraph may introduce the next example.
+  For instance, PG-CONSTRAINTS blocks 98–99 separate a foreign-key SQL example
+  from the following ON DELETE discussion. The current heuristic protects a
+  preceding paragraph/code pair, not every following explanation. Neighbor
+  links are recorded but are not automatically expanded during retrieval.
+
+Recommendation: retain this method/settings for the initial expanded baseline
+and inspect these cases during evidence evaluation. Any later cleanup or
+context expansion must be versioned and shared across comparison methods.
+This check establishes structural/token fit, not optimal chunk size or
+retrieval/answer quality. Heading-aware grouping is consistent with Microsoft's
+[document-structure guidance](https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents).
+
+Report: `outputs/validation/chunking-fit-20261123T182131Z.json`, including
+per-block counts, candidate layouts and flagged adjacencies. The same settings
+were subsequently used for the persistent runs below; the algorithm is unchanged.
+
+## Expanded persistent chunks — 2026-11-23
+
+| Saved run under `data/local/chunks/` | Sources | Content blocks | Chunks | Maximum tokens |
+| --- | ---: | ---: | ---: | ---: |
+| `postgres-expanded-v1-section-blocks-v1/` | 8 | 456 | 113 | 822 |
+| `atlas-expanded-v1-section-blocks-v1/` | 6 | 96 | 38 | 380 |
+| **Total** | **14** | **552** | **151** | **822** |
+
+Both runs use the existing CLI, cached tokenizer and unchanged 512/1024 rules.
+Per-source JSON retains chunks, indexed headings and block token counts;
+`summary.json` pins inputs, settings and code/tokenizer fingerprints. No
+embedding inference or DB write ran.
+
+Independent read-back matched every saved layout to the fit report and checked
+complete-input token counts, exact block coverage/order, headings, serialization
+and neighbor links. All 108 code blocks/nine tables are intact. The original
+49 chunks, IDs and heading records match the baseline exactly. The existing
+import loader accepts all eight HTML snapshots/113 chunks and six Markdown
+snapshots/38 chunks without connecting to the DB.
+
+All 43 offline chunk/parser/Markdown tests passed, and 153 protected artifacts
+are unchanged. The six metadata-only Atlas chunks and split-follow-up review
+points remain as documented; no cleanup or quality optimization was applied.
+Record: `outputs/validation/corpus-expansion-chunk-20261123T182736Z.json`.
+These records were subsequently imported: ten new snapshots/102 new chunks;
+all fourteen selected snapshots/151 chunks matched local records on read-back.
+The original 49 chunks were reused, and old controls/indexes are unchanged.
+Import record: `outputs/validation/corpus-expansion-import-20261123T184700Z.json`.
+The fourteen-snapshot/151-chunk shared embedding index is now created; see
+[STATUS](STATUS.md#expanded-shared-embedding-index--2026-11-23) for its ID and checks.
+The two local chunk directories are not separate search
+corpora for the eventual comparison.

@@ -1,5 +1,12 @@
 # Embedding model — initial pilot decision
 
+**Expanded corpus, 2026-11-23:** The same pinned local Nomic settings now
+embed all fourteen selected PostgreSQL/Atlas snapshots into one shared index
+with 151 vectors. DB totals are four indexes/224 vectors; all original
+indexes are preserved. Exact scope, input hashes and normalization passed
+read-back checks. See [current verification](STATUS.md#expanded-shared-embedding-index--2026-11-23).
+Expanded question references remain; no broader retrieval-quality result follows.
+
 **Updated:** 2026-11-14. **Status:** Following the Nomic recommendation, the
 owner authorized its first local embedding step. Nomic Embed Text v1.5 is
 selected for the initial pilot; weights are cached locally and one document/

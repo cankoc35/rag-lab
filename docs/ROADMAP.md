@@ -201,8 +201,49 @@ initial development settings `k=60` and 20 candidates per method. P05 has
 1/3 annotations at five and 2/3 at ten; full-text alone has 2/3 at five.
 The mixed finding and the original baselines are preserved.
 
-**Proposed next small step:** choose/pin a reranker and candidate/context
-limits, then add reranking and compare against the three retrieval baselines.
+**Approved expansion:** 100 answerable questions (50 PostgreSQL-only, 30
+Atlas-only, 20 combined) plus 20 unanswerable, with broader topics. The
+[source/topic/evidence matrix](RETRIEVAL_DATASET_PLAN.md) and capture of four
+new PostgreSQL 18 pages are complete. The expansion manifest reuses the four
+original pinned scopes, giving eight saved HTML sources. The six-document
+Atlas state and pinned manifest are authored and persistently parsed. All
+fourteen selected sources have 638 parsed blocks and 151 verified saved chunks,
+matching the fit check. Both source groups are imported: ten new snapshots/
+102 new chunks, with all old records preserved. The shared Nomic index now
+contains the fourteen exact snapshots/151 vectors; all three old indexes are
+preserved. A separate [expanded reference file](../data/evaluation/dev/expanded_questions.json)
+now revalidates the unchanged ten questions against the complete shared scope,
+including Atlas evidence rebinding and P19's absence review. The first new batch,
+P21–P30, is verified in cumulative
+[version 1.1.0](../data/evaluation/dev/expanded_questions_v1_1.json): twenty dev
+questions, 17 answerable/3 unanswerable. The second batch P31–P40 is verified
+in [version 1.2.0](../data/evaluation/dev/expanded_questions_v1_2.json): thirty dev
+questions, 25 answerable/5 unanswerable, with all prior records/source pins preserved.
+The third batch P41–P50 is verified in
+[version 1.3.0](../data/evaluation/dev/expanded_questions_v1_3.json): forty dev
+questions, 33 answerable/7 unanswerable. All prior records/source pins remain;
+all 23 planned topic buckets now have records, including all five combined buckets.
+The fourth batch P51–P60 is verified in
+[version 1.4.0](../data/evaluation/dev/expanded_questions_v1_4.json): fifty dev
+questions, 41 answerable/9 unanswerable, preserving all earlier records/source pins.
+The fifth batch P61–P70 is verified in
+[version 1.5.0](../data/evaluation/dev/expanded_questions_v1_5.json): sixty dev
+questions, 50 answerable/10 unanswerable, preserving all earlier records/source pins.
+The sixth batch P71–P80 is verified in
+[version 1.6.0](../data/evaluation/dev/expanded_questions_v1_6.json): seventy dev
+questions, 58 answerable/12 unanswerable, preserving all earlier records/source pins.
+Completion batch P81–P130 is verified in
+[version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json): all 120 dev
+questions, 100 answerable/20 unanswerable, with all 23 topic budgets met and
+all seventy inherited records/source pins preserved. Question preparation is
+complete. Development diagnostic definitions are now implemented as
+`annotated-evidence-v1`: unique annotated chunks, any/all required-claim support,
+answerable-only means and separate negative/candidate-review records.
+Next compare dense, full-text and RRF on the same questions/index. Final
+held-out allocation and scoring remain open; no expanded comparison has run.
+
+Reranker selection, candidate/context limits and implementation follow as
+component work, with comparison against the three retrieval baselines.
 Simple remains dense-only; Enhanced answer generation and fixed tools are
 separate work. Final thesis settings are not frozen.
 

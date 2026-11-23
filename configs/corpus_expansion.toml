@@ -1,0 +1,8 @@
+# Source acquisition only; model settings remain in pilot.toml.
+# Paths are relative to this config file.
+[project]
+name = "rag-workflow-lab"
+
+[paths]
+sources_manifest = "../data/corpus/postgres_expanded_v1.json"
+local_data_dir = "../data/local"

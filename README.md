@@ -18,12 +18,12 @@ contain an annotated pipeline diagram and a one-page project briefing.
 
 | Area | Implemented | Remaining |
 | --- | --- | --- |
-| Corpus | Four PostgreSQL HTML + Atlas v1/v2 Markdown snapshots; all 73 chunks imported | Sandbox fixtures and broader source coverage |
-| Embeddings / DB | Eight snapshots, 73 chunks; separate PostgreSQL/Atlas v1/v2 indexes with 49/12/12 vectors | Broader corpus coverage |
+| Corpus | Fourteen expanded sources/151 chunks imported and embedded; earlier Atlas controls preserved | Sandbox fixtures |
+| Embeddings / DB | 18 snapshots, 175 chunks; four indexes/224 vectors, including the shared 151-vector index | Expanded question/evaluation coverage |
 | Retrieval | Dense, full-text and equal-weight RRF diagnostics; P05 top-five annotations 0/3, 2/3 and 1/3 respectively | Reranking and the complete Enhanced workflow |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
 | Generation | Simple/LLM-only pairs and Atlas P19 abstention verified; P08 follows a 5 → 8 second source change | Broader evaluation |
-| Evaluation | Ten verified development questions in separate PostgreSQL/Atlas subsets | P10–P18/P20 verification, held-out set and final protocol |
+| Evaluation | All 120 development questions prepared in version 1.7.0: 100 answerable + 20 unanswerable | Expanded retrieval comparison; held-out set and final protocol |
 
 The first dense diagnostic found annotated evidence in the top five for five
 of six questions. P05 showed wording sensitivity; these are development
@@ -57,8 +57,32 @@ P05's annotated top-five coverage in this development check; no new answers
 were generated. [Equal-weight RRF](docs/HYBRID_RETRIEVAL.md) is now implemented
 with `k=60` and at most 20 candidates per method. P05 has 1/3 annotated records
 at five and 2/3 at ten, trailing full-text alone at five. These are development
-retrieval checks, not answer-quality results. **Proposed next step:** select
-and add a reranker while preserving these baselines.
+retrieval checks, not answer-quality results. The approved
+[dataset expansion](docs/RETRIEVAL_DATASET_PLAN.md) allocates 50 PostgreSQL,
+30 Atlas and 20 combined answerable questions, plus 20 unanswerable cases.
+The source/topic matrix and four new PostgreSQL 18 snapshots are complete;
+all eight HTML sources passed hash and in-memory parser checks. The six
+[expanded Atlas documents](data/corpus/synthetic/atlas-expanded-v1/atlas_inventory.md#expanded-document-map)
+and pinned manifest are now persistently snapshotted/parsed, preserving baseline
+facts. The selected fourteen sources have 638 saved blocks. The
+[chunking fit check](docs/CHUNKING.md#expanded-corpus-fit-assessment--2026-11-23)
+produced 151 candidates with no overflow; both expanded chunk runs are now
+saved, verified and imported. DB totals are 18 snapshots/175 chunks, including
+24 preserved Atlas v1/v2 control chunks outside the expanded scope. The
+[shared embedding index](docs/STATUS.md#expanded-shared-embedding-index--2026-11-23)
+now contains all fourteen selected snapshots/151 normalized Nomic vectors.
+The separate [expanded reference file](data/evaluation/dev/expanded_questions.json)
+now binds the unchanged ten questions to this complete scope, including a new
+corpus-wide P19 absence review. The original question files remain unchanged.
+Cumulative [version 1.7.0](data/evaluation/dev/expanded_questions_v1_7.json)
+completes all 120 development questions: 50 PostgreSQL-only, 30 Atlas-only,
+20 combined and 20 unanswerable. P81–P130 complete every topic budget; the
+seventy inherited records, source pins and prior files are preserved.
+The diagnostic now measures unique annotated chunks and required-claim support
+at 5/10/20, with negatives excluded from positive averages and unannotated
+results retained for review. Next compare dense, full-text and RRF on the shared
+scope. No expanded retrieval/model comparison has run.
+Reranking follows as component work.
 The complete Enhanced workflow, tools, LangGraph and router remain unimplemented.
 See [STATUS](docs/STATUS.md).
 
@@ -216,8 +240,12 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 ```
 
 This validates pinned references, loads Nomic once and obtains full ranks in a
-read-only transaction. Annotated evidence hits at 5/10/20 and provenance go to
+read-only transaction. Unique annotated-chunk recall and claim coverage at
+5/10/20, separate negative records and provenance go to
 `outputs/retrieval/`; progress goes to stderr and the report path to stdout.
+Schema-3 reports use `annotated-evidence-v1`; unannotated candidates need manual
+review and the measurements do not grade generated answers. Definitions are in
+the [evaluation plan](docs/EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
 To check Atlas's four unchanged questions against its separate index:
 
 ```sh

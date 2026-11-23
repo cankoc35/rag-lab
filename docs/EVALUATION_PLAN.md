@@ -1,10 +1,30 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-23. The owner approved the initial
+**Status:** Working draft, updated 2026-11-24. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
-sample sizes, and the complete final protocol remain open. This is a planning
+final thesis sample sizes, and the complete final protocol remain open. This is a planning
 artifact, not a result. Read the [method design](METHOD_DESIGN.md) first.
+
+**Owner decision, 2026-11-23:** Prepare 100 answerable questions split 50
+PostgreSQL-only, 30 Atlas-only and 20 combined, plus 20 unanswerable questions.
+Broader topics and the source distribution are approved. The completed
+[allocation matrix](RETRIEVAL_DATASET_PLAN.md) defines source/evidence coverage;
+the current verified development set completes all 100 answerable plus 20 unanswerable questions. The four new PostgreSQL pages are
+captured and the six expanded Atlas documents are authored/hash-pinned.
+All fourteen sources have saved parser outputs and 151 verified chunks in a
+shared Nomic embedding index. The unchanged ten questions now have
+[revalidated expanded-scope references](../data/evaluation/dev/expanded_questions.json),
+including P19's full-corpus absence review. Cumulative
+[version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json) completes
+all 120 records, including P81–P130, while preserving the seventy inherited
+records and source pins. All 23 topic budgets are met; all 120 are dev.
+Development retrieval definitions are now versioned as `annotated-evidence-v1`;
+the expanded method comparison is next. Final held-out selection and scoring
+remain open. Using this set for tuning requires
+a separate held-out thesis set. Missing attributes and
+runtime observations use explicit editorial reviews; entity scans alone do not
+establish their semantic unanswerability. No expanded method comparison has run.
 
 **Language decision (owner, 2026-11-05):** Development and held-out questions,
 corpus/synthetic documents, prompts, answers, gold answers and rubrics will
@@ -96,7 +116,58 @@ source rank and union was reconstructed from the saved component reports.
 These are development defaults, not final thesis budgets or proof that fusion
 improves answer quality. Reranking and answer-level comparisons follow later.
 
-## Candidate metrics and definitions to finalize
+### Expanded development measurements — 2026-11-24
+
+The owner authorized adapting the diagnostic to all 120 questions. New reports
+use schema **3** and measurement version **`annotated-evidence-v1`**, with fixed
+cutoffs **5, 10 and 20**. The dataset remains version 1.7.0; question text,
+source state and retrieval settings are unchanged. These definitions govern
+the next development comparison, not the final thesis scoring protocol.
+
+For an answerable question, let `G` be the set of distinct annotated chunk IDs
+and `R_k` the chunk IDs in its first `k` returned results:
+
+| Report field | Definition |
+| --- | --- |
+| `evidence_chunk_recall_at_k` | `len(G & R_k) / len(G)`. Several evidence records in one chunk count once. This is annotated-chunk recall, not exhaustive semantic recall. |
+| `requirement_ranks` | First rank at which the annotated support for each required claim is available. For `any`, the earliest returned supporting record suffices; for `all`, every selected record must be available, so use their latest rank. Missing necessary support gives `null`. |
+| `requirements_supported_at_k` | Requirement IDs whose support rank is at most `k`. Two records from the same retrieved chunk can support an `all` requirement. |
+| `requirement_coverage_at_k` | Supported requirements divided by that question's total requirements. This measures available annotated support, not whether an LLM expressed the claim correctly. |
+| `summary.mean_evidence_chunk_recall_at_k` | Arithmetic mean of per-question annotated-chunk recall over answerable questions only. |
+| `summary.mean_requirement_coverage_at_k` | Arithmetic mean of per-question requirement coverage over answerable questions only. Each question has equal weight. |
+| `summary.all_requirements_supported_rate_at_k` | Fraction of answerable questions whose requirement coverage is 1 at `k`. |
+
+Empty returned results give zero coverage for an answerable question. If fewer
+than `k` chunks return, use that actual prefix without padding. A rank of `null`
+means absent from the method's returned candidate set, not absent from the corpus.
+The existing RRF candidate cap remains 20 per component; this measurement change
+does not broaden its search or change Simple's five-chunk context.
+
+The 20 unanswerable questions have `null` recall/requirement coverage and no
+positive denominator. They remain separate records with their bucket, missing
+fact/absence review and full returned ranking. Related text is not a retrieval
+failure, nor does an empty result prove successful abstention. Answer-level
+abstention and unsupported-claim grading require a later generation check.
+An all-negative report has `null` positive means rather than zero or 0/0.
+
+For positives, `alternative_evidence_review` lists returned, unannotated chunk
+IDs at each cutoff with status `not_reviewed`. Unannotated does not mean wrong;
+the existing annotations are not exhaustive. Open candidate text from the
+pinned local chunk files and review it against the required claims. Save manual
+notes separately with dataset/report hashes, question/chunk IDs, supported
+requirement IDs and reasoning; keep raw reports unchanged. Review candidates
+across all methods consistently. An accepted reference addition needs a new
+annotation version and the same rescoring across methods; this script does not
+automatically accept alternatives or infer semantic sufficiency from keywords.
+
+Old `evidence_ranks` and `evidence_hits_at_k` remain for reference-ID inspection;
+they are not deduplicated metrics and must not be averaged as chunk recall.
+Old reports are preserved. Reports also retain question type, primary bucket
+and scenario family for later grouped review. Measurement version and the
+SHA-256 of this document join the existing dataset/code/index provenance.
+No live expanded comparison ran while implementing these measurements.
+
+## Candidate final-study metrics and definitions to finalize
 
 | Metric | Proposed measurement | Decision still open |
 | --- | --- | --- |

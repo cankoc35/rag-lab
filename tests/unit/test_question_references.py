@@ -9,10 +9,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from rag_workflow_lab.contracts import TokenizerSpec
+from rag_workflow_lab.contracts import SourceSelection, SourceSnapshot, SourceSpec, TokenizerSpec
 from rag_workflow_lab.evaluation.dataset import select_questions
 from rag_workflow_lab.ingestion.chunk import ChunkSettings, chunk_document
 from rag_workflow_lab.ingestion.markdown import parse_markdown
+from rag_workflow_lab.ingestion.parse import parse_html
 from scripts.check_document_questions import validate
 
 
@@ -28,6 +29,7 @@ class QuestionReferenceTests(unittest.TestCase):
             path.write_text(json.dumps(value))
             return {"path": str(path.relative_to(self.root)), "sha256": sha256(path.read_bytes()).hexdigest()}
 
+        self.save = save
         raw = b"# Atlas fixture\n\nAtlas has a five-second lag limit.\n\nThe replica role is reporting.\n"
         raw_path = folder / "source.md"
         raw_path.write_bytes(raw)
@@ -87,6 +89,61 @@ class QuestionReferenceTests(unittest.TestCase):
         self.path.write_text(json.dumps(dataset or self.dataset))
         return validate(self.path, root=self.root)
 
+    def add_html_source(self):
+        folder = self.root / "html"
+        folder.mkdir()
+        raw = b'<div id="docContent"><div class="sect1" id="EXPLAIN"><h2>EXPLAIN</h2><p>EXPLAIN shows a plan.</p></div></div>'
+        raw_path = folder / "source.html"
+        raw_path.write_bytes(raw)
+        source = SourceSpec("PG-TEST", "EXPLAIN fixture", "https://www.postgresql.org/docs/18/using-explain.html",
+                            "html", "18", SourceSelection("page"))
+        snapshot = SourceSnapshot("html-fixture", source, "2026-11-23T00:00:00Z", source.url, 200,
+                                  "text/html", "utf-8", len(raw), sha256(raw).hexdigest(), raw_path.name)
+        document = parse_html(raw, snapshot)
+        state = self.dataset["source_state"]
+        tokenizer = TokenizerSpec(**state["chunking"]["tokenizer"])
+        chunks = chunk_document(document, count_tokens=lambda text: len(text.split()) + 2, tokenizer=tokenizer)
+        files = {"manifest": self.save(folder / "manifest.json", {"snapshot": asdict(snapshot)}),
+                 "raw_html": {"path": "html/source.html", "sha256": snapshot.sha256},
+                 "parsed": self.save(folder / "parsed.json", {"schema_version": 1, "document": asdict(document)}),
+                 "chunks": self.save(folder / "chunks.json", {"schema_version": 1, "source_id": source.source_id,
+                                    "snapshot_id": snapshot.snapshot_id, "chunks": [asdict(c) for c in chunks]})}
+        allowlist = self.save(self.root / "html-sources.json", {"schema_version": 1, "sources": [asdict(source)]})
+        state["sources_manifests"] = [state.pop("sources_manifest"), allowlist]
+        state["sources"].append({"source_id": source.source_id, "snapshot_id": snapshot.snapshot_id,
+                                 "source_url": source.url, "parser_version": document.parser_version, "files": files})
+        self.dataset["questions"][-1]["unanswerability"]["checked_source_ids"].append(source.source_id)
+
+    def test_mixed_sources_use_their_own_manifest_in_either_order(self):
+        self.add_html_source()
+        manifests = self.dataset["source_state"]["sources_manifests"]
+        for order in (manifests, list(reversed(manifests))):
+            self.dataset["source_state"]["sources_manifests"] = order
+            with self.subTest(order=order):
+                self.assertEqual(self.check()["sources"], 2)
+
+    def test_rejects_markdown_snapshot_bound_to_other_manifest(self):
+        self.add_html_source()
+        state = self.dataset["source_state"]
+        path = self.root / state["sources"][0]["files"]["manifest"]["path"]
+        payload = json.loads(path.read_text())
+        payload["snapshot"]["source_manifest_sha256"] = state["sources_manifests"][1]["sha256"]
+        state["sources"][0]["files"]["manifest"] = self.save(path, payload)
+        with self.assertRaisesRegex(ValueError, "Markdown allowlist hash mismatch"):
+            self.check()
+
+    def test_rejects_duplicate_or_ambiguous_manifest_declarations(self):
+        self.add_html_source()
+        for defect in ("duplicate", "ambiguous"):
+            dataset = deepcopy(self.dataset)
+            state = dataset["source_state"]
+            if defect == "duplicate":
+                state["sources_manifests"].append(state["sources_manifests"][0])
+            else:
+                state["sources_manifest"] = state["sources_manifests"][0]
+            with self.subTest(defect=defect), self.assertRaisesRegex(ValueError, "Duplicate allowlisted|Pin either"):
+                self.check(dataset)
+
     def test_validates_alternative_combined_and_absence_references_offline(self):
         with patch("socket.socket.connect", side_effect=AssertionError("Network forbidden")):
             report = self.check()
@@ -132,6 +189,40 @@ class QuestionReferenceTests(unittest.TestCase):
                 dataset["source_state"]["document_state"] = "wrong-state"
             else:
                 dataset["source_state"]["sources"][0]["files"]["raw_markdown"]["sha256"] = "0" * 64
+            with self.subTest(defect=defect), self.assertRaises(ValueError):
+                self.check(dataset)
+
+    def test_missing_facts_about_present_entities_keep_no_positive_evidence(self):
+        question = self.dataset["questions"][-1]
+        question["question"] = "How many orders are stored in Atlas?"
+        question["unanswerability"].update({"review_method": "missing_fact", "target_entity": "Atlas",
+            "missing_fact": "The stored order count.",
+            "review_note": "The complete fixture defines lag and replica role, not an order count."})
+        with patch("socket.socket.connect", side_effect=AssertionError("Network forbidden")):
+            report = self.check()
+        self.assertEqual(report["unanswerable_questions"], 1)
+        self.assertEqual(question["evidence"], [])
+        self.assertNotIn("missing_fact", json.dumps(select_questions(self.dataset, None)))
+
+    def test_rejects_incomplete_or_unknown_missing_fact_reviews(self):
+        for defect in ("method", "fact", "entity", "scope", "positive_evidence"):
+            dataset = deepcopy(self.dataset)
+            question = dataset["questions"][-1]
+            scope = question["unanswerability"]
+            scope.update({"review_method": "missing_fact", "target_entity": "Atlas",
+                          "missing_fact": "A measured backup completion status."})
+            if defect == "method":
+                scope["review_method"] = "unknown"
+            elif defect == "fact":
+                scope["missing_fact"] = " "
+            elif defect == "entity":
+                scope["target_entity"] = "Boreal"
+            elif defect == "scope":
+                scope["checked_source_ids"] = []
+            else:
+                evidence = deepcopy(dataset["questions"][0]["evidence"][0])
+                evidence["evidence_id"] = "P19-E1"
+                question["evidence"] = [evidence]
             with self.subTest(defect=defect), self.assertRaises(ValueError):
                 self.check(dataset)
 

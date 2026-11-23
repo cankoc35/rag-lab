@@ -1,6 +1,6 @@
 # Current status
 
-**Last updated:** 2026-11-23. This is the current implementation boundary.
+**Last updated:** 2026-11-24. This is the current implementation boundary.
 Detailed dated records are in [STATUS_HISTORY.md](STATUS_HISTORY.md);
 plans are in [ROADMAP](ROADMAP.md), decisions in [PROJECT_CONTEXT](PROJECT_CONTEXT.md),
 and code/artifact paths in [HANDOFF](HANDOFF.md).
@@ -9,19 +9,20 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 
 | Area | Current state |
 | --- | --- |
-| Sources | Four saved PostgreSQL 18 HTML snapshots; allowlist, downloader and offline parser |
-| Synthetic sources | Atlas v1 and v2: two snapshots/12 chunks each, in separate verified indexes; lag limit changes 5 → 8 seconds |
-| Chunking | HTML: 184 parsed blocks → 49 chunks; all content/code/table blocks preserved; target 512 / ceiling 1024; maximum observed 822 tokens |
-| Embedding | Pinned local Nomic; normalized 768-dimensional document/query vectors |
-| Database | Applied Alembic `0002`; eight snapshots, 73 chunks, three indexes/73 vectors, 24 traces/37 spans (verified 2026-11-23) |
+| Sources | Eight PostgreSQL 18 HTML snapshots/113 chunks imported; original four sources preserved |
+| Synthetic sources | Atlas v1/v2 preserved separately; six expanded Atlas snapshots/38 chunks embedded in the shared index |
+| Parsing | Selected expansion scope: eight PostgreSQL + six Atlas sources, 638 blocks; four original HTML outputs reused |
+| Chunking | Expanded scope: 552 content blocks → 151 saved chunks (113 PostgreSQL/38 Atlas); target 512 / ceiling 1024; maximum 822; original 49 unchanged |
+| Embedding | Pinned local Nomic; normalized 768-dimensional vectors; shared fourteen-snapshot index has 151 vectors |
+| Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (verified 2026-11-23) |
 | Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); Simple remains dense with `limit=5` |
-| Diagnostics | `--method dense` (default), `full-text` or `hybrid`; exact index scope, ranks/scores/hits at 5/10/20 and immutable reports |
+| Diagnostics | Schema 3 / `annotated-evidence-v1`: unique annotated-chunk recall and any/all claim support at 5/10/20; positive means, separate negatives and manual-review candidates |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
 | Generator | Luna client, source-linked context, `answer_v1` and Simple workflow; one live P04 answer verified |
 | Answer runners | Simple/LLM-only support `--dataset`, one/all selection, shared resources/run ID and per-question records; Simple requires exact index scope |
 | Live Simple batch | P01–P06 completed; editorial review: P01/P02/P04/P06 meet recorded requirements, P03/P05 partial |
 | LLM-only control | Live PostgreSQL and Atlas pairs completed; raw-question-only inputs verified, with one LLM span per question |
-| Questions | P01–P06 baseline unchanged; separate P07–P09/P19 Atlas subset verified, including one unanswerable case; P10–P18/P20 drafts |
+| Questions | Expanded dev version 1.7.0 completes all 120 questions: 100 answerable + 20 unanswerable; P81–P130 added, all prior versions preserved; no preparation slots remain |
 | Changed evidence | P08 is unchanged across v1/v2; fresh Simple answers follow the source limit, 5 → 8 seconds, with supporting citations |
 
 Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
@@ -30,6 +31,7 @@ Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 - PostgreSQL, 49 vectors: `nomic-d4a8ebdbce1253c45ea50734d984a14a6258d9f1e7a332fd56964011eb886447`.
 - Atlas, 12 vectors: `nomic-b98238adf1e5b69036fc64a756e3171b7459ad8842e8c3ea280fe9a777ad8ddf`.
 - Atlas v2, 12 vectors: `nomic-5710f4359df83e693a0d994cbf59c45d6ebe9b08695f0ff4d9f75ec062825a55`.
+- Expanded shared scope, 151 vectors: `nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`.
 
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
 
@@ -495,11 +497,388 @@ not all twenty pilot drafts. P10–P18/P20 need fixture/scope/reference work;
 the sandbox tool module remains a scaffold. No inference or API call was
 repeated. Audit: `outputs/comparisons/pilot-retrieval-coverage-20261123.json`.
 
+## Retrieval dataset allocation — 2026-11-23
+
+The owner approved 50 PostgreSQL-only, 30 Atlas-only and 20 combined answerable
+questions, plus 20 unanswerable, and broader topics. Completed the
+[source/topic/question matrix](RETRIEVAL_DATASET_PLAN.md): eight PostgreSQL
+scopes (four existing/four new), six planned Atlas documents, combined evidence
+requirements and four groups of five unanswerable cases. Existing IDs map to
+their budgets; the verified set remains nine plus one, leaving 110 new records.
+The plan preserves old states and specifies one shared expanded comparison
+corpus. No source snapshot, corpus/question file, embedding, DB or API run was
+created. Matrix totals, retained question IDs and local documentation links
+were checked; this documentation step needs no application test run.
+
+## PostgreSQL expansion capture — 2026-11-23
+
+Added [postgres_expanded_v1.json](../data/corpus/postgres_expanded_v1.json)
+with the four unchanged original source definitions plus Index Types,
+Transaction Isolation, Routine Vacuuming and Constraints. The minimal
+[corpus_expansion.toml](../configs/corpus_expansion.toml) reuses the downloader
+without changing Python code or model settings. Only the four new pages were
+downloaded, totaling 187,826 bytes. Their immutable HTML/manifest pairs and
+hashes are listed below. The original config/manifest and all 114 protected
+source, dataset, code and local artifact files are unchanged.
+
+All eight selected snapshots passed byte/hash/source checks and parsing in
+memory, including the new pages' expected subsection headings. Parsed results
+were not persisted; chunking, embeddings, DB writes and model calls did not
+run. **35 offline source/download/parser tests passed.** Capture/preservation
+record: `outputs/validation/postgres-expanded-v1-capture-20261123T175303Z.json`.
+The retrieval DB and ten verified questions were not modified by this step.
+
+## Expanded Atlas authoring — 2026-11-23
+
+Created six English documents and their [hash-pinned manifest](../data/corpus/synthetic/atlas-expanded-v1/sources.json)
+under `data/corpus/synthetic/atlas-expanded-v1/`: inventory, operations policy,
+query/index catalog, backup, maintenance and access. The 4,149-word corpus
+retains the baseline inventory, original lookup SQL and 5-second lag rule.
+The catalog adds three query patterns in total, four declared secondary indexes
+and selected constraints; policies cover recovery targets, approvals and roles.
+These are synthetic definitions and rules, not executed DDL or observations.
+
+All six sources passed hash/metadata checks and temporary ingestion/readback,
+producing 134 blocks in temporary storage only. Query IDs, parameter slots,
+cross-references and preserved facts were checked; **14 Markdown tests passed**.
+All 124 protected existing files remain unchanged, including Atlas v1/v2,
+datasets and model/code/config artifacts. Report:
+`outputs/validation/atlas-expanded-v1-authoring-20261123T180121Z.json`.
+No persistent snapshots/chunks, new questions, DB writes or model calls ran.
+
+## Expanded source parsing — 2026-11-23
+
+Saved four new PostgreSQL parser JSON files in `data/local/parsed/` and
+persistently ingested the six Atlas sources into
+`data/local/markdown/atlas-expanded-v1-hyrbftbg/`. Each Atlas folder contains
+the exact Markdown copy, snapshot manifest and `parsed.json`. The original
+four PostgreSQL parser outputs were verified and reused unchanged.
+
+The ten new documents contain 454 blocks. The complete selected scope has
+14 sources/638 blocks: 86 headings, 435 paragraphs, 108 code blocks and nine
+tables. These are parser blocks, not chunks. Saved records match re-parsed
+sources exactly; all twelve Atlas SQL fences retain their text. All 131
+protected existing files are unchanged, including source manifests, old
+snapshots/chunks, datasets and code. **30 HTML/Markdown tests passed.**
+No code change, download, tokenizer/model call or DB write ran. Scope,
+snapshot/parsed paths and hashes are pinned in
+`outputs/validation/corpus-expansion-parse-20261123T181235Z.json`.
+
+## Expanded chunking fit assessment — 2026-11-23
+
+An offline in-memory check of all 552 non-heading blocks produced 151 candidate
+chunks: 113 PostgreSQL and 38 Atlas. The maximum complete input is 822 tokens;
+none exceeds 1024, and all 108 code blocks/nine tables remain intact. Added
+PostgreSQL/Atlas maxima are 508/380. The original 49-chunk baseline counts and
+tokenizer/settings match. Six metadata-only Atlas candidates and sixteen
+split code/table-following-paragraph adjacencies are review points, not
+measured retrieval failures. See [CHUNKING](CHUNKING.md#expanded-corpus-fit-assessment--2026-11-23).
+All 153 protected artifacts are unchanged. Report:
+`outputs/validation/chunking-fit-20261123T182131Z.json`. No chunk files, vectors,
+DB records or algorithm changes were made; no embedding/LLM inference ran.
+
+## Expanded persistent chunks — 2026-11-23
+
+Saved `data/local/chunks/postgres-expanded-v1-section-blocks-v1/` (113 chunks)
+and `data/local/chunks/atlas-expanded-v1-section-blocks-v1/` (38 chunks).
+Each source JSON contains chunks, heading records and block token counts;
+each run has a settings/provenance summary. The 151-chunk layout exactly
+matches the in-memory fit check. All 552 content blocks, 108 code blocks and
+nine tables remain intact; complete inputs stay within 1024 tokens (max 822).
+The original 49 chunks/IDs/heading records are identical to the baseline.
+
+Independent read-back checked token counts, serialization, source hashes,
+heading boundaries and neighbor links. Both groups passed the existing import
+loader without a DB connection. **43 offline chunk/parser/Markdown tests passed.**
+All 153 protected existing artifacts are unchanged. No code, chunking settings,
+source text, model calls or DB records changed. Report:
+`outputs/validation/corpus-expansion-chunk-20261123T182736Z.json`.
+The metadata-only chunks and split follow-up review points are retained;
+this is structural verification, not a retrieval-quality result.
+
+## Expanded corpus DB import — 2026-11-23
+
+Verified live PostgreSQL 18.6/pgvector 0.8.7, then committed both expanded
+source groups with the existing importer. Added **10 snapshots and 102 chunks**;
+the original four PostgreSQL snapshots/49 chunks were reused. DB totals are
+now **18 snapshots/175 chunks**. The selected fourteen-source corpus contains
+151 chunks; the other 24 chunks belong to preserved Atlas v1/v2 controls.
+
+Read-back matched all fourteen selected snapshots and 151 chunks to local
+records, including exact text, embedding inputs, metadata and acquisition
+times. Every pre-existing row hash is unchanged. The three embedding indexes,
+73 vectors, 24 traces, 37 spans and Alembic `0002` are preserved. A repeat
+import was accepted and rolled back as an idempotency check.
+
+**Nine offline importer tests and four DB integration tests passed.** The DB
+tests use temporary tables/rollback. All 169 protected local artifacts remain
+unchanged. No migration, model call or new vector ran. Record:
+`outputs/validation/corpus-expansion-import-20261123T184700Z.json`.
+
+## Expanded shared embedding index — 2026-11-23
+
+Created the shared index listed above with the pinned local Nomic model,
+CPU float32, 768 dimensions and unchanged normalization/token settings.
+It contains exactly the fourteen selected snapshots/151 chunks (113 PostgreSQL,
+38 expanded Atlas); original Atlas v1/v2 controls are excluded. DB totals are
+now four indexes/224 vectors. The eighteen snapshots/175 chunks are unchanged.
+
+Read-back verified every input SHA-256, finite 768-dimensional vector and L2
+norm (0.99999982–1.00000020). Reconstructed index identity/settings match the
+stored record. A document-vector self-search passed; this is a storage/search
+smoke, not question-level retrieval quality. Repeated identical saves were
+accepted and rolled back without rerunning inference.
+
+**19 offline unit tests and 17 temporary-table DB tests passed.** All old row
+hashes, three original indexes/73 vectors, traces/spans/schema and 185 protected
+local artifacts are unchanged. Ten local model files passed checksum checks.
+No hosted API call or migration ran. Indexer output and verification:
+`outputs/validation/corpus-expansion-index-20261123T185609Z-result.json` and
+`outputs/validation/corpus-expansion-index-20261123T185609Z.json`.
+
+## Expanded question references — 2026-11-23
+
+Created [expanded_questions.json](../data/evaluation/dev/expanded_questions.json),
+version 1.0.0: the same P01–P09/P19 text, expected answers and requirements,
+now pinned to all fourteen sources/151 chunks. The six Atlas evidence records
+use expanded-state snapshots/chunks; all thirteen PostgreSQL evidence records
+are unchanged. There are 21 requirements and 19 evidence records over fourteen
+blocks/thirteen chunks. Topic buckets, related scenario families and explicit
+answerability labels are recorded; all ten remain development material.
+
+P19 was rechecked over all 638 blocks and 151 embedding inputs. Boreal is
+absent; the Atlas policy remains local to Atlas and no selected source supplies
+an approved Boreal limit. This combines a recorded scope/authority review with
+an absence scan, not a general semantic proof. The reference checker now accepts
+multiple pinned source manifests while preserving the original single-manifest format.
+
+**204 offline unit tests and all four dataset reference checks passed.**
+A fresh read-only DB check accepted the shared 151-vector index and rejected
+all three smaller original indexes for this dataset. All public row hashes
+and 182 protected artifacts are unchanged; the development README was updated.
+No retrieval, embedding, hosted API
+call or DB write ran. Verification:
+`outputs/validation/expanded-question-references-20261123T190949Z.json`.
+
+## First new question batch — 2026-11-23
+
+Created cumulative [expanded_questions_v1_1.json](../data/evaluation/dev/expanded_questions_v1_1.json),
+version 1.1.0. The original ten records and complete fourteen-source/151-chunk
+state are unchanged; the earlier file is preserved. New P21–P30 add four
+PostgreSQL-only, two Atlas-only, two combined and two unanswerable questions.
+They cover all four added PostgreSQL scopes and the Atlas query catalog,
+backup, maintenance and access policies. P29 asks for an unspecified table
+row count; P30 asks for a backup outcome without a matching observation.
+
+At this milestone there were **20 unique development questions: 17 answerable + 3 unanswerable**
+(10 PostgreSQL-only, 5 Atlas-only, 2 combined, 3 negative). The cumulative
+annotations have 44 requirements and 36 evidence records over 29 blocks/
+23 chunks. Related VACUUM questions P23/P28 share a scenario family. P10–P18/P20
+remain separate drafts, not automatically verified by reaching twenty records.
+
+The checker now accepts an explicit `missing_fact` editorial review for a
+documented entity, while preserving P19's default absent-entity check. It
+checks complete scope, entity presence and missing-fact metadata; it does not
+infer semantic unanswerability. Negative records still have no positive evidence.
+
+**206 offline unit tests, all five dataset reference checks and Ruff's unused/
+undefined-name checks passed.** All 188 protected source/data/code artifacts
+are unchanged; gold is excluded from runtime question selection. No DB access,
+retrieval, embedding or hosted API call ran. Record:
+`outputs/validation/expanded-questions-batch01-20261123T194352Z.json`.
+
+## Second new question batch — 2026-11-23
+
+Created cumulative [expanded_questions_v1_2.json](../data/evaluation/dev/expanded_questions_v1_2.json),
+version 1.2.0. P31–P40 add four PostgreSQL-only, two Atlas-only, two combined
+and two unanswerable questions. They cover EXPLAIN units, unresolved partial-index
+parameters, lag interpretation, UNIQUE/NULL semantics, unbilled-query filters,
+retry limits, approved plan inspection and reporting-export isolation.
+P39 asks for an unspecified emergency promotion decision-maker; P40 asks for
+an unmeasured index-versus-Seq-Scan execution-time change. All four negative
+categories now have records, with whole-corpus reviews rather than retrieval-miss labels.
+
+At this milestone there were **30 unique development questions: 25 answerable + 5 unanswerable**
+(14 PostgreSQL-only, 7 Atlas-only, 4 combined, 5 negative). The cumulative
+annotations have 67 requirements and 53 evidence records over 41 blocks/
+30 chunks. Related EXPLAIN, partial-index, lag and isolation questions retain
+existing scenario families. All twenty inherited records and the complete
+fourteen-source/151-chunk state are identical to version 1.1.0; prior files remain.
+
+**10 reference-boundary unit tests and all six dataset reference checks passed.**
+All 191 protected source/data/code artifacts are unchanged; no application code
+or dependency changed. Gold stays outside runtime question selection. No DB
+access, retrieval, embedding or hosted API call ran. Verification:
+`outputs/validation/expanded-questions-batch02-20261123T200722Z.json`.
+
+## Third new question batch — 2026-11-23
+
+Created cumulative [expanded_questions_v1_3.json](../data/evaluation/dev/expanded_questions_v1_3.json),
+version 1.3.0. P41–P50 add four PostgreSQL-only, two Atlas-only, two combined
+and two unanswerable questions. Topics include multicolumn GIN, BRIN summaries,
+sequence counters, ANALYZE, Atlas storage accounting and backup retention.
+P47 connects the local NULL-lag decision to PostgreSQL idle-standby behavior;
+P48 applies the partial-index implication rule to the declared unbilled index.
+P49 asks for an unspecified individual index size; P50 asks for an unobserved
+current membership list. Both have full-corpus missing-fact reviews.
+
+At this milestone there were **40 unique development questions: 33 answerable + 7 unanswerable**
+(18 PostgreSQL-only, 9 Atlas-only, 6 combined, 7 negative). The cumulative
+annotations have 87 requirements and 66 evidence records over 50 blocks/
+37 chunks. All 23 planned topic buckets, including all five combined buckets,
+now have at least one record; their target budgets remain incomplete.
+Related lag/partial-index questions retain their existing scenario families.
+All thirty inherited records and the fourteen-source/151-chunk state are
+identical to version 1.2.0; prior files remain unchanged.
+
+**10 reference-boundary unit tests and all seven reference-file checks passed.**
+All 192 protected source/data/code artifacts are unchanged. Application code and
+dependencies are unchanged. No DB access, retrieval, embedding or hosted API call ran.
+Gold remains outside ingestion and runtime question selection. Verification:
+`outputs/validation/expanded-questions-batch03-20261123T201630Z.json`.
+
+## Fourth new question batch — 2026-11-23
+
+Created cumulative [expanded_questions_v1_4.json](../data/evaluation/dev/expanded_questions_v1_4.json),
+version 1.4.0. P51–P60 add four PostgreSQL-only, two Atlas-only, two combined
+and two unanswerable questions. Topics include EXPLAIN loops/averages,
+Read Uncommitted, partition-parent statistics, foreign-key delete actions,
+lag-observation validity and intended reporting-table access.
+P57 connects the approved routine command to PostgreSQL space behavior;
+P58 applies the NO ACTION default to the declared device/customer relationship.
+P59 lacks an event-row retention policy; P60 lacks evidence of the stated lag
+spike and its cause. Both have full-corpus missing-fact reviews.
+
+At this milestone there were **50 unique development questions: 41 answerable + 9 unanswerable**
+(22 PostgreSQL-only, 11 Atlas-only, 8 combined, 9 negative). The cumulative
+annotations have 109 requirements and 82 evidence records over 61 blocks/
+42 chunks. Related EXPLAIN, isolation, statistics, lag and vacuum questions
+retain existing families; P54/P58 share the new foreign-key deletion family.
+All forty inherited records and the fourteen-source/151-chunk state are
+identical to version 1.3.0; prior files remain unchanged.
+
+**10 reference-boundary unit tests and all eight reference-file checks passed.**
+All 193 protected source/data/code artifacts are unchanged. Application code
+and dependencies are unchanged. No DB access, retrieval, embedding or hosted
+API call ran; gold stays outside ingestion and runtime question selection.
+Verification: `outputs/validation/expanded-questions-batch04-20261123T202711Z.json`.
+
+## Fifth new question batch — 2026-11-23
+
+Created cumulative [expanded_questions_v1_5.json](../data/evaluation/dev/expanded_questions_v1_5.json),
+version 1.5.0. P61–P70 add four PostgreSQL-only, three Atlas-only, two combined
+and one unanswerable question, following the remaining source-group budgets.
+Topics include partial uniqueness, lag stages, GIN components, serialization,
+query time bounds/ties, backup coverage and maintenance prerequisites.
+P68 connects unbilled-query filters to plan-node row estimates; P69 connects
+conditional asynchronous replay-lag semantics to the local criterion's limits.
+P70 lacks a documented CPU-core allocation for the named primary server.
+
+At this milestone there were **60 unique development questions: 50 answerable + 10 unanswerable**
+(26 PostgreSQL-only, 14 Atlas-only, 10 combined, 10 negative), halfway toward
+the approved 120-record preparation target. The cumulative annotations have
+132 requirements and 98 evidence records over 71 blocks/48 chunks.
+Related isolation, query-range, EXPLAIN and lag questions retain existing
+families. All fifty inherited records and the fourteen-source/151-chunk state
+are identical to version 1.4.0; prior files remain unchanged.
+
+**10 reference-boundary unit tests and all nine reference-file checks passed.**
+All 194 protected source/data/code artifacts are unchanged. Application code
+and dependencies are unchanged. No DB access, retrieval, embedding or hosted
+API call ran; gold stays outside ingestion and runtime question selection.
+Verification: `outputs/validation/expanded-questions-batch05-20261123T203929Z.json`.
+
+## Sixth new question batch — 2026-11-23
+
+Created cumulative [expanded_questions_v1_6.json](../data/evaluation/dev/expanded_questions_v1_6.json),
+version 1.6.0. P71–P80 add three PostgreSQL-only, three Atlas-only, two combined
+and two unanswerable questions. Topics include buffer counters, later-column
+B-tree conditions, LIKE patterns/locales, selective inventory totals,
+maintenance-window boundaries and access-record escalation.
+P77 applies the local rule to explicitly hypothetical write/replay lag inputs;
+P78 connects capacity approval to temporary VACUUM FULL rewrite space.
+P79 lacks a matching autovacuum-setting observation; P80 lacks the usable
+archive recovery point needed to quantify the incident's data-loss window.
+
+There are **70 unique development questions: 58 answerable + 12 unanswerable**
+(29 PostgreSQL-only, 17 Atlas-only, 12 combined, 12 negative). The cumulative
+annotations have 152 requirements and 109 evidence records over 76 blocks/
+51 chunks. All four negative buckets now contain three records each.
+Related EXPLAIN, multicolumn, lag and vacuum families are retained. All sixty
+inherited records and the fourteen-source/151-chunk state are identical to
+version 1.5.0; prior files remain unchanged. P77's numeric inputs are raw
+question data, not measured or imported observations.
+
+**10 reference-boundary unit tests and all ten reference-file checks passed.**
+All 195 protected source/data/code artifacts are unchanged. Application code
+and dependencies are unchanged. No DB access, retrieval, embedding or hosted
+API call ran; gold stays outside ingestion and runtime question selection.
+Verification: `outputs/validation/expanded-questions-batch06-20261123T205144Z.json`.
+
+## Completed 120-question development set — 2026-11-24
+
+Created cumulative [expanded_questions_v1_7.json](../data/evaluation/dev/expanded_questions_v1_7.json),
+version 1.7.0. P81–P130 complete the remaining fifty records: 21 PostgreSQL-only,
+13 Atlas-only, eight combined and eight unanswerable. New topics include GiST/BRIN
+design, predicate locks, visibility maps, freezing, primary/exclusion constraints,
+and Atlas query, restore, maintenance and access boundaries. Combined questions
+require both source groups; negative cases distinguish missing policies,
+resource attributes, observations and unsupported quantitative/causal conclusions.
+
+The completed distribution is **50 PostgreSQL-only + 30 Atlas-only + 20 combined
+answerable questions, plus 20 unanswerable** (five in each negative bucket).
+All 23 topic budgets are met. The 120 unique records contain 252 requirements
+and 195 positive evidence records over 134 distinct blocks/73 chunks.
+All seventy inherited records, fourteen-source/151-chunk pins and prior files
+are unchanged. Gold remains outside ingestion and runtime question selection.
+All 120 remain development material; this does not freeze the thesis test set.
+
+**10 reference-boundary unit tests and all eleven reference-file checks passed.**
+The 196 protected source/data/code files are unchanged. Counts, source-group
+support, parent pins, raw-question-only selection and negative scope/context
+reviews passed offline checks. No DB access, retrieval, embedding or hosted API
+call ran. Reference integrity is not a model-quality result. Verification:
+`outputs/validation/expanded-questions-complete-20261123T211259Z.json`.
+
+## Expanded retrieval measurements — 2026-11-24
+
+[check_retrieval.py](../scripts/check_retrieval.py) now implements
+[`annotated-evidence-v1`](EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
+Schema-3 reports count each annotated chunk once and compute available claim
+support using `any`/`all` rules at 5/10/20. Summary means give each answerable
+question equal weight; the all-requirements-supported rate is also recorded.
+Unanswerable questions retain their missing-fact review and full ranking with
+`null` positive coverage. They cannot be graded for abstention without answers.
+
+Unannotated returned chunks are listed separately with `not_reviewed` status.
+They are not automatically wrong or accepted as sufficient; manual review and
+versioned reference additions remain separate from raw reports. Old evidence-ID
+fields remain for inspection. Question type, bucket/family and measurement/doc
+hash provenance support later grouped review. Retrieval SQL, fusion settings,
+model, questions, source scope and Simple's five-chunk context are unchanged.
+
+**18 diagnostic unit tests and all eleven reference-file checks passed.**
+Offline compatibility checks exercised all 120 records through each of the
+three mocked retrieval paths (360 simulated question calls), including the
+100-positive/20-negative split and raw-question-only inputs. These are test
+fixtures, not measured retrieval runs. All 211 protected files, including
+sixteen previous retrieval reports, are unchanged. No model loaded, DB connection
+opened or hosted API called. Verification:
+`outputs/validation/retrieval-measurements-20261123T215752Z.json`.
+
 ## Next small step
 
-Dense, full-text and initial RRF diagnostics are complete. Proposed next:
-choose/pin a reranker and its candidate/context limits, then add a reranking
-component and compare it with these baselines. Simple remains dense-only;
+Run dense, full-text and RRF on
+[the completed set](../data/evaluation/dev/expanded_questions_v1_7.json), with
+unchanged raw questions, the shared 151-chunk index and `annotated-evidence-v1`.
+Recheck DB/index scope before running and retain schema-3 per-question/summary
+reports. Review unannotated candidates consistently across methods; do not
+equate an annotated-reference miss with semantic failure. No real expanded run
+has started. Final scoring, held-out allocation and thesis settings remain open.
+
+Dense, full-text and initial RRF diagnostics are complete. Reranker selection
+and implementation remain a later component step, followed by comparison
+against these baselines. Simple remains dense-only;
 the Enhanced answer workflow and fixed tools follow separately. Final thesis
 budgets remain open. Preserve both Atlas states, their results and P09's
 explicit-role omission; no prompt was tuned to these results.
@@ -536,9 +915,12 @@ are background. Detailed decisions live in PROJECT_CONTEXT and METHOD_DESIGN.
 ## Saved official-documentation snapshots
 
 Each directory is under `data/local/snapshots/` and contains
-`<source_id>.html` plus `manifest.json`. The parser used these saved copies.
-PG-EXPLAIN was downloaded on 2026-11-02, the others on 2026-11-05; do not assume
-an atomic, simultaneous capture. Synthetic sources are not yet included.
+`<source_id>.html` plus `manifest.json`. The original PG-EXPLAIN capture is
+from 2026-11-02, the other three baseline pages from 2026-11-05; the four
+expansion pages were captured on 2026-11-23. This is not an atomic capture.
+The table covers HTML only; Atlas snapshots are recorded separately above.
+All eight have persisted parser outputs and 113 imported/embedded chunks in
+the shared index. The original four-source/49-chunk index remains separate.
 
 | Source ID | Snapshot directory | Bytes | SHA-256 |
 | --- | --- | --- | --- |
@@ -546,13 +928,17 @@ an atomic, simultaneous capture. Synthetic sources are not yet included.
 | PG-MULTI | `PG-MULTI-20261105T191707Z-96nc6y0c` | 21135 | `df6631e673511c60f9ea45dab2b5c69ab80ff1a747117af72236006dc59063d1` |
 | PG-PARTIAL | `PG-PARTIAL-20261105T191707Z-kmf7w4sp` | 26463 | `ab67b4a1909a9be617038dcea60e34b7d8f898ca9e8b5f0a569e4df389caa18e` |
 | PG-STATS | `PG-STATS-20261105T191715Z-zm7b259y` | 290994 | `4b872e1cd30fd40679c000bf3e5efc15d9f1e4d7a003aed877cfe2c09381c45c` |
+| PG-INDEX-TYPES | `PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd` | 26162 | `174f2b0501e2f98edf2df8440a51a9de5c188526db9f0277d1e675e8d685df42` |
+| PG-ISOLATION | `PG-ISOLATION-20261123T175402Z-2_17hssf` | 47604 | `1553516d656d3d557aa4c6fc0d7b93cb8c00cb5ea87352355701feb620999670` |
+| PG-VACUUM | `PG-VACUUM-20261123T175402Z-lwwvgshl` | 67459 | `f8a8eca1e310b50426d903e4150a1c1a0d805ca08919454a99fdaeada258219a` |
+| PG-CONSTRAINTS | `PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f` | 46601 | `520904acbfd1aabb32798983b2a17aab0b70831d9a55ea4f55a76ac1f0449667` |
 
 ## Parser outputs
 
-Four example files are under `data/local/parsed/<snapshot_id>.json`, using
-the snapshot IDs above. The CLI writes JSON to stdout; these examples were
-saved separately during verification and are ignored by Git. Parser version:
-`postgresql-html-v1`. There are 184 content blocks, not embedding chunks.
+Eight files are under `data/local/parsed/<snapshot_id>.json`, using the
+snapshot IDs above. The CLI writes JSON to stdout; saved outputs are ignored
+by Git. Parser version: `postgresql-html-v1`. The eight HTML sources contain
+504 blocks, including 48 headings; the original four account for 184 blocks.
 
 | Source ID | Heading | Paragraph | Code | Table |
 | --- | --- | --- | --- | --- |
@@ -560,10 +946,31 @@ saved separately during verification and are ignored by Git. Parser version:
 | PG-MULTI | 1 | 12 | 3 | 0 |
 | PG-PARTIAL | 1 | 30 | 11 | 0 |
 | PG-STATS | 2 | 5 | 0 | 1 |
+| PG-INDEX-TYPES | 7 | 18 | 8 | 0 |
+| PG-ISOLATION | 6 | 57 | 7 | 1 |
+| PG-VACUUM | 17 | 78 | 6 | 0 |
+| PG-CONSTRAINTS | 10 | 76 | 29 | 0 |
 
 The second PG-STATS heading is `Note`, nested under its section's heading
 path. This parser expects the pilot's explicitly closed DocBook HTML tags;
 general web/PDF/Markdown and nested content tables are not supported.
+
+### Expanded Atlas parser outputs
+
+Run: `data/local/markdown/atlas-expanded-v1-hyrbftbg/`. Parser version:
+`atlas-markdown-v1`. The six sources add 134 blocks, including 38 headings;
+their raw copies, manifests and parsed records are beside each other.
+Together with PostgreSQL, the selected scope has 638 blocks/552 non-heading
+content blocks. Original Atlas v1/v2 controls are outside this expanded scope.
+
+| Source ID | Snapshot directory within the run | Blocks |
+| --- | --- | ---: |
+| LOCAL-INVENTORY | `LOCAL-INVENTORY-fe15d4078bde0d46` | 22 |
+| LOCAL-POLICY | `LOCAL-POLICY-cb95d1ffabe529d7` | 20 |
+| LOCAL-QUERY-CATALOG | `LOCAL-QUERY-CATALOG-5040c4097f291207` | 36 |
+| LOCAL-BACKUP | `LOCAL-BACKUP-680206816dba1b08` | 18 |
+| LOCAL-MAINTENANCE | `LOCAL-MAINTENANCE-913bdddf1eb94c40` | 21 |
+| LOCAL-ACCESS | `LOCAL-ACCESS-8206771d2a7ea5a3` | 17 |
 
 ## First steps when returning
 

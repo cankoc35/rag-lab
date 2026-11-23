@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, Mock, call, patch
 
-from scripts.check_retrieval import check_retrieval, main, validate_index_scope
+from scripts.check_retrieval import check_retrieval, main, measure_evidence, validate_index_scope
 
 
 class CheckRetrievalTests(unittest.TestCase):
@@ -25,8 +25,14 @@ class CheckRetrievalTests(unittest.TestCase):
         } for i in range(1, 50)]
         self.question = {
             "question_id": "P01", "question": "Which index can be used?", "expected_answer": "Gold must not reach retrieval.",
+            "question_type": "direct_document",
             "evidence": [{"evidence_id": name, "chunk_id": f"chunk-{rank}"}
                          for name, rank in (("E1", 5), ("E2", 10), ("E3", 20), ("E4", 21), ("E5", 50))],
+            "answer_requirements": [
+                {"requirement_id": "R1", "support_mode": "any", "supporting_evidence_ids": ["E1", "E2"]},
+                {"requirement_id": "R2", "support_mode": "all", "supporting_evidence_ids": ["E2", "E3"]},
+                {"requirement_id": "R3", "support_mode": "all", "supporting_evidence_ids": ["E1", "E5"]},
+            ],
         }
         self.search = self.enterContext(patch("scripts.check_retrieval.retrieve", return_value=self.matches))
         self.enterContext(redirect_stderr(StringIO()))
@@ -41,6 +47,61 @@ class CheckRetrievalTests(unittest.TestCase):
         })
         self.assertEqual(len(record["ranking"]), 49)
         self.assertEqual(record["ranking"][0]["snapshot_id"], "snapshot")
+
+    def test_duplicate_annotations_count_once_per_chunk(self):
+        question = {**self.question, "evidence": [*self.question["evidence"],
+                                                  {"evidence_id": "E6", "chunk_id": "chunk-5"}]}
+        result = check_retrieval(self.connection, self.embedder, "index", {"questions": [question]})
+        record = result["questions"][0]
+        self.assertEqual(record["evidence_hits_at_k"]["5"], ["E1", "E6"])
+        self.assertEqual(record["evidence_chunk_hits_at_k"]["5"], ["chunk-5"])
+        self.assertEqual(len(record["evidence_chunk_ranks"]), 5)
+        self.assertEqual(record["evidence_chunk_recall_at_k"], {"5": .2, "10": .4, "20": .6})
+
+    def test_any_and_all_requirements_use_the_first_sufficient_cutoff(self):
+        ranks = {"chunk-5": 5, "chunk-10": 10, "chunk-20": 20}
+        metrics = measure_evidence(self.question, ranks)
+        self.assertEqual(metrics["requirement_ranks"], {"R1": 5, "R2": 20, "R3": None})
+        self.assertEqual(metrics["requirements_supported_at_k"], {
+            "5": ["R1"], "10": ["R1"], "20": ["R1", "R2"],
+        })
+        self.assertEqual(metrics["requirement_coverage_at_k"], {"5": 1/3, "10": 1/3, "20": 2/3})
+        # An alternative can support any, but a missing member cannot support all.
+        metrics = measure_evidence(self.question, {"chunk-10": 3})
+        self.assertEqual(metrics["requirement_ranks"], {"R1": 3, "R2": None, "R3": None})
+
+    def test_all_requirement_can_use_two_annotations_from_one_returned_chunk(self):
+        question = {**self.question,
+                    "evidence": [{"evidence_id": eid, "chunk_id": "shared"} for eid in ("E1", "E2")],
+                    "answer_requirements": [{"requirement_id": "R", "support_mode": "all",
+                                             "supporting_evidence_ids": ["E1", "E2"]}]}
+        metrics = measure_evidence(question, {"shared": 5})
+        self.assertEqual(metrics["evidence_chunk_recall_at_k"]["5"], 1)
+        self.assertEqual(metrics["requirement_ranks"], {"R": 5})
+        self.assertEqual(metrics["requirement_coverage_at_k"]["5"], 1)
+
+    def test_unannotated_chunks_remain_candidates_for_manual_review(self):
+        metrics = measure_evidence(self.question, {"possible-alternative": 1, "chunk-5": 6})
+        review = metrics["alternative_evidence_review"]
+        self.assertEqual(review["status"], "not_reviewed")
+        self.assertEqual(review["unannotated_chunk_ids_at_k"]["5"], ["possible-alternative"])
+        self.assertEqual(review["unannotated_chunk_ids_at_k"]["10"], ["possible-alternative"])
+        self.assertEqual(metrics["evidence_chunk_recall_at_k"]["5"], 0)
+        self.assertEqual(metrics["requirement_coverage_at_k"]["5"], 0)
+
+    def test_summary_uses_per_question_means_and_excludes_unanswerable_cases(self):
+        second = {**self.question, "question_id": "P02",
+                  "evidence": [{"evidence_id": "E1", "chunk_id": "chunk-1"}],
+                  "answer_requirements": [{"requirement_id": "R", "support_mode": "any",
+                                           "supporting_evidence_ids": ["E1"]}]}
+        negative = {**self.question, "question_id": "P19", "answerability": "unanswerable", "evidence": []}
+        result = check_retrieval(self.connection, self.embedder, "index", {"questions": [self.question, second, negative]})
+        summary = result["summary"]
+        self.assertEqual(summary["answerable_questions"], 2)
+        self.assertEqual(summary["unanswerable_questions"], 1)
+        self.assertAlmostEqual(summary["mean_evidence_chunk_recall_at_k"]["5"], .6)
+        self.assertAlmostEqual(summary["mean_requirement_coverage_at_k"]["5"], 2/3)
+        self.assertEqual(summary["all_requirements_supported_rate_at_k"]["5"], .5)
 
     def test_each_original_question_is_retrieved_once_without_gold(self):
         second = {**self.question, "question_id": "P02", "question": "Can lag be NULL?"}
@@ -76,6 +137,8 @@ class CheckRetrievalTests(unittest.TestCase):
         record = result["questions"][0]
         self.assertEqual(record["ranking"], [])
         self.assertEqual(record["evidence_hits_at_k"], {"5": [], "10": [], "20": []})
+        self.assertEqual(record["evidence_chunk_recall_at_k"], {"5": 0, "10": 0, "20": 0})
+        self.assertEqual(record["requirement_coverage_at_k"], {"5": 0, "10": 0, "20": 0})
         self.search.assert_not_called()
 
     def test_hybrid_passes_only_raw_question_and_records_component_ranks(self):
@@ -99,7 +162,9 @@ class CheckRetrievalTests(unittest.TestCase):
             load.assert_not_called()
 
     def test_unanswerable_question_keeps_its_ranking_without_positive_hit_scoring(self):
-        question = {**self.question, "question_id": "P19", "answerability": "unanswerable", "evidence": []}
+        question = {**self.question, "question_id": "P19", "answerability": "unanswerable", "evidence": [],
+                    "question_type": "insufficient_evidence", "primary_bucket": "NEG01",
+                    "scenario_family_id": "missing-policy", "unanswerability": {"reason": "missing_policy"}}
         progress = StringIO()
         with redirect_stderr(progress):
             result = check_retrieval(self.connection, self.embedder, "index", {"questions": [question]})
@@ -108,6 +173,15 @@ class CheckRetrievalTests(unittest.TestCase):
         self.assertEqual(record["answerability"], "unanswerable")
         self.assertEqual(record["evidence_ranks"], {})
         self.assertEqual(len(record["ranking"]), 49)
+        self.assertEqual(record["primary_bucket"], "NEG01")
+        self.assertEqual(record["scenario_family_id"], "missing-policy")
+        self.assertEqual(record["unanswerability"], {"reason": "missing_policy"})
+        self.assertEqual(record["evidence_chunk_recall_at_k"], {"5": None, "10": None, "20": None})
+        self.assertEqual(record["requirement_coverage_at_k"], {"5": None, "10": None, "20": None})
+        self.assertEqual(record["requirement_ranks"], {})
+        self.assertIsNone(record["alternative_evidence_review"])
+        self.assertEqual(result["summary"]["mean_evidence_chunk_recall_at_k"]["5"], None)
+        self.assertEqual(result["summary"]["all_requirements_supported_rate_at_k"]["5"], None)
         self.assertIn("N/A (no positive evidence", progress.getvalue())
         self.assertNotIn("0/0", progress.getvalue())
 
@@ -191,6 +265,8 @@ class CheckRetrievalTests(unittest.TestCase):
             self.assertEqual(check.call_args.kwargs["run_id"], report["run_id"])
             self.assertTrue(report["retrieval_read_only"] and report["tracing_enabled"])
             self.assertFalse(report["read_only"])
+            self.assertEqual(report["schema_version"], 3)
+            self.assertEqual(report["measurement_version"], "annotated-evidence-v1")
             self.assertEqual(report["questions"][0]["trace_id"], "trace")
 
     def test_cli_full_text_needs_no_model_settings_weights_or_ml_packages(self):

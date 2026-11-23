@@ -1,0 +1,1827 @@
+{
+  "schema_version": 1,
+  "dataset_id": "postgresql18-atlas-expanded-dev",
+  "dataset_version": "1.1.0",
+  "split": "dev",
+  "language": "en",
+  "status": "source_verified",
+  "verified_on": "2026-11-23",
+  "derived_from": [
+    {
+      "path": "data/evaluation/dev/expanded_questions.json",
+      "sha256": "36c062321e47c8554b7b0eee079c823150461e976b9388dcf6db6d1edf24d5fd"
+    }
+  ],
+  "verification": {
+    "review": "First new batch P21-P30 reviewed against the complete pinned source state: four PostgreSQL-only, two Atlas-only, two combined and two unanswerable questions. All inherited P01-P09/P19 records are unchanged. Source support is an editorial review, not an automatic answer-quality grade.",
+    "reference_checks": "Pinned source artifacts, exact evidence spans and claim mappings checked offline. P19 retains an absent-entity scan; P29/P30 document missing facts about present entities, with explicit whole-corpus editorial reviews. The checker verifies their scope, entity presence and review metadata, not semantic absence of the fact.",
+    "model_answer_runs": 0,
+    "retrieval_runs": 0
+  },
+  "reference_policy": {
+    "requirements": "Requirements annotate reference claims, not a frozen grading rubric. any means alternative supporting records; all means complementary selected support. corpus_scope is used only for an unanswerable case with no positive answer evidence.",
+    "coverage": "Selected reference evidence is not an exhaustive list of valid passages. Future evaluation must allow equivalent sufficient evidence, including a different valid passage or chunk.",
+    "limits": "This annotation does not implement a scoring metric, freeze a held-out set, or establish irreducible multi-document reasoning.",
+    "span_coordinates": "Zero-based Python Unicode character offsets in the original parsed block text; end is exclusive.",
+    "model_input": "Use only the question as the model-visible query. Gold answers, requirements and evidence remain evaluation data outside ingestion.",
+    "versioning": "Changing the source snapshot, parser, chunker, tokenizer or chunk settings requires revalidating references and versioning this development dataset.",
+    "scope": "Every question uses the same fourteen pinned sources and 151 chunks: eight PostgreSQL 18 scopes and six Atlas documents in atlas-expanded-v1. This cumulative development version preserves the original ten records and adds ten new unique questions. Original reference files remain unchanged."
+  },
+  "source_state": {
+    "source_state_id": "postgresql18-atlas-expanded-v1-section-blocks-v1",
+    "document_state": "atlas-expanded-v1",
+    "sources_manifests": [
+      {
+        "path": "data/corpus/postgres_expanded_v1.json",
+        "sha256": "8d85ae8dac541b5024994479fd6eeceaa8881739709b888f458fe929ba7c0e9e"
+      },
+      {
+        "path": "data/corpus/synthetic/atlas-expanded-v1/sources.json",
+        "sha256": "4f4209b8ca9ecec4b21e1d293882c3c5121c6c20b14b30ba6cf280c5e9169d67"
+      }
+    ],
+    "chunking": {
+      "chunker_version": "section-blocks-v1",
+      "serialization_version": "chunk-context-v1",
+      "settings": {
+        "target_tokens": 512,
+        "max_tokens": 1024,
+        "document_prefix": "search_document: "
+      },
+      "tokenizer": {
+        "identifier": "nomic-ai/nomic-embed-text-v1.5",
+        "revision": "e9b6763023c676ca8431644204f50c2b100d9aab",
+        "fingerprint": "193209d0efaf65a10abebfccaa2d1d0a39566c167e757aff7951c06802b7afd8",
+        "max_input_tokens": 8192
+      }
+    },
+    "sources": [
+      {
+        "source_id": "PG-EXPLAIN",
+        "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+        "source_url": "https://www.postgresql.org/docs/18/using-explain.html",
+        "title": "Using EXPLAIN",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-EXPLAIN-20261102T173311Z-yhdhybna/manifest.json",
+            "sha256": "1ed08e6ff4eca93ed59bab6b733995d69c1b0b1c33e4929a8b21db01cf6342a1"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-EXPLAIN-20261102T173311Z-yhdhybna/PG-EXPLAIN.html",
+            "sha256": "22b29b578fe330ce2a1eca03dcc6ecfb540eb6211e21cfa4d61d93d55e87bf7e"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-EXPLAIN-20261102T173311Z-yhdhybna.json",
+            "sha256": "d3b19e4794f35be171518aa0af84b9f83932390746fad7b652a4d5372c026ce0"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-EXPLAIN-20261102T173311Z-yhdhybna.json",
+            "sha256": "04470a3092336929bb95ba29f2aff1556d65ba6660688b82f17d29457fa0c825"
+          }
+        }
+      },
+      {
+        "source_id": "PG-MULTI",
+        "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+        "source_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html",
+        "title": "Multicolumn Indexes",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-MULTI-20261105T191707Z-96nc6y0c/manifest.json",
+            "sha256": "94634e95f7d49b95519bf175de5f654a221d9d779f71d7fda49e845a77502bf0"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-MULTI-20261105T191707Z-96nc6y0c/PG-MULTI.html",
+            "sha256": "df6631e673511c60f9ea45dab2b5c69ab80ff1a747117af72236006dc59063d1"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-MULTI-20261105T191707Z-96nc6y0c.json",
+            "sha256": "10d0c62ab9dd2692edf0d3e56a891dbe4389740e603539cbccddb1891afcbce0"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-MULTI-20261105T191707Z-96nc6y0c.json",
+            "sha256": "6aa8d8608cf5dc23c05d1db51cccf1daa5685a6b19fb6322a27ee80fc17e11f9"
+          }
+        }
+      },
+      {
+        "source_id": "PG-PARTIAL",
+        "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+        "source_url": "https://www.postgresql.org/docs/18/indexes-partial.html",
+        "title": "Partial Indexes",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-PARTIAL-20261105T191707Z-kmf7w4sp/manifest.json",
+            "sha256": "28b23636b3c10d5aae4b2a76fad8512b6c1d509813fc72d33c9b0f39473efd2c"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-PARTIAL-20261105T191707Z-kmf7w4sp/PG-PARTIAL.html",
+            "sha256": "ab67b4a1909a9be617038dcea60e34b7d8f898ca9e8b5f0a569e4df389caa18e"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-PARTIAL-20261105T191707Z-kmf7w4sp.json",
+            "sha256": "5bb739c314f0570eede63704cbdd78f40467a9aa620e8804cdef51b70b30fa2d"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-PARTIAL-20261105T191707Z-kmf7w4sp.json",
+            "sha256": "76914086c9fc343c681e115563cfa4883b412ef77e8793314d6a6f8f87937ac1"
+          }
+        }
+      },
+      {
+        "source_id": "PG-STATS",
+        "snapshot_id": "PG-STATS-20261105T191715Z-zm7b259y",
+        "source_url": "https://www.postgresql.org/docs/18/monitoring-stats.html",
+        "title": "The Cumulative Statistics System — pg_stat_replication",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-STATS-20261105T191715Z-zm7b259y/manifest.json",
+            "sha256": "605670466994a51d773688bfc3f5980c26b4f8a48544fc8cf1daf0bbd28879c2"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-STATS-20261105T191715Z-zm7b259y/PG-STATS.html",
+            "sha256": "4b872e1cd30fd40679c000bf3e5efc15d9f1e4d7a003aed877cfe2c09381c45c"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-STATS-20261105T191715Z-zm7b259y.json",
+            "sha256": "4f757e685e2bbba3de4542996d3f4f88ce469e44c27b0385df6fe73576bd2d3a"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-STATS-20261105T191715Z-zm7b259y.json",
+            "sha256": "b2d15ec57b81e32922c3658e6a80a072af6034f01c3ab98840f38c7e3eb900e5"
+          }
+        }
+      },
+      {
+        "source_id": "PG-INDEX-TYPES",
+        "snapshot_id": "PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd",
+        "source_url": "https://www.postgresql.org/docs/18/indexes-types.html",
+        "title": "Index Types",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd/manifest.json",
+            "sha256": "dbd02aa6043355fc223179b7d5f73a4adb2e3ed890e9d0861f74e137d06dd619"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd/PG-INDEX-TYPES.html",
+            "sha256": "174f2b0501e2f98edf2df8440a51a9de5c188526db9f0277d1e675e8d685df42"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd.json",
+            "sha256": "577fd5444435d6cfb8542b9c2625a4ea6148b83d4ad58903b3ab8b9c03864c5b"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd.json",
+            "sha256": "ee655252c0ed279127e7cdc8ec36552c727fc79b6e85e5265f2a792723cda47b"
+          }
+        }
+      },
+      {
+        "source_id": "PG-ISOLATION",
+        "snapshot_id": "PG-ISOLATION-20261123T175402Z-2_17hssf",
+        "source_url": "https://www.postgresql.org/docs/18/transaction-iso.html",
+        "title": "Transaction Isolation",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-ISOLATION-20261123T175402Z-2_17hssf/manifest.json",
+            "sha256": "5afd1d88b7145119a046ca0e56d8bcdab4cf22773f5ee316430bfe4053bd7886"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-ISOLATION-20261123T175402Z-2_17hssf/PG-ISOLATION.html",
+            "sha256": "1553516d656d3d557aa4c6fc0d7b93cb8c00cb5ea87352355701feb620999670"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-ISOLATION-20261123T175402Z-2_17hssf.json",
+            "sha256": "39dcf216a01fef46036be85dbee8f58514d03089c632b9d1b8c040fd3c425e99"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-ISOLATION-20261123T175402Z-2_17hssf.json",
+            "sha256": "47c04987ccafcf596ca4633fd9da1dc25e7550a6f54f2f32471b7d2ad2688789"
+          }
+        }
+      },
+      {
+        "source_id": "PG-VACUUM",
+        "snapshot_id": "PG-VACUUM-20261123T175402Z-lwwvgshl",
+        "source_url": "https://www.postgresql.org/docs/18/routine-vacuuming.html",
+        "title": "Routine Vacuuming",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-VACUUM-20261123T175402Z-lwwvgshl/manifest.json",
+            "sha256": "4637762d9c176ea26f44c60723b29bf6fa29bfecebf46eb7064a59fc03c8ee59"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-VACUUM-20261123T175402Z-lwwvgshl/PG-VACUUM.html",
+            "sha256": "f8a8eca1e310b50426d903e4150a1c1a0d805ca08919454a99fdaeada258219a"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-VACUUM-20261123T175402Z-lwwvgshl.json",
+            "sha256": "40e2765aafc2c2e29c5408506beb05241b0aa817e38f9cb846387e45b20d2c97"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-VACUUM-20261123T175402Z-lwwvgshl.json",
+            "sha256": "9eb4d509572c84172d93907571d0ac4442bbd82601cf7ff21da2f18fa6cb0fd6"
+          }
+        }
+      },
+      {
+        "source_id": "PG-CONSTRAINTS",
+        "snapshot_id": "PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f",
+        "source_url": "https://www.postgresql.org/docs/18/ddl-constraints.html",
+        "title": "Constraints",
+        "parser_version": "postgresql-html-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/snapshots/PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f/manifest.json",
+            "sha256": "0dc66db2496b6d28d4637b881423bf2379d5529baa834e119883c0f1de60b7cb"
+          },
+          "raw_html": {
+            "path": "data/local/snapshots/PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f/PG-CONSTRAINTS.html",
+            "sha256": "520904acbfd1aabb32798983b2a17aab0b70831d9a55ea4f55a76ac1f0449667"
+          },
+          "parsed": {
+            "path": "data/local/parsed/PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f.json",
+            "sha256": "e72cdaf98e9129c9ba41f97de337692b2f9f6d3033995b26260999abf5ce1b49"
+          },
+          "chunks": {
+            "path": "data/local/chunks/postgres-expanded-v1-section-blocks-v1/PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f.json",
+            "sha256": "d1c884006e9155a1541c4cd9d7830500a0eac7cebae4550181b399828bcd4c5a"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-INVENTORY",
+        "snapshot_id": "LOCAL-INVENTORY-fe15d4078bde0d46",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_inventory.md",
+        "title": "Atlas environment inventory",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-INVENTORY-fe15d4078bde0d46/manifest.json",
+            "sha256": "63dba43b65fd33278a6c8a79de9954d510fd604f0aa7a69cc16c1d06151dea2c"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-INVENTORY-fe15d4078bde0d46/atlas_inventory.md",
+            "sha256": "8eb08c66a38907686ffbba6f5c6b4bdc452dcfd51ea73dee4c7f23f4e22f8fca"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-INVENTORY-fe15d4078bde0d46/parsed.json",
+            "sha256": "4dfe6d128cea3353c8fa86489eb6ac964375996cfac7bd85868fd6e98d4cd379"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-expanded-v1-section-blocks-v1/LOCAL-INVENTORY-fe15d4078bde0d46.json",
+            "sha256": "838f2115a6d1d082a2d229932a5f91c12c6711863d5eb8653488a0bcdb8dfb20"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-POLICY",
+        "snapshot_id": "LOCAL-POLICY-cb95d1ffabe529d7",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_operations_policy.md",
+        "title": "Atlas operations policy",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-POLICY-cb95d1ffabe529d7/manifest.json",
+            "sha256": "638044dd0a6348ea21450d8ac70873af6e4741da28c1b3d6a09395118b00cf76"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-POLICY-cb95d1ffabe529d7/atlas_operations_policy.md",
+            "sha256": "c1fbe68fa6635c232968895de5f908e7f4f040339ad8d1fc8550c5367a1decd0"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-POLICY-cb95d1ffabe529d7/parsed.json",
+            "sha256": "802283d7441eaf72aa077c3db2ba042a6c162fcde808e093c4afc2e92504f760"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-expanded-v1-section-blocks-v1/LOCAL-POLICY-cb95d1ffabe529d7.json",
+            "sha256": "1e3082f9cd7865de32838009687ab07e626f0324c00463669696bff46097acb4"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-QUERY-CATALOG",
+        "snapshot_id": "LOCAL-QUERY-CATALOG-5040c4097f291207",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_query_catalog.md",
+        "title": "Atlas query and index catalog",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-QUERY-CATALOG-5040c4097f291207/manifest.json",
+            "sha256": "aefffd428ef5d2bdf78034e5a5f1b4888f9a73f1e52d5bf32eec62e7ac38fe6e"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-QUERY-CATALOG-5040c4097f291207/atlas_query_catalog.md",
+            "sha256": "210140ae2b85c1594151aba74c3e592567d99ee105b78cc96432f3af3010469a"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-QUERY-CATALOG-5040c4097f291207/parsed.json",
+            "sha256": "2393115bd5314043511c1961f8771168bb9c9160a616df32fa4df0aa13cd91a5"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-expanded-v1-section-blocks-v1/LOCAL-QUERY-CATALOG-5040c4097f291207.json",
+            "sha256": "ab119038a56608fb29141adfa825c4d47308e16403e6bb6b9045cd49e9817374"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-BACKUP",
+        "snapshot_id": "LOCAL-BACKUP-680206816dba1b08",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_backup_policy.md",
+        "title": "Atlas backup policy",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-BACKUP-680206816dba1b08/manifest.json",
+            "sha256": "307d665f92df766f5123496c6fb3a218cd7bbd90c381f3aba0df7ef4e266358e"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-BACKUP-680206816dba1b08/atlas_backup_policy.md",
+            "sha256": "48f193635d43485c632dac9202025aff47c8f0e83ef4f0184a15bd80655f5d64"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-BACKUP-680206816dba1b08/parsed.json",
+            "sha256": "b7324a86d5607158ad9562dd258836f7aa18348bf2b3531e0ea960f2d4dc10fd"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-expanded-v1-section-blocks-v1/LOCAL-BACKUP-680206816dba1b08.json",
+            "sha256": "5ab650898052d014e3469c3c2076a45b39d83f24dd4d4b81c52606150bc67522"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-MAINTENANCE",
+        "snapshot_id": "LOCAL-MAINTENANCE-913bdddf1eb94c40",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_maintenance_policy.md",
+        "title": "Atlas maintenance policy",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-MAINTENANCE-913bdddf1eb94c40/manifest.json",
+            "sha256": "c8eb695f419945cc35e2eaedcdbdded7f2a44b1ca24d0c874c713e6485eb3086"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-MAINTENANCE-913bdddf1eb94c40/atlas_maintenance_policy.md",
+            "sha256": "218d71bdd2de27d5e60e6e40783dd89daa7bb6cf78f76c7ea99e396814d9f0aa"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-MAINTENANCE-913bdddf1eb94c40/parsed.json",
+            "sha256": "d5918d95eb9b578c711ac654fda143c260ab67c210d5b150f562d360c0482c76"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-expanded-v1-section-blocks-v1/LOCAL-MAINTENANCE-913bdddf1eb94c40.json",
+            "sha256": "dc8327813b592a3f2931f30d888032829f85c11da6e8339c4bf875407e416bcd"
+          }
+        }
+      },
+      {
+        "source_id": "LOCAL-ACCESS",
+        "snapshot_id": "LOCAL-ACCESS-8206771d2a7ea5a3",
+        "source_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_access_policy.md",
+        "title": "Atlas access policy",
+        "parser_version": "atlas-markdown-v1",
+        "files": {
+          "manifest": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-ACCESS-8206771d2a7ea5a3/manifest.json",
+            "sha256": "e87402752a8574606fd7f3a5623d1f51a40601d3cdfed6a244865c389c5a3b30"
+          },
+          "raw_markdown": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-ACCESS-8206771d2a7ea5a3/atlas_access_policy.md",
+            "sha256": "f8e7d822be716c9c9acf1b565d2ad1ea664ba46078dd6633ad86a2eddcec54da"
+          },
+          "parsed": {
+            "path": "data/local/markdown/atlas-expanded-v1-hyrbftbg/LOCAL-ACCESS-8206771d2a7ea5a3/parsed.json",
+            "sha256": "3d2e81486588d1f9da0ff4d1d3781d3a412c90ba69a852887f7fdfe50c1c52fd"
+          },
+          "chunks": {
+            "path": "data/local/chunks/atlas-expanded-v1-section-blocks-v1/LOCAL-ACCESS-8206771d2a7ea5a3.json",
+            "sha256": "59b55a4d8fbada2e3484d2a715cabc791d5e1ad0fe3b579ec463984c699b8f6f"
+          }
+        }
+      }
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "P01",
+      "question_type": "direct_document",
+      "question": "What is the main difference between EXPLAIN and EXPLAIN ANALYZE?",
+      "verification_status": "source_verified",
+      "expected_answer": "Plain EXPLAIN shows the planned query execution and estimates. EXPLAIN ANALYZE actually executes the query and adds actual row counts and run times for plan nodes alongside the estimates.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P01-R1",
+          "statement": "Distinguish estimated plan information from actual execution measurements.",
+          "supporting_evidence_ids": [
+            "P01-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P01-R2",
+          "statement": "State explicitly that EXPLAIN ANALYZE executes the query.",
+          "supporting_evidence_ids": [
+            "P01-E1"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P01-E1",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-89739f79bcb18bf22232a85778efd456498952232a5a935207bbf80dee895aaf",
+          "block_index": 76,
+          "block_sha256": "7f19a3988cc407b12c832e3771b36837b0a15b063ce77d8199fa6dd9f203dddd",
+          "heading_path": [
+            "14.1. Using EXPLAIN",
+            "14.1.2. EXPLAIN ANALYZE"
+          ],
+          "anchor": "USING-EXPLAIN-ANALYZE",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN-ANALYZE",
+          "span": {
+            "start": 0,
+            "end": 302,
+            "text": "It is possible to check the accuracy of the planner's estimates by using EXPLAIN's ANALYZE option. With this option, EXPLAIN actually executes the query, and then displays the true row counts and true run time accumulated within each plan node, along with the same estimates that a plain EXPLAIN shows."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 alone supports both the estimate-versus-measurement distinction and the fact that ANALYZE executes the query.",
+      "primary_bucket": "PG01",
+      "scenario_family_id": "pg-explain-execution",
+      "answerability": "answerable"
+    },
+    {
+      "question_id": "P02",
+      "question_type": "direct_document",
+      "question": "Why are filters on the leading columns of a multicolumn B-tree index generally useful?",
+      "verification_status": "source_verified",
+      "expected_answer": "Leading-column constraints make a multicolumn B-tree index efficient because leading equalities, together with an inequality on the first column without equality, limit the index range scanned. Conditions on later columns can still be checked in the index, but do not necessarily reduce that range. Missing a leading-column constraint does not categorically rule out index use.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P02-R1",
+          "statement": "Explain how leading equality constraints and the first inequality constraint limit the scanned range.",
+          "supporting_evidence_ids": [
+            "P02-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P02-R2",
+          "statement": "Avoid claiming that a later-column-only condition always prevents index use or always narrows the scanned range.",
+          "supporting_evidence_ids": [
+            "P02-E1"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P02-E1",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-44beb0244cab53c289ffdbd832673fdf95deebfe4bca8550643fa5f7b93cba22",
+          "block_index": 9,
+          "block_sha256": "f8761a6e407aced926694e0379dc67dc4db641821de625c871c0e61e9a27f883",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 646,
+            "text": "A multicolumn B-tree index can be used with query conditions that involve any subset of the index's columns, but the index is most efficient when there are constraints on the leading (leftmost) columns. The exact rule is that equality constraints on leading columns, plus any inequality constraints on the first column that does not have an equality constraint, will always be used to limit the portion of the index that is scanned. Constraints on columns to the right of these columns are checked in the index, so they'll always save visits to the table proper, but they do not necessarily reduce the portion of the index that has to be scanned."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 covers both leading-column efficiency and the limits of a blanket no-index-use rule for later columns.",
+      "primary_bucket": "PG02",
+      "scenario_family_id": "pg-multicolumn-filters",
+      "answerability": "answerable"
+    },
+    {
+      "question_id": "P03",
+      "question_type": "direct_document",
+      "question": "What relationship must the query condition have to a partial index predicate for the index to be usable?",
+      "verification_status": "source_verified",
+      "expected_answer": "At planning time, PostgreSQL must recognize that the query's WHERE condition mathematically implies the partial-index predicate. Logical implication that the planner cannot recognize is insufficient; supported simple inequality implications or an appropriate matching predicate are examples. This establishes usability, not a guarantee that the planner will select the index.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P03-R1",
+          "statement": "State the direction of implication: query condition implies index predicate, with recognition at planning time.",
+          "supporting_evidence_ids": [
+            "P03-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P03-R2",
+          "statement": "Distinguish index usability from the planner choosing an index rather than a potentially cheaper path.",
+          "supporting_evidence_ids": [
+            "P03-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P03-E1",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-971ade3b40170a1ddafc63dc138b9061404c8370fd9139f24fe961d5f677467d",
+          "block_index": 27,
+          "block_sha256": "ccdd4878409946bfd35e400b4aa3a7eedf9557b4821f009c1dc5f382b3258a87",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 373,
+            "end": 1118,
+            "text": "To be precise, a partial index can be used in a query only if the system can recognize that the WHERE condition of the query mathematically implies the predicate of the index. PostgreSQL does not have a sophisticated theorem prover that can recognize mathematically equivalent expressions that are written in different forms. (Not only is such a general theorem prover extremely difficult to create, it would probably be too slow to be of any real use.) The system can recognize simple inequality implications, for example “x < 1” implies “x < 2”; otherwise the predicate condition must exactly match part of the query's WHERE condition or the index will not be recognized as usable. Matching takes place at query planning time, not at run time."
+          }
+        },
+        {
+          "evidence_id": "P03-E2",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-f2d39bc25b313b28d87fc0ae75607ca3caabb1f45469578fb240bc1a89e08421",
+          "block_index": 33,
+          "block_sha256": "7dba6509330ce599bf087bd0e29d4d863dee02b5ba193e42cf9b3c25809de293",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 287,
+            "end": 497,
+            "text": "Normally, PostgreSQL makes reasonable choices about index usage (e.g., it avoids them when retrieving common values, so the earlier example really only saves index size, it is not required to avoid index usage)"
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 supplies the predicate-implication and planning-time rule. E2 supports the selection qualification through the documented avoidance of indexes for common values; both are from the same source.",
+      "primary_bucket": "PG03",
+      "scenario_family_id": "pg-partial-index-eligibility",
+      "answerability": "answerable"
+    },
+    {
+      "question_id": "P04",
+      "question_type": "direct_document",
+      "question": "Can a NULL replay_lag in pg_stat_replication be treated as zero seconds?",
+      "verification_status": "source_verified",
+      "expected_answer": "No: a raw NULL replay_lag is not a measured numeric zero and should not automatically be interpreted as zero seconds. Lag can become NULL after a fully replayed standby is idle for a short time. A monitoring system may choose to display that state as missing data, zero, or the last known value, but that presentation policy does not make NULL itself a numeric measurement.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P04-R1",
+          "statement": "Do not identify a raw NULL lag with a measured numeric zero.",
+          "supporting_evidence_ids": [
+            "P04-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P04-R2",
+          "statement": "Explain that NULL can occur on a fully caught-up, idle standby.",
+          "supporting_evidence_ids": [
+            "P04-E1",
+            "P04-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P04-E1",
+          "source_id": "PG-STATS",
+          "snapshot_id": "PG-STATS-20261105T191715Z-zm7b259y",
+          "chunk_id": "PG-STATS-1d06cb99474971e99eeca92a390008a702db46e6ebc03c767a299aa651803a54",
+          "block_index": 5,
+          "block_sha256": "83ffb14253ec088bb9fcc6b811332995b6845cba54b8d46816e02726961e046f",
+          "heading_path": [
+            "27.2. The Cumulative Statistics System",
+            "27.2.4. pg_stat_replication"
+          ],
+          "anchor": "MONITORING-PG-STAT-REPLICATION-VIEW",
+          "citation_url": "https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-REPLICATION-VIEW",
+          "span": {
+            "start": 482,
+            "end": 689,
+            "text": "If the standby server has entirely caught up with the sending server and there is no more WAL activity, the most recently measured lag times will continue to be displayed for a short time and then show NULL."
+          }
+        },
+        {
+          "evidence_id": "P04-E2",
+          "source_id": "PG-STATS",
+          "snapshot_id": "PG-STATS-20261105T191715Z-zm7b259y",
+          "chunk_id": "PG-STATS-cd3b6e1eee14d978c70c65867feb7f8a4cfb2fef70c40966b70623340851c3c0",
+          "block_index": 8,
+          "block_sha256": "16f780c6545f02e6c51f13ea4062b22c2c858c9c86c29c510ba4ea088d1bb4de",
+          "heading_path": [
+            "27.2. The Cumulative Statistics System",
+            "27.2.4. pg_stat_replication",
+            "Note"
+          ],
+          "anchor": "MONITORING-PG-STAT-REPLICATION-VIEW",
+          "citation_url": "https://www.postgresql.org/docs/18/monitoring-stats.html#MONITORING-PG-STAT-REPLICATION-VIEW",
+          "span": {
+            "start": 277,
+            "end": 890,
+            "text": "In particular, when the standby has caught up completely, pg_stat_replication shows the time taken to write, flush and replay the most recent reported WAL location rather than zero as some users might expect. This is consistent with the goal of measuring synchronous commit and transaction visibility delays for recent write transactions. To reduce confusion for users expecting a different model of lag, the lag columns revert to NULL after a short time on a fully replayed idle system. Monitoring systems should choose whether to represent this as missing data, zero or continue to display the last known value."
+          }
+        }
+      ],
+      "evidence_combination_note": "E2 alone supports a complete answer. E1 is an alternative supporting passage for the idle, caught-up case; retrieving both chunks is not mandatory.",
+      "scope_notes": [
+        "NULL alone is not proof of a replication failure. The source explicitly permits a monitoring presentation policy; do not turn the reference answer into a claim that a dashboard can never display zero."
+      ],
+      "optional_guidance": {
+        "statement": "Distinguish the database value from a monitoring presentation policy that may choose missing data, zero, or the last known value.",
+        "supporting_evidence_ids": [
+          "P04-E2"
+        ]
+      },
+      "primary_bucket": "PG04",
+      "scenario_family_id": "pg-replication-null-lag",
+      "answerability": "answerable"
+    },
+    {
+      "question_id": "P05",
+      "question_type": "multi_document",
+      "question": "With an index on (customer_id, created_at), does filtering only on created_at always require a Seq Scan, and how can we inspect the chosen path?",
+      "verification_status": "source_verified",
+      "expected_answer": "No. For a multicolumn B-tree index in PostgreSQL 18, filtering only on the second column does not automatically force a Seq Scan. Skip scan may be useful, for example when the leading column has few distinct values and repeated index searches are estimated to be cheaper. It is not guaranteed; data distribution and estimated costs affect the choice. Use EXPLAIN on the actual query to inspect the chosen plan.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P05-R1",
+          "statement": "Reject the claim that a missing customer_id filter always requires a Seq Scan; explain index use conditionally for B-tree.",
+          "supporting_evidence_ids": [
+            "P05-E1",
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R2",
+          "statement": "Describe index use as a cost-dependent possibility, not a guaranteed chosen path; skip scan is a documented example.",
+          "supporting_evidence_ids": [
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R3",
+          "statement": "Use EXPLAIN to inspect the actual chosen execution plan.",
+          "supporting_evidence_ids": [
+            "P05-E3"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P05-E1",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-44beb0244cab53c289ffdbd832673fdf95deebfe4bca8550643fa5f7b93cba22",
+          "block_index": 9,
+          "block_sha256": "f8761a6e407aced926694e0379dc67dc4db641821de625c871c0e61e9a27f883",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 202,
+            "text": "A multicolumn B-tree index can be used with query conditions that involve any subset of the index's columns, but the index is most efficient when there are constraints on the leading (leftmost) columns."
+          }
+        },
+        {
+          "evidence_id": "P05-E2",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-affa4be6a528401083ced7a8d10f2c78640bc7a36e1a4b04caf96796d7712db1",
+          "block_index": 10,
+          "block_sha256": "1e0c660601e50fe71f1f7eb31393a24f5594af629e675203bd5672339f053b44",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 803,
+            "text": "For example, given an index on (x, y), and a query condition WHERE y = 7700, a B-tree index scan might be able to apply the skip scan optimization. This generally happens when the query planner expects that repeated WHERE x = N AND y = 7700 searches for every possible value of N (or for every x value that is actually stored in the index) is the fastest possible approach, given the available indexes on the table. This approach is generally only taken when there are so few distinct x values that the planner expects the scan to skip over most of the index (because most of its leaf pages cannot possibly contain relevant tuples). If there are many distinct x values, then the entire index will have to be scanned, so in most cases the planner will prefer a sequential table scan over using the index."
+          }
+        },
+        {
+          "evidence_id": "P05-E3",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-e695851d3a78ced2a53a84ad547396ba734b01dfdb7bfca42bd7247ffbff968e",
+          "block_index": 2,
+          "block_sha256": "df54dbc0c8bf2c0fbf3a6dcabbf8e1190d9b7812c9e42f21055a9cb5a7008b50",
+          "heading_path": [
+            "14.1. Using EXPLAIN"
+          ],
+          "anchor": "USING-EXPLAIN",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN",
+          "span": {
+            "start": 263,
+            "end": 352,
+            "text": "You can use the EXPLAIN command to see what query plan the planner creates for any query."
+          }
+        }
+      ],
+      "evidence_combination_note": "PG-MULTI supplies index eligibility and skip-scan conditions; PG-EXPLAIN supplies the inspection mechanism. E2 plus E3 cover all requirements; E1 is alternative support for the first requirement.",
+      "scope_notes": [
+        "The draft question does not name the index access method. The skip-scan explanation is explicitly conditional on B-tree, not a statement about every index type.",
+        "This is a documentation question. No database query was run and no particular plan for an Atlas table is asserted.",
+        "A supported explanation using another valid index-scan path is acceptable; the reference skip-scan example is not a compulsory predicted plan."
+      ],
+      "primary_bucket": "PG02",
+      "scenario_family_id": "pg-multicolumn-filters",
+      "answerability": "answerable"
+    },
+    {
+      "question_id": "P06",
+      "question_type": "multi_document",
+      "question": "Is choosing a Seq Scan for a query whose condition matches a partial index necessarily an error?",
+      "verification_status": "source_verified",
+      "expected_answer": "No. Recognizing that a query condition implies a partial-index predicate makes the index usable, but does not force its selection. A sequential scan can be a sensible cost-based choice, for example for a very small table or a query retrieving common values. Inspect the actual query plan with EXPLAIN rather than treating Seq Scan by itself as evidence of an error.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P06-R1",
+          "statement": "Separate recognized predicate implication and index usability from compulsory index selection.",
+          "supporting_evidence_ids": [
+            "P06-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P06-R2",
+          "statement": "Explain why Seq Scan can be reasonable, using costs, a small table, or common-value access rather than declaring an automatic planner error.",
+          "supporting_evidence_ids": [
+            "P06-E2",
+            "P06-E3"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P06-E1",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-971ade3b40170a1ddafc63dc138b9061404c8370fd9139f24fe961d5f677467d",
+          "block_index": 27,
+          "block_sha256": "ccdd4878409946bfd35e400b4aa3a7eedf9557b4821f009c1dc5f382b3258a87",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 373,
+            "end": 1118,
+            "text": "To be precise, a partial index can be used in a query only if the system can recognize that the WHERE condition of the query mathematically implies the predicate of the index. PostgreSQL does not have a sophisticated theorem prover that can recognize mathematically equivalent expressions that are written in different forms. (Not only is such a general theorem prover extremely difficult to create, it would probably be too slow to be of any real use.) The system can recognize simple inequality implications, for example “x < 1” implies “x < 2”; otherwise the predicate condition must exactly match part of the query's WHERE condition or the index will not be recognized as usable. Matching takes place at query planning time, not at run time."
+          }
+        },
+        {
+          "evidence_id": "P06-E2",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-62eaad5eddb3a958292aaed94f392a2252c93321dfd4b2ac63c68eca75d4777d",
+          "block_index": 112,
+          "block_sha256": "9c8d222b3221cff313f64caa6f6a2c5c1604f51db26113a96ffd6d1f7a70bd6f",
+          "heading_path": [
+            "14.1. Using EXPLAIN",
+            "14.1.3. Caveats"
+          ],
+          "anchor": "USING-EXPLAIN-CAVEATS",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN-CAVEATS",
+          "span": {
+            "start": 197,
+            "end": 701,
+            "text": "The planner's cost estimates are not linear and so it might choose a different plan for a larger or smaller table. An extreme example is that on a table that only occupies one disk page, you'll nearly always get a sequential scan plan whether indexes are available or not. The planner realizes that it's going to take one disk page read to process the table in any case, so there's no value in expending additional page reads to look at an index. (We saw this happening in the polygon_tbl example above.)"
+          }
+        },
+        {
+          "evidence_id": "P06-E3",
+          "source_id": "PG-PARTIAL",
+          "snapshot_id": "PG-PARTIAL-20261105T191707Z-kmf7w4sp",
+          "chunk_id": "PG-PARTIAL-f2d39bc25b313b28d87fc0ae75607ca3caabb1f45469578fb240bc1a89e08421",
+          "block_index": 33,
+          "block_sha256": "7dba6509330ce599bf087bd0e29d4d863dee02b5ba193e42cf9b3c25809de293",
+          "heading_path": [
+            "11.8. Partial Indexes"
+          ],
+          "anchor": "INDEXES-PARTIAL",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-partial.html#INDEXES-PARTIAL",
+          "span": {
+            "start": 287,
+            "end": 497,
+            "text": "Normally, PostgreSQL makes reasonable choices about index usage (e.g., it avoids them when retrieving common values, so the earlier example really only saves index size, it is not required to avoid index usage)"
+          }
+        },
+        {
+          "evidence_id": "P06-E4",
+          "source_id": "PG-EXPLAIN",
+          "snapshot_id": "PG-EXPLAIN-20261102T173311Z-yhdhybna",
+          "chunk_id": "PG-EXPLAIN-e695851d3a78ced2a53a84ad547396ba734b01dfdb7bfca42bd7247ffbff968e",
+          "block_index": 2,
+          "block_sha256": "df54dbc0c8bf2c0fbf3a6dcabbf8e1190d9b7812c9e42f21055a9cb5a7008b50",
+          "heading_path": [
+            "14.1. Using EXPLAIN"
+          ],
+          "anchor": "USING-EXPLAIN",
+          "citation_url": "https://www.postgresql.org/docs/18/using-explain.html#USING-EXPLAIN",
+          "span": {
+            "start": 263,
+            "end": 352,
+            "text": "You can use the EXPLAIN command to see what query plan the planner creates for any query."
+          }
+        }
+      ],
+      "evidence_combination_note": "The reference explanation combines the predicate rule (E1) with cost-based examples (E2 or E3). E4 supports optional EXPLAIN guidance. E1 plus E3 can support the core answer within PG-PARTIAL; the multi_document draft label does not prove that every correct answer needs two source documents.",
+      "scope_notes": [
+        "The question-type label is retained from the pilot draft. Reference passages overlap; this is not an irreducible multi-hop benchmark claim.",
+        "A plan must be assessed for the actual data and costs; this record does not conclude that every Seq Scan is optimal."
+      ],
+      "optional_guidance": {
+        "statement": "Use EXPLAIN to inspect the actual chosen plan.",
+        "supporting_evidence_ids": [
+          "P06-E4"
+        ]
+      },
+      "primary_bucket": "PG01",
+      "scenario_family_id": "pg-partial-index-eligibility",
+      "answerability": "answerable"
+    },
+    {
+      "question_id": "P07",
+      "question_type": "direct_document",
+      "question": "What are the database and application schema names in the Atlas example environment?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The Atlas database is atlas_telemetry, and its application schema is atlas_app.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P07-R1",
+          "statement": "Name atlas_telemetry as the database.",
+          "supporting_evidence_ids": [
+            "P07-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P07-R2",
+          "statement": "Name atlas_app as the application schema.",
+          "supporting_evidence_ids": [
+            "P07-E1"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P07-E1",
+          "source_id": "LOCAL-INVENTORY",
+          "snapshot_id": "LOCAL-INVENTORY-fe15d4078bde0d46",
+          "chunk_id": "LOCAL-INVENTORY-890413ce6566972eceb72e061625b8a8ad0123f3f7fc1fa84ac17a15cfe28902",
+          "block_index": 7,
+          "block_sha256": "513636ddc3fa9bed3283f190bce3d07dc28a08d30d4af6c6c62e2e18a6101944",
+          "heading_path": [
+            "Atlas environment inventory",
+            "Database and application identity"
+          ],
+          "anchor": "L24",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_inventory.md#L24",
+          "span": {
+            "start": 0,
+            "end": 83,
+            "text": "The database is named `atlas_telemetry`, and its application schema is\n`atlas_app`."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 supplies both names; no live database inspection is required.",
+      "primary_bucket": "AT01",
+      "scenario_family_id": "atlas-environment-identity"
+    },
+    {
+      "question_id": "P08",
+      "question_type": "direct_document",
+      "question": "What is the maximum lag allowed by the Atlas replica lag rule?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The Atlas reporting-replica lag limit is 5 seconds, inclusive: exactly 5 seconds satisfies the lag criterion.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P08-R1",
+          "statement": "State the lag limit as 5 seconds.",
+          "supporting_evidence_ids": [
+            "P08-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P08-R2",
+          "statement": "Treat the maximum as inclusive; exactly 5 seconds is allowed.",
+          "supporting_evidence_ids": [
+            "P08-E1",
+            "P08-E2"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P08-E1",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-cb95d1ffabe529d7",
+          "chunk_id": "LOCAL-POLICY-b221596f6ecfb55c62abfac53079448e8b500882474ff19090eada32c548b7ae",
+          "block_index": 7,
+          "block_sha256": "aa03fbf119ae1b059054738022e0b2107784c404987ede587f5468d73c8a8457",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L25",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_operations_policy.md#L25",
+          "span": {
+            "start": 0,
+            "end": 117,
+            "text": "The policy identifier is `ATLAS-REPORTING-LAG`. Its maximum permitted numeric\nreplay lag is **5 seconds**, inclusive."
+          }
+        },
+        {
+          "evidence_id": "P08-E2",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-cb95d1ffabe529d7",
+          "chunk_id": "LOCAL-POLICY-b221596f6ecfb55c62abfac53079448e8b500882474ff19090eada32c548b7ae",
+          "block_index": 9,
+          "block_sha256": "4e90c2f81471828c4593b8aef67b8603d0b437ec5ea408183cb361913ed69272",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L38",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_operations_policy.md#L38",
+          "span": {
+            "start": 0,
+            "end": 42,
+            "text": "Exactly 5 seconds satisfies the criterion."
+          }
+        }
+      ],
+      "evidence_combination_note": "E1 gives the local rule and inclusive threshold; E2 is alternative explicit support for the boundary. This asks about policy, not a measured current lag.",
+      "primary_bucket": "AT02",
+      "scenario_family_id": "atlas-reporting-lag-policy"
+    },
+    {
+      "question_id": "P09",
+      "question_type": "multi_document",
+      "question": "Which lag rule applies to the replica listed in the Atlas inventory?",
+      "verification_status": "source_verified",
+      "answerability": "answerable",
+      "expected_answer": "The inventory identifies atlas-replica-01 as the reporting replica following atlas-primary-01. That replica is governed by ATLAS-REPORTING-LAG, with a maximum replay lag of 5 seconds inclusive. This identifies the applicable rule, not a current lag observation or health assessment.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P09-R1",
+          "statement": "Identify atlas-replica-01 as the reporting replica in the Atlas inventory.",
+          "supporting_evidence_ids": [
+            "P09-E1"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P09-R2",
+          "statement": "Match that reporting replica to ATLAS-REPORTING-LAG and its inclusive 5-second limit.",
+          "supporting_evidence_ids": [
+            "P09-E1",
+            "P09-E2",
+            "P09-E3"
+          ],
+          "support_mode": "all"
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P09-E1",
+          "source_id": "LOCAL-INVENTORY",
+          "snapshot_id": "LOCAL-INVENTORY-fe15d4078bde0d46",
+          "chunk_id": "LOCAL-INVENTORY-9e10d1c9ebe27b11f81a79f20513c83d932bbd322ccf213c79a91cb7b17e5904",
+          "block_index": 14,
+          "block_sha256": "d3f2ed20648a23cae64fba7c6ef448726438f99675f1daf6c73552175ca38442",
+          "heading_path": [
+            "Atlas environment inventory",
+            "Replica identity and policy relationship"
+          ],
+          "anchor": "L59",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_inventory.md#L59",
+          "span": {
+            "start": 0,
+            "end": 419,
+            "text": "`atlas-replica-01` follows `atlas-primary-01` and has the operational role\n`reporting`. Its applicable local lag rule is defined in **LOCAL-POLICY**,\nthe Atlas operations policy with document state `atlas-expanded-v1`. Use that\npolicy for the threshold, units and interpretation of missing observations.\nThe inventory itself records the replica's identity and role, not its current\nlag or whether it satisfies the rule."
+          }
+        },
+        {
+          "evidence_id": "P09-E2",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-cb95d1ffabe529d7",
+          "chunk_id": "LOCAL-POLICY-0a4091f205d922a6dcbe176ef64fcd54baebb61b31bbf09a2080293256ae68f7",
+          "block_index": 4,
+          "block_sha256": "ccb66cdebcfb9151ed1ccd8a7d1a34ba74d387cfd6585e6c2a56fb93a0f0ad8a",
+          "heading_path": [
+            "Atlas operations policy",
+            "Scope and authority"
+          ],
+          "anchor": "L11",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_operations_policy.md#L11",
+          "span": {
+            "start": 0,
+            "end": 431,
+            "text": "This policy defines a local replica-lag rule and inspection practices for the\nfictional Atlas PostgreSQL environment. It applies only to the reporting\nreplica identified by the Atlas environment inventory, **LOCAL-INVENTORY**,\nwith document state `atlas-expanded-v1`. Both documents describe the same reference\nstate. The inventory supplies resource identities; this document supplies the\noperational rule used for those resources."
+          }
+        },
+        {
+          "evidence_id": "P09-E3",
+          "source_id": "LOCAL-POLICY",
+          "snapshot_id": "LOCAL-POLICY-cb95d1ffabe529d7",
+          "chunk_id": "LOCAL-POLICY-b221596f6ecfb55c62abfac53079448e8b500882474ff19090eada32c548b7ae",
+          "block_index": 7,
+          "block_sha256": "aa03fbf119ae1b059054738022e0b2107784c404987ede587f5468d73c8a8457",
+          "heading_path": [
+            "Atlas operations policy",
+            "Reporting replica lag criterion"
+          ],
+          "anchor": "L25",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_operations_policy.md#L25",
+          "span": {
+            "start": 0,
+            "end": 117,
+            "text": "The policy identifier is `ATLAS-REPORTING-LAG`. Its maximum permitted numeric\nreplay lag is **5 seconds**, inclusive."
+          }
+        }
+      ],
+      "evidence_combination_note": "The selected support combines replica identity/role (E1), policy scope (E2) and rule identifier/threshold (E3). Equivalent sufficient passages remain valid; this annotation alone does not prove irreducible multi-hop reasoning.",
+      "primary_bucket": "AT02",
+      "scenario_family_id": "atlas-reporting-lag-policy"
+    },
+    {
+      "question_id": "P19",
+      "question_type": "insufficient_evidence",
+      "question": "What is the approved replica lag limit for the Boreal environment?",
+      "question_revision_note": "Removed the draft clause \"which is absent from the documents\" because it disclosed the expected answer. The question ID and scenario are unchanged.",
+      "verification_status": "source_verified",
+      "answerability": "unanswerable",
+      "expected_answer": "The supplied Atlas documents do not provide an approved replica lag limit for Boreal. Its limit cannot be determined from this corpus; the Atlas 5-second rule must not be transferred to another environment.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P19-R1",
+          "statement": "State that the available documents do not establish an approved lag limit for Boreal.",
+          "supporting_evidence_ids": [],
+          "support_mode": "corpus_scope"
+        },
+        {
+          "requirement_id": "P19-R2",
+          "statement": "Do not invent a numeric limit or transfer the Atlas 5-second rule to Boreal.",
+          "supporting_evidence_ids": [],
+          "support_mode": "corpus_scope"
+        }
+      ],
+      "evidence": [],
+      "unanswerability": {
+        "reason": "missing_environment_policy",
+        "target_entity": "Boreal",
+        "checked_source_ids": [
+          "PG-EXPLAIN",
+          "PG-MULTI",
+          "PG-PARTIAL",
+          "PG-STATS",
+          "PG-INDEX-TYPES",
+          "PG-ISOLATION",
+          "PG-VACUUM",
+          "PG-CONSTRAINTS",
+          "LOCAL-INVENTORY",
+          "LOCAL-POLICY",
+          "LOCAL-QUERY-CATALOG",
+          "LOCAL-BACKUP",
+          "LOCAL-MAINTENANCE",
+          "LOCAL-ACCESS"
+        ],
+        "review_note": "Rechecked the complete fourteen-source expanded scope: eight selected PostgreSQL 18 scopes and six Atlas documents (638 parsed blocks, 151 chunks). Boreal is absent from every parsed block and embedding input. The Atlas inventory restricts its identities to Atlas, and LOCAL-POLICY explicitly applies only to its reporting replica. The added Atlas documents define Atlas query, backup, maintenance and access policies; the PostgreSQL pages describe engine behavior, not an approved Boreal limit. No supplied source establishes that environment-specific policy. The absent-entity scan supplements this scope and authority review; it is not a general proof of semantic unanswerability."
+      },
+      "evidence_combination_note": "No positive answer passage or mandatory retrieval-hit chunk exists for this question. Its reference is an abstention within the complete pinned two-document scope. Returning relevant Atlas passages is compatible with a correct abstention.",
+      "primary_bucket": "NEG01",
+      "scenario_family_id": "boreal-missing-lag-policy"
+    },
+    {
+      "question_id": "P21",
+      "primary_bucket": "PG05",
+      "scenario_family_id": "pg-hash-equality",
+      "question_type": "direct_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "Which PostgreSQL index type handles only simple equality comparisons, and could it support a range condition such as score > 10?",
+      "expected_answer": "Hash indexes handle only simple equality comparisons, using the = operator. A Hash index cannot support the score > 10 range condition.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P21-R1",
+          "statement": "Identify Hash as the equality-only index method and = as its comparison operator.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P21-E1",
+            "P21-E2"
+          ]
+        },
+        {
+          "requirement_id": "P21-R2",
+          "statement": "Explain that a Hash index does not support the proposed > range condition.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P21-E1"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P21-E1",
+          "source_id": "PG-INDEX-TYPES",
+          "snapshot_id": "PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd",
+          "chunk_id": "PG-INDEX-TYPES-8639138fcbb29b77e97cb2fd2cebc1ba7bc44d0bc25b1ee0fd94fd6c4c6cb360",
+          "block_index": 11,
+          "block_sha256": "62c2bc2320cbb1c78600acd0b59625963603f4e3f15052277bd899797aefde4d",
+          "heading_path": [
+            "11.2. Index Types",
+            "11.2.2. Hash"
+          ],
+          "anchor": "INDEXES-TYPES-HASH",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-types.html#INDEXES-TYPES-HASH",
+          "span": {
+            "start": 0,
+            "end": 280,
+            "text": "Hash indexes store a 32-bit hash code derived from the value of the indexed column. Hence, such indexes can only handle simple equality comparisons. The query planner will consider using a hash index whenever an indexed column is involved in a comparison using the equal operator:"
+          }
+        },
+        {
+          "evidence_id": "P21-E2",
+          "source_id": "PG-INDEX-TYPES",
+          "snapshot_id": "PG-INDEX-TYPES-20261123T175401Z-9bwzmjkd",
+          "chunk_id": "PG-INDEX-TYPES-8639138fcbb29b77e97cb2fd2cebc1ba7bc44d0bc25b1ee0fd94fd6c4c6cb360",
+          "block_index": 12,
+          "block_sha256": "380918b946a526640a40df5dced6516794f3d97bbd9e6bb553d037c4439f31c3",
+          "heading_path": [
+            "11.2. Index Types",
+            "11.2.2. Hash"
+          ],
+          "anchor": "INDEXES-TYPES-HASH",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-types.html#INDEXES-TYPES-HASH",
+          "span": {
+            "start": 0,
+            "end": 1,
+            "text": "="
+          }
+        }
+      ],
+      "evidence_combination_note": "The prose states the supported comparison class; the adjacent code block names its operator. Equivalent sufficient documentation remains acceptable."
+    },
+    {
+      "question_id": "P22",
+      "primary_bucket": "PG06",
+      "scenario_family_id": "pg-read-committed-snapshots",
+      "question_type": "direct_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "Under Read Committed, can two ordinary SELECT statements in the same transaction see different committed data, and why?",
+      "expected_answer": "Yes. Each ordinary SELECT sees a snapshot as of that query starting. If another transaction commits changes between the two query starts, the second SELECT can see those changes even though both statements are in one transaction.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P22-R1",
+          "statement": "Allow successive ordinary SELECT statements in one Read Committed transaction to see different data.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P22-E1"
+          ]
+        },
+        {
+          "requirement_id": "P22-R2",
+          "statement": "Explain the per-query snapshot and a concurrent commit between query starts.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P22-E1"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P22-E1",
+          "source_id": "PG-ISOLATION",
+          "snapshot_id": "PG-ISOLATION-20261123T175402Z-2_17hssf",
+          "chunk_id": "PG-ISOLATION-30b465d087e71483e05006b79c2432a1de8ec402707efe70253952dc148769da",
+          "block_index": 21,
+          "block_sha256": "08b9dc570912f056e457af7d20837d9403e6c4b884bad036810ac09a7ceb8511",
+          "heading_path": [
+            "13.2. Transaction Isolation",
+            "13.2.1. Read Committed Isolation Level"
+          ],
+          "anchor": "XACT-READ-COMMITTED",
+          "citation_url": "https://www.postgresql.org/docs/18/transaction-iso.html#XACT-READ-COMMITTED",
+          "span": {
+            "start": 0,
+            "end": 781,
+            "text": "Read Committed is the default isolation level in PostgreSQL. When a transaction uses this isolation level, a SELECT query (without a FOR UPDATE/SHARE clause) sees only data committed before the query began; it never sees either uncommitted data or changes committed by concurrent transactions during the query's execution. In effect, a SELECT query sees a snapshot of the database as of the instant the query begins to run. However, SELECT does see the effects of previous updates executed within its own transaction, even though they are not yet committed. Also note that two successive SELECT commands can see different data, even though they are within a single transaction, if other transactions commit changes after the first SELECT starts and before the second SELECT starts."
+          }
+        }
+      ],
+      "evidence_combination_note": "One passage explicitly states both snapshot timing and the successive-SELECT consequence; no actual transaction observation is claimed."
+    },
+    {
+      "question_id": "P23",
+      "primary_bucket": "PG07",
+      "scenario_family_id": "vacuum-full-space-and-locking",
+      "question_type": "direct_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "How do ordinary VACUUM and VACUUM FULL differ in returning table space to the operating system, and what table lock does VACUUM FULL require?",
+      "expected_answer": "Ordinary VACUUM normally makes dead-row space reusable within the table rather than returning it to the operating system. Entirely free pages at the table end are a special exception when an exclusive table lock can be obtained easily. VACUUM FULL writes a compact new table file to shrink the table and return space, requiring an ACCESS EXCLUSIVE lock that prevents concurrent use of that table.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P23-R1",
+          "statement": "Distinguish ordinary VACUUM reuse from operating-system space return, preserving the fully free trailing-page exception.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P23-E1"
+          ]
+        },
+        {
+          "requirement_id": "P23-R2",
+          "statement": "Explain VACUUM FULL as a table rewrite that can shrink the table and return disk space.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P23-E1",
+            "P23-E3"
+          ]
+        },
+        {
+          "requirement_id": "P23-R3",
+          "statement": "Name ACCESS EXCLUSIVE and its incompatibility with concurrent use of the table.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P23-E2"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P23-E1",
+          "source_id": "PG-VACUUM",
+          "snapshot_id": "PG-VACUUM-20261123T175402Z-lwwvgshl",
+          "chunk_id": "PG-VACUUM-4116fbbade14d0310db06fd070a5249dba09bd8746d4fd9c26cd8b5c0012d49d",
+          "block_index": 14,
+          "block_sha256": "8a6bab3513fa79e717fa77704e67be942b5a4201baf523569e053a6ec051cb20",
+          "heading_path": [
+            "24.1. Routine Vacuuming",
+            "24.1.2. Recovering Disk Space"
+          ],
+          "anchor": "VACUUM-FOR-SPACE-RECOVERY",
+          "citation_url": "https://www.postgresql.org/docs/18/routine-vacuuming.html#VACUUM-FOR-SPACE-RECOVERY",
+          "span": {
+            "start": 0,
+            "end": 614,
+            "text": "The standard form of VACUUM removes dead row versions in tables and indexes and marks the space available for future reuse. However, it will not return the space to the operating system, except in the special case where one or more pages at the end of a table become entirely free and an exclusive table lock can be easily obtained. In contrast, VACUUM FULL actively compacts tables by writing a complete new version of the table file with no dead space. This minimizes the size of the table, but can take a long time. It also requires extra disk space for the new copy of the table, until the operation completes."
+          }
+        },
+        {
+          "evidence_id": "P23-E2",
+          "source_id": "PG-VACUUM",
+          "snapshot_id": "PG-VACUUM-20261123T175402Z-lwwvgshl",
+          "chunk_id": "PG-VACUUM-b9b47ac597e0c07993a89a99cabdc6471561d6361bf64d4cafaba7ccc8dbe0e3",
+          "block_index": 10,
+          "block_sha256": "fabac2866d3403d7181396f89b70390485b73fa9eebd4ac0cddbf5dfbb4af75f",
+          "heading_path": [
+            "24.1. Routine Vacuuming",
+            "24.1.1. Vacuuming Basics"
+          ],
+          "anchor": "VACUUM-BASICS",
+          "citation_url": "https://www.postgresql.org/docs/18/routine-vacuuming.html#VACUUM-BASICS",
+          "span": {
+            "start": 0,
+            "end": 684,
+            "text": "There are two variants of VACUUM: standard VACUUM and VACUUM FULL. VACUUM FULL can reclaim more disk space but runs much more slowly. Also, the standard form of VACUUM can run in parallel with production database operations. (Commands such as SELECT, INSERT, UPDATE, and DELETE will continue to function normally, though you will not be able to modify the definition of a table with commands such as ALTER TABLE while it is being vacuumed.) VACUUM FULL requires an ACCESS EXCLUSIVE lock on the table it is working on, and therefore cannot be done in parallel with other use of the table. Generally, therefore, administrators should strive to use standard VACUUM and avoid VACUUM FULL."
+          }
+        },
+        {
+          "evidence_id": "P23-E3",
+          "source_id": "PG-VACUUM",
+          "snapshot_id": "PG-VACUUM-20261123T175402Z-lwwvgshl",
+          "chunk_id": "PG-VACUUM-4116fbbade14d0310db06fd070a5249dba09bd8746d4fd9c26cd8b5c0012d49d",
+          "block_index": 15,
+          "block_sha256": "2dbf9b4bd60df95844ba8f283471adc55e38bd1b6a4eecc60ff3959c749a9435",
+          "heading_path": [
+            "24.1. Routine Vacuuming",
+            "24.1.2. Recovering Disk Space"
+          ],
+          "anchor": "VACUUM-FOR-SPACE-RECOVERY",
+          "citation_url": "https://www.postgresql.org/docs/18/routine-vacuuming.html#VACUUM-FOR-SPACE-RECOVERY",
+          "span": {
+            "start": 0,
+            "end": 782,
+            "text": "The usual goal of routine vacuuming is to do standard VACUUMs often enough to avoid needing VACUUM FULL. The autovacuum daemon attempts to work this way, and in fact will never issue VACUUM FULL. In this approach, the idea is not to keep tables at their minimum size, but to maintain steady-state usage of disk space: each table occupies space equivalent to its minimum size plus however much space gets used up between vacuum runs. Although VACUUM FULL can be used to shrink a table back to its minimum size and return the disk space to the operating system, there is not much point in this if the table will just grow again in the future. Thus, moderately-frequent standard VACUUM runs are a better approach than infrequent VACUUM FULL runs for maintaining heavily-updated tables."
+          }
+        }
+      ],
+      "evidence_combination_note": "The selected passages complement space behavior, explicit disk return and locking. They do not establish bytes reclaimed or an observed maintenance outcome."
+    },
+    {
+      "question_id": "P24",
+      "primary_bucket": "PG08",
+      "scenario_family_id": "pg-check-null-semantics",
+      "question_type": "direct_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "Does CHECK (price > 0) by itself prevent NULL prices in PostgreSQL, and what constraint would prevent them?",
+      "expected_answer": "No. A CHECK constraint is satisfied when its expression is true or NULL, so CHECK (price > 0) alone does not reject a NULL price. Add a NOT NULL constraint to prohibit NULL values.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P24-R1",
+          "statement": "Explain that CHECK accepts a true or NULL result and therefore does not by itself prohibit NULL prices.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P24-E1"
+          ]
+        },
+        {
+          "requirement_id": "P24-R2",
+          "statement": "Identify NOT NULL as the constraint that prohibits NULL values.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P24-E1"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P24-E1",
+          "source_id": "PG-CONSTRAINTS",
+          "snapshot_id": "PG-CONSTRAINTS-20261123T175403Z-5w4qbo7f",
+          "chunk_id": "PG-CONSTRAINTS-39929e5ba7a52dd1634edcd1498a8316ed6fd72209e193f05c574b18fda62a1f",
+          "block_index": 21,
+          "block_sha256": "d09365da220471d472c716d3fb27949283d56a15451fc855e2a5ceefbf11545f",
+          "heading_path": [
+            "5.5. Constraints",
+            "5.5.1. Check Constraints"
+          ],
+          "anchor": "DDL-CONSTRAINTS-CHECK-CONSTRAINTS",
+          "citation_url": "https://www.postgresql.org/docs/18/ddl-constraints.html#DDL-CONSTRAINTS-CHECK-CONSTRAINTS",
+          "span": {
+            "start": 0,
+            "end": 378,
+            "text": "It should be noted that a check constraint is satisfied if the check expression evaluates to true or the null value. Since most expressions will evaluate to the null value if any operand is null, they will not prevent null values in the constrained columns. To ensure that a column does not contain null values, the not-null constraint described in the next section can be used."
+          }
+        }
+      ],
+      "evidence_combination_note": "The general CHECK/NULL rule directly supports the question; it does not require a running table or an inferred default constraint."
+    },
+    {
+      "question_id": "P25",
+      "primary_bucket": "AT04",
+      "scenario_family_id": "atlas-backup-recovery-objectives",
+      "question_type": "direct_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "What recovery point and recovery time objectives does the Atlas backup policy define, and how is each timed?",
+      "expected_answer": "Atlas defines an RPO of 24 hours, assessed at an incident using the usable archive's recorded snapshot reference time, not its filename or scheduled start. Its RTO is 120 minutes from an approved restore start through completion of the documented verification checks. These are policy objectives, not measured recovery results or guarantees.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P25-R1",
+          "statement": "State the 24-hour RPO and assess archive age from its recorded snapshot reference time at the incident.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P25-E1"
+          ]
+        },
+        {
+          "requirement_id": "P25-R2",
+          "statement": "State the 120-minute RTO and its approved-restore-start to verification-completion interval.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P25-E2"
+          ]
+        },
+        {
+          "requirement_id": "P25-R3",
+          "statement": "Treat the objectives as policy targets rather than measured recovery results or guarantees.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P25-E1",
+            "P25-E2"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P25-E1",
+          "source_id": "LOCAL-BACKUP",
+          "snapshot_id": "LOCAL-BACKUP-680206816dba1b08",
+          "chunk_id": "LOCAL-BACKUP-f11a054ef9025cb87d39b60cad4c55b7b708b5bb8b167df74f36841de9984121",
+          "block_index": 12,
+          "block_sha256": "0265cb3cac2fa4279866543e35262b219449711469d889531701517e04e1b5d2",
+          "heading_path": [
+            "Atlas backup policy",
+            "Recovery objectives"
+          ],
+          "anchor": "L52",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_backup_policy.md#L52",
+          "span": {
+            "start": 0,
+            "end": 307,
+            "text": "The recovery point objective (**RPO**) is **24 hours**: at an incident time,\nthe recovery point of the usable archive should be no more than 24 hours old.\nUse the archive's recorded snapshot reference time, not its filename or job\nstart schedule, to assess that objective. Delays or failures can violate it."
+          }
+        },
+        {
+          "evidence_id": "P25-E2",
+          "source_id": "LOCAL-BACKUP",
+          "snapshot_id": "LOCAL-BACKUP-680206816dba1b08",
+          "chunk_id": "LOCAL-BACKUP-f11a054ef9025cb87d39b60cad4c55b7b708b5bb8b167df74f36841de9984121",
+          "block_index": 13,
+          "block_sha256": "4e0fcb904de4818482cff5ad2a79cc9f188022421e095d534656d7e65b1dd697",
+          "heading_path": [
+            "Atlas backup policy",
+            "Recovery objectives"
+          ],
+          "anchor": "L57",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_backup_policy.md#L57",
+          "span": {
+            "start": 0,
+            "end": 292,
+            "text": "The recovery time objective (**RTO**) is **120 minutes**, measured from an\napproved restore start to completion of the documented verification checks.\nThis is a target, not a measured restore duration or a guarantee. It does not\npromise recovery to an arbitrary moment between daily archives."
+          }
+        }
+      ],
+      "evidence_combination_note": "Both objective definitions are needed; the RTO passage explicitly distinguishes a target from a measured duration or guarantee."
+    },
+    {
+      "question_id": "P26",
+      "primary_bucket": "AT06",
+      "scenario_family_id": "atlas-temporary-access-approval-and-expiry",
+      "question_type": "direct_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "Who must approve temporary Atlas maintenance or backup access, and when does the membership expire?",
+      "expected_answer": "Both the schema owner and the on-call lead must approve before access begins. The temporary maintenance or backup membership expires after four hours or at the approved task end, whichever comes first.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P26-R1",
+          "statement": "Require both schema-owner and on-call-lead approvals before temporary maintenance or backup access begins.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P26-E1"
+          ]
+        },
+        {
+          "requirement_id": "P26-R2",
+          "statement": "Apply the earlier of four hours or the approved task end as membership expiry.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P26-E2"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P26-E1",
+          "source_id": "LOCAL-ACCESS",
+          "snapshot_id": "LOCAL-ACCESS-8206771d2a7ea5a3",
+          "chunk_id": "LOCAL-ACCESS-25502d69b05885317184706bc53b2c3d2e6099c85a11d891a74b4dde3e9a070a",
+          "block_index": 9,
+          "block_sha256": "7a8d96f9a12c6a1f73f6c2c15d2730f5c2db26bf5483f88f7119536c8db0e596",
+          "heading_path": [
+            "Atlas access policy",
+            "Access requests and expiry"
+          ],
+          "anchor": "L38",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_access_policy.md#L38",
+          "span": {
+            "start": 0,
+            "end": 335,
+            "text": "An access request must record the requester, task, requested role, database,\ntarget identity, ticket ID and requested start/end times. The schema owner\napproves application and reporting access. Temporary maintenance or backup\naccess additionally needs the on-call lead's approval; both approvals are\nrequired before the access begins."
+          }
+        },
+        {
+          "evidence_id": "P26-E2",
+          "source_id": "LOCAL-ACCESS",
+          "snapshot_id": "LOCAL-ACCESS-8206771d2a7ea5a3",
+          "chunk_id": "LOCAL-ACCESS-25502d69b05885317184706bc53b2c3d2e6099c85a11d891a74b4dde3e9a070a",
+          "block_index": 10,
+          "block_sha256": "b9c6f9a4a681ee2136d2b943db76c268609e5848b54a7c2ef3f19bdf0ae5448d",
+          "heading_path": [
+            "Atlas access policy",
+            "Access requests and expiry"
+          ],
+          "anchor": "L44",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_access_policy.md#L44",
+          "span": {
+            "start": 0,
+            "end": 374,
+            "text": "Temporary maintenance and backup memberships expire after **four hours**\nor at the approved task end, whichever comes first. A longer task requires\na new approval, not an automatic extension. Standing service memberships\nare reviewed every **30 calendar days** by the schema owner. These are review\nand expiry requirements, not evidence that any current membership is valid."
+          }
+        }
+      ],
+      "evidence_combination_note": "Approval and expiry are complementary policy passages. These intended rules do not establish any actual membership or current privileges."
+    },
+    {
+      "question_id": "P27",
+      "primary_bucket": "MIX01",
+      "scenario_family_id": "atlas-device-range-index",
+      "question_type": "multi_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "How do Q-ATLAS-DEVICE-RANGE's filters align with its declared B-tree index under PostgreSQL's multicolumn rule, and does that establish the actual chosen plan?",
+      "expected_answer": "The catalog declares idx_atlas_events_device_recorded on (device_id, recorded_at). The query fixes device_id with equality and applies an inclusive lower and exclusive upper range on recorded_at. That matches PostgreSQL's rule that leading equality conditions plus inequalities on the first column without equality limit the scanned B-tree portion. The definitions explain compatibility; they do not establish the actual plan chosen by a running database.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P27-R1",
+          "statement": "Identify the declared (device_id, recorded_at) B-tree and the query's device equality and half-open time range.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P27-E1",
+            "P27-E2"
+          ]
+        },
+        {
+          "requirement_id": "P27-R2",
+          "statement": "Apply the leading-equality/next-column-inequality rule to those specific filters and index order.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P27-E1",
+            "P27-E2",
+            "P27-E3"
+          ]
+        },
+        {
+          "requirement_id": "P27-R3",
+          "statement": "Do not infer the actual chosen execution plan from the declared query and index.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P27-E4"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P27-E1",
+          "source_id": "LOCAL-QUERY-CATALOG",
+          "snapshot_id": "LOCAL-QUERY-CATALOG-5040c4097f291207",
+          "chunk_id": "LOCAL-QUERY-CATALOG-4e082f9a60f20fc7994f642d9da86d16dd4118de76a4329e92098ebf6db6751b",
+          "block_index": 20,
+          "block_sha256": "9c54c5e8965a0eb7efae3b87f46bb27576aed56bde051abb4d3add38a31d28e0",
+          "heading_path": [
+            "Atlas query and index catalog",
+            "Device event range: Q-ATLAS-DEVICE-RANGE"
+          ],
+          "anchor": "L89",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_query_catalog.md#L89",
+          "span": {
+            "start": 0,
+            "end": 168,
+            "text": "SELECT event_id, device_id, recorded_at, severity\nFROM atlas_app.device_events\nWHERE device_id = $1\n  AND recorded_at >= $2\n  AND recorded_at < $3\nORDER BY recorded_at;"
+          }
+        },
+        {
+          "evidence_id": "P27-E2",
+          "source_id": "LOCAL-QUERY-CATALOG",
+          "snapshot_id": "LOCAL-QUERY-CATALOG-5040c4097f291207",
+          "chunk_id": "LOCAL-QUERY-CATALOG-8f7b5a276af3736db3d4caecdd3fcb59327c9a4bd8662b220c0a31c657b83e38",
+          "block_index": 29,
+          "block_sha256": "5a9c9bb7d24d9fe717a76c3e326e2f15c3d35d06eecf983bf3997ec3bcde2568",
+          "heading_path": [
+            "Atlas query and index catalog",
+            "Declared secondary indexes"
+          ],
+          "anchor": "L130",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_query_catalog.md#L130",
+          "span": {
+            "start": 0,
+            "end": 110,
+            "text": "CREATE INDEX idx_atlas_events_device_recorded\nON atlas_app.device_events USING btree (device_id, recorded_at);"
+          }
+        },
+        {
+          "evidence_id": "P27-E3",
+          "source_id": "PG-MULTI",
+          "snapshot_id": "PG-MULTI-20261105T191707Z-96nc6y0c",
+          "chunk_id": "PG-MULTI-44beb0244cab53c289ffdbd832673fdf95deebfe4bca8550643fa5f7b93cba22",
+          "block_index": 9,
+          "block_sha256": "f8761a6e407aced926694e0379dc67dc4db641821de625c871c0e61e9a27f883",
+          "heading_path": [
+            "11.3. Multicolumn Indexes"
+          ],
+          "anchor": "INDEXES-MULTICOLUMN",
+          "citation_url": "https://www.postgresql.org/docs/18/indexes-multicolumn.html#INDEXES-MULTICOLUMN",
+          "span": {
+            "start": 0,
+            "end": 432,
+            "text": "A multicolumn B-tree index can be used with query conditions that involve any subset of the index's columns, but the index is most efficient when there are constraints on the leading (leftmost) columns. The exact rule is that equality constraints on leading columns, plus any inequality constraints on the first column that does not have an equality constraint, will always be used to limit the portion of the index that is scanned."
+          }
+        },
+        {
+          "evidence_id": "P27-E4",
+          "source_id": "LOCAL-QUERY-CATALOG",
+          "snapshot_id": "LOCAL-QUERY-CATALOG-5040c4097f291207",
+          "chunk_id": "LOCAL-QUERY-CATALOG-8f7b5a276af3736db3d4caecdd3fcb59327c9a4bd8662b220c0a31c657b83e38",
+          "block_index": 34,
+          "block_sha256": "752ea43324411d26a316bcf7ae4b91dd3abee73313d915ec8731cb20ad3ac822",
+          "heading_path": [
+            "Atlas query and index catalog",
+            "Declared secondary indexes"
+          ],
+          "anchor": "L151",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_query_catalog.md#L151",
+          "span": {
+            "start": 0,
+            "end": 381,
+            "text": "None of the three catalog queries filters on `payload`. The existence of its\nGIN index does not establish that any of those queries will use it. Interpret\nthe methods, column order and predicate compatibility using the PostgreSQL\ndocumentation, then obtain an actual plan if the chosen execution path is\nrequired. Declared eligibility does not guarantee planner selection or speed."
+          }
+        }
+      ],
+      "evidence_combination_note": "Atlas supplies the exact SQL and index definition; PostgreSQL supplies the general multicolumn scan rule. The catalog boundary prevents treating a declared index as a measured plan. Both source groups are required by the question."
+    },
+    {
+      "question_id": "P28",
+      "primary_bucket": "MIX04",
+      "scenario_family_id": "vacuum-full-space-and-locking",
+      "question_type": "multi_document",
+      "answerability": "answerable",
+      "verification_status": "source_verified",
+      "question": "Why is Atlas's routine maintenance window alone insufficient authorization for VACUUM FULL, and what PostgreSQL concurrency constraint makes separate outage planning important?",
+      "expected_answer": "Atlas excludes VACUUM FULL from routine maintenance. It needs a separate outage plan, schema-owner and on-call-lead approval, reviewed locking impact and a verified capacity assessment. PostgreSQL requires an ACCESS EXCLUSIVE table lock for VACUUM FULL, so other use of that table cannot run concurrently. The routine window alone does not satisfy these separate requirements.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P28-R1",
+          "statement": "State the separate outage plan, both approvals, locking-impact review and verified capacity assessment required by Atlas.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P28-E1"
+          ]
+        },
+        {
+          "requirement_id": "P28-R2",
+          "statement": "Explain PostgreSQL's ACCESS EXCLUSIVE lock and the resulting inability to use the table concurrently.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P28-E2"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "evidence_id": "P28-E1",
+          "source_id": "LOCAL-MAINTENANCE",
+          "snapshot_id": "LOCAL-MAINTENANCE-913bdddf1eb94c40",
+          "chunk_id": "LOCAL-MAINTENANCE-bf607d115882a971a9e03ab1c1a4a4663dab1479a072bd163fa9e81842b20a82",
+          "block_index": 10,
+          "block_sha256": "6ffd82efa49bc39fa29e0aec3f12fe2c60c95bc469b35effad06c8386a4cd14a",
+          "heading_path": [
+            "Atlas maintenance policy",
+            "VACUUM and statistics work"
+          ],
+          "anchor": "L41",
+          "citation_url": "file:///Users/cankoc/Desktop/rag-workflow-lab/data/corpus/synthetic/atlas-expanded-v1/atlas_maintenance_policy.md#L41",
+          "span": {
+            "start": 0,
+            "end": 379,
+            "text": "`VACUUM FULL` is not part of routine maintenance. It requires a separate\noutage plan, approval from both the schema owner and on-call lead, a reviewed\nlocking impact and a verified capacity assessment. The routine window alone\ndoes not authorize it. Index creation, deletion and other DDL also require\ntheir own approved change; catalog reference SQL is not an execution request."
+          }
+        },
+        {
+          "evidence_id": "P28-E2",
+          "source_id": "PG-VACUUM",
+          "snapshot_id": "PG-VACUUM-20261123T175402Z-lwwvgshl",
+          "chunk_id": "PG-VACUUM-b9b47ac597e0c07993a89a99cabdc6471561d6361bf64d4cafaba7ccc8dbe0e3",
+          "block_index": 10,
+          "block_sha256": "fabac2866d3403d7181396f89b70390485b73fa9eebd4ac0cddbf5dfbb4af75f",
+          "heading_path": [
+            "24.1. Routine Vacuuming",
+            "24.1.1. Vacuuming Basics"
+          ],
+          "anchor": "VACUUM-BASICS",
+          "citation_url": "https://www.postgresql.org/docs/18/routine-vacuuming.html#VACUUM-BASICS",
+          "span": {
+            "start": 0,
+            "end": 684,
+            "text": "There are two variants of VACUUM: standard VACUUM and VACUUM FULL. VACUUM FULL can reclaim more disk space but runs much more slowly. Also, the standard form of VACUUM can run in parallel with production database operations. (Commands such as SELECT, INSERT, UPDATE, and DELETE will continue to function normally, though you will not be able to modify the definition of a table with commands such as ALTER TABLE while it is being vacuumed.) VACUUM FULL requires an ACCESS EXCLUSIVE lock on the table it is working on, and therefore cannot be done in parallel with other use of the table. Generally, therefore, administrators should strive to use standard VACUUM and avoid VACUUM FULL."
+          }
+        }
+      ],
+      "evidence_combination_note": "The local source establishes authorization; the engine documentation establishes the concurrency constraint. This is policy interpretation, not a claim that an outage or VACUUM actually occurred."
+    },
+    {
+      "question_id": "P29",
+      "primary_bucket": "NEG02",
+      "scenario_family_id": "atlas-device-events-row-count",
+      "question_type": "insufficient_evidence",
+      "answerability": "unanswerable",
+      "verification_status": "source_verified",
+      "question": "How many rows are stored in Atlas's atlas_app.device_events table?",
+      "expected_answer": "The corpus does not provide a row count for atlas_app.device_events. Its declared schema and synthetic 6.2 GB total footprint do not determine how many rows it stores; the footprint includes associated storage and indexes.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P29-R1",
+          "statement": "State that the supplied corpus does not establish the device_events row count.",
+          "support_mode": "corpus_scope",
+          "supporting_evidence_ids": []
+        },
+        {
+          "requirement_id": "P29-R2",
+          "statement": "Do not invent a count or derive one from the 6.2 GB footprint, table count or generic documentation examples.",
+          "support_mode": "corpus_scope",
+          "supporting_evidence_ids": []
+        }
+      ],
+      "evidence": [],
+      "unanswerability": {
+        "reason": "missing_entity_attribute",
+        "review_method": "missing_fact",
+        "target_entity": "atlas_app.device_events",
+        "missing_fact": "The number of stored rows in atlas_app.device_events.",
+        "checked_source_ids": [
+          "PG-EXPLAIN",
+          "PG-MULTI",
+          "PG-PARTIAL",
+          "PG-STATS",
+          "PG-INDEX-TYPES",
+          "PG-ISOLATION",
+          "PG-VACUUM",
+          "PG-CONSTRAINTS",
+          "LOCAL-INVENTORY",
+          "LOCAL-POLICY",
+          "LOCAL-QUERY-CATALOG",
+          "LOCAL-BACKUP",
+          "LOCAL-MAINTENANCE",
+          "LOCAL-ACCESS"
+        ],
+        "review_note": "A full-scope entity/context scan covered all fourteen pinned sources and their 638 parsed blocks/151 chunks, followed by editorial review of the relevant passages. LOCAL-INVENTORY blocks 10-12 give aggregate synthetic footprints and explicitly leave row counts unspecified; LOCAL-QUERY-CATALOG blocks 5 and 14 provide no row count. A CREATE TABLE definition, the 120-table total, storage allocation, selected query or generic PostgreSQL row-estimation example is not a count for this Atlas table. No selected source supplies sufficient cardinality or physical-layout data to derive it. These passages are useful context, not positive evidence for a numeric answer."
+      }
+    },
+    {
+      "question_id": "P30",
+      "primary_bucket": "NEG03",
+      "scenario_family_id": "atlas-daily-backup-observed-outcome",
+      "question_type": "insufficient_evidence",
+      "answerability": "unanswerable",
+      "verification_status": "source_verified",
+      "question": "Did the Atlas backup job scheduled for 01:00 UTC on 2026-11-23 finish successfully?",
+      "expected_answer": "The corpus does not establish that run's outcome. It defines the ATLAS-BACKUP-DAILY schedule and completion target but supplies no matching run record or observed exit status. A schedule alone is not evidence that the backup completed successfully.",
+      "answer_requirements": [
+        {
+          "requirement_id": "P30-R1",
+          "statement": "State that the requested backup run's successful completion cannot be determined from the supplied corpus.",
+          "support_mode": "corpus_scope",
+          "supporting_evidence_ids": []
+        },
+        {
+          "requirement_id": "P30-R2",
+          "statement": "Do not treat the schedule, completion target, document date or policy objective as an observed successful run.",
+          "support_mode": "corpus_scope",
+          "supporting_evidence_ids": []
+        }
+      ],
+      "evidence": [],
+      "unanswerability": {
+        "reason": "missing_runtime_observation",
+        "review_method": "missing_fact",
+        "target_entity": "ATLAS-BACKUP-DAILY",
+        "missing_fact": "The observed successful or failed completion of the 2026-11-23 01:00 UTC scheduled backup run.",
+        "checked_source_ids": [
+          "PG-EXPLAIN",
+          "PG-MULTI",
+          "PG-PARTIAL",
+          "PG-STATS",
+          "PG-INDEX-TYPES",
+          "PG-ISOLATION",
+          "PG-VACUUM",
+          "PG-CONSTRAINTS",
+          "LOCAL-INVENTORY",
+          "LOCAL-POLICY",
+          "LOCAL-QUERY-CATALOG",
+          "LOCAL-BACKUP",
+          "LOCAL-MAINTENANCE",
+          "LOCAL-ACCESS"
+        ],
+        "review_note": "A full-scope entity/context scan covered all fourteen pinned sources and their 638 parsed blocks/151 chunks, followed by editorial review of the relevant passages. LOCAL-BACKUP blocks 4 and 8 define the job and intended 01:00 UTC schedule/02:00 UTC target; blocks 10 and 18 require actual run records and state that none are supplied. LOCAL-MAINTENANCE block 6 requires successful backup evidence for approval but reports no completed run; block 21 also supplies no maintenance outcomes. Dates in source metadata identify document state, not an executed backup. No matching archive record, completion status or integrity result exists in this corpus. This case is relative to document-only evidence access; a future tool could supply a matching observation."
+      }
+    }
+  ]
+}

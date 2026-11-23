@@ -42,15 +42,24 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
             "This checker expects the English development subset.")
     require(dataset["status"] == "source_verified", "Expected source-verified annotation status.")
     state = dataset["source_state"]
-    _, manifest_data = read_pinned(state["sources_manifest"], root)
-    source_manifest = json.loads(manifest_data)
-    allowlist = {s["source_id"]: s for s in source_manifest["sources"]}
+    require(("sources_manifest" in state) != ("sources_manifests" in state),
+            "Pin either sources_manifest or sources_manifests, not both.")
+    manifests = state.get("sources_manifests", [state.get("sources_manifest")])
+    require(isinstance(manifests, list) and bool(manifests), "Pin at least one source manifest.")
+    allowlist = {}
+    for record in manifests:
+        _, manifest_data = read_pinned(record, root)
+        source_manifest = json.loads(manifest_data)
+        for declaration in source_manifest["sources"]:
+            sid = declaration["source_id"]
+            require(sid not in allowlist, f"Duplicate allowlisted source: {sid}")
+            allowlist[sid] = (declaration, source_manifest, digest(manifest_data))
     sources, chunks = {}, {}
     for source in state["sources"]:
         sid = source["source_id"]
         require(sid not in sources, f"Duplicate source: {sid}")
         require(sid in allowlist, f"Source is outside the selected allowlist: {sid}")
-        declaration = allowlist[sid]
+        declaration, source_manifest, manifest_sha256 = allowlist[sid]
         markdown = declaration["format"] == "markdown"
         require(declaration["format"] in {"html", "markdown"}, f"Unsupported source format: {sid}")
         files = source["files"]
@@ -71,7 +80,7 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
             expected_source = {**declaration, "url": source["source_url"]}
             require(snapshot["document_state"] == state["document_state"] == source_manifest["document_state"],
                     f"Markdown document state mismatch: {sid}")
-            require(snapshot["source_manifest_sha256"] == digest(manifest_data)
+            require(snapshot["source_manifest_sha256"] == manifest_sha256
                     and snapshot["sha256"] == declaration["sha256"],
                     f"Markdown allowlist hash mismatch: {sid}")
         else:
@@ -174,9 +183,17 @@ def validate(dataset_path: Path, root: Path = ROOT) -> dict:
                     f"Incomplete checked corpus scope: {qid}")
             entity = scope["target_entity"].strip().casefold()
             require(bool(entity) and bool(scope["review_note"].strip()), f"Missing absence review: {qid}")
-            require(all(entity not in block["text"].casefold()
-                        for _, document in sources.values() for block in document["blocks"]),
-                    f"Entity is present in the checked sources; absence review is stale: {qid}")
+            method = scope.get("review_method", "absent_entity")
+            require(method in {"absent_entity", "missing_fact"}, f"Unknown absence review method: {qid}")
+            entity_present = any(entity in block["text"].casefold()
+                                 for _, document in sources.values() for block in document["blocks"])
+            if method == "absent_entity":
+                require(not entity_present,
+                        f"Entity is present in the checked sources; absence review is stale: {qid}")
+            else:
+                # Missing facts about documented entities need an editorial review.
+                require(entity_present and bool(scope["missing_fact"].strip()),
+                        f"Missing-fact review needs a documented entity and requested fact: {qid}")
         else:
             require(bool(evidence_ids), f"Question has no evidence: {qid}")
         require(bool(question["answer_requirements"]), f"Question has no answer requirements: {qid}")

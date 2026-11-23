@@ -1,5 +1,11 @@
 # Local embedding setup and first runtime check
 
+**Expanded corpus, 2026-11-23:** The cached setup below now also serves the
+fourteen-snapshot shared index with 151 normalized 768-dimensional vectors.
+All old indexes remain unchanged; total DB vectors are 224 across four indexes.
+See [STATUS](STATUS.md#expanded-shared-embedding-index--2026-11-23) for the index ID,
+scope and verification. No hosted API call was used.
+
 **Date:** 2026-11-06. **Status:** The owner authorized the next step after the
 Nomic recommendation. Nomic Embed Text v1.5 is now the initial pilot embedding
 model, with a working local document/query adapter. This is a runtime smoke

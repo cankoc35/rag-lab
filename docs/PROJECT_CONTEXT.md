@@ -1,6 +1,6 @@
 # Project context
 
-**Updated:** 2026-11-23. This file records purpose and lasting decisions.
+**Updated:** 2026-11-24. This file records purpose and lasting decisions.
 Use [STATUS](STATUS.md) for progress, [ROADMAP](ROADMAP.md) for sequence,
 [HANDOFF](HANDOFF.md) for code/artifacts and [history](STATUS_HISTORY.md) for
 dated implementation details. Repository: `/Users/cankoc/Desktop/rag-workflow-lab`.
@@ -28,6 +28,52 @@ This is not the MOTIF-RAG evaluation library.
 - **2026-11-23:** Complete a controlled Atlas v2 source-change check using
   unchanged P08, a separately versioned 8-second policy, identical Simple
   settings and isolated snapshot/index scope. Preserve v1 and its results.
+- **2026-11-23:** Expand the retrieval set to 100 answerable questions: 50
+  PostgreSQL-only, 30 Atlas-only and 20 combined, plus 20 unanswerable.
+  Broaden PostgreSQL coverage to index types, transactions, vacuum and
+  constraints, and Atlas coverage to query/index catalog, backup, maintenance
+  and access policies. The [allocation plan](RETRIEVAL_DATASET_PLAN.md) is
+  complete; all 120 development records are now prepared. The final held-out
+  set, scoring protocol and thesis sample size remain open.
+
+The PostgreSQL expansion now has a separate
+[eight-source allowlist](../data/corpus/postgres_expanded_v1.json) and
+[acquisition config](../configs/corpus_expansion.toml). Four new HTML pages
+are saved and hash-verified; the four original definitions/snapshots are reused
+unchanged. All eight HTML parser outputs/113 chunks are saved and imported;
+the shared embedding index now includes all eight. See [STATUS](STATUS.md#saved-official-documentation-snapshots) for pins.
+
+The [expanded Atlas manifest](../data/corpus/synthetic/atlas-expanded-v1/sources.json)
+now pins six authored documents under state `atlas-expanded-v1`: inventory,
+operations policy, query/index catalog, backup, maintenance and access. This
+state extends Atlas v1 while retaining its inventory, lookup SQL and 5-second
+inclusive lag rule. New policies/definitions are explicitly synthetic and
+contain no live observations. Original v1/v2 sources and controls are preserved;
+expanded raw snapshots/parsed outputs are saved in
+`data/local/markdown/atlas-expanded-v1-hyrbftbg/`. The selected eight HTML plus
+six Atlas sources contain 638 parser blocks and 151 local chunks (113 HTML,
+38 Atlas). Persistent chunks match the fit check and preserve the original
+49 PostgreSQL chunks/IDs. The fourteen selected snapshots/151 chunks are now
+imported and embedded in one shared Nomic index, with exact snapshot selection.
+Old Atlas controls stay separate. See [STATUS](STATUS.md) for the shared index ID.
+The separate [expanded references](../data/evaluation/dev/expanded_questions.json)
+retain the same ten development questions and expected answers, revalidated
+against all fourteen sources/151 chunks. Atlas evidence uses the expanded state;
+P19's absence review covers the entire shared scope. Original datasets remain unchanged.
+Cumulative [version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json)
+completes the approved 120-question development set: 100 answerable
+(50 PostgreSQL-only, 30 Atlas-only, 20 combined) and 20 unanswerable, five per
+negative bucket. P81–P130 complete the remaining budgets; all seventy inherited
+records, source pins and prior files are unchanged. Reference preparation is
+complete; the expanded retrieval comparison and final scoring/held-out protocol
+remain open. Using this set for tuning requires a separate held-out thesis set.
+
+The owner authorized the expanded retrieval measurement step on 2026-11-24.
+`annotated-evidence-v1` now defines distinct-chunk recall and required-claim
+support at 5/10/20, answerable-only question means and separate negative records.
+Unannotated results remain unjudged candidates for manual review. This versions
+the development diagnostic; final semantic/answer scoring is still open.
+The dataset, index scope and retrieval settings are unchanged.
 
 The first source allowlist selects PostgreSQL 18: Using EXPLAIN, Multicolumn
 Indexes, Partial Indexes and the `pg_stat_replication` statistics section.
@@ -63,8 +109,8 @@ Version metadata/state references also change. Its two snapshots/12 chunks
 and separate index preserve v1. Two fresh P08 calls follow the 5 → 8 second
 change, with corresponding citations; question, prompt and generator settings
 match. This is one development check, not general accuracy or a full grounding
-evaluation. Current verified totals: eight snapshots/73 chunks, three indexes/
-73 vectors and 24 traces/37 spans. Use snapshot IDs to select one source version
+evaluation. Current verified totals: 18 snapshots/175 chunks, four indexes/
+224 vectors and 24 traces/37 spans. Use snapshot IDs to select one source version
 when indexing; source IDs include all stored versions.
 
 ## Selected direction and earlier alternatives

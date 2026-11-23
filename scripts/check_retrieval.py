@@ -32,6 +32,7 @@ from rag_workflow_lab.tracing import retrieve_with_trace
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "data/evaluation/dev/document_questions.json"
 CUTOFFS = (5, 10, 20)
+MEASUREMENT_VERSION = "annotated-evidence-v1"
 FULL_TEXT_SETTINGS = {"configuration": "english", "query_parser": "normalized_lexemes_or_v1",
                       "operator": "OR", "ranking": "ts_rank_cd", "normalization": 0,
                       "document_field": "chunks.text"}
@@ -57,9 +58,43 @@ def validate_index_scope(connection, index_id: str, dataset: dict) -> None:
         raise ValueError("Selected index does not match the dataset's complete pinned chunk/input scope.")
 
 
+def measure_evidence(question: dict, ranks: dict) -> dict:
+    """Measure annotated support after retrieval; unannotated passages remain unjudged."""
+    evidence_chunks = {e["evidence_id"]: e["chunk_id"] for e in question["evidence"]}
+    chunk_ranks = {cid: ranks.get(cid) for cid in evidence_chunks.values()}
+    requirement_ranks = {}
+    if chunk_ranks:
+        for requirement in question["answer_requirements"]:
+            support = [ranks.get(evidence_chunks[eid]) for eid in requirement["supporting_evidence_ids"]]
+            found = [rank for rank in support if rank is not None]
+            if requirement["support_mode"] == "any":
+                rank = min(found) if found else None
+            else:
+                rank = max(found) if len(found) == len(support) else None
+            requirement_ranks[requirement["requirement_id"]] = rank
+
+    chunk_hits, requirement_hits, recall, coverage, unannotated = {}, {}, {}, {}, {}
+    for k in CUTOFFS:
+        key = str(k)
+        chunk_hits[key] = [cid for cid, rank in chunk_ranks.items() if rank is not None and rank <= k]
+        requirement_hits[key] = [rid for rid, rank in requirement_ranks.items() if rank is not None and rank <= k]
+        recall[key] = len(chunk_hits[key]) / len(chunk_ranks) if chunk_ranks else None
+        coverage[key] = len(requirement_hits[key]) / len(requirement_ranks) if requirement_ranks else None
+        unannotated[key] = [cid for cid, rank in ranks.items() if rank <= k and cid not in chunk_ranks]
+    return {
+        "evidence_chunk_ranks": chunk_ranks, "evidence_chunk_hits_at_k": chunk_hits,
+        "evidence_chunk_recall_at_k": recall,
+        "requirement_ranks": requirement_ranks, "requirements_supported_at_k": requirement_hits,
+        "requirement_coverage_at_k": coverage,
+        "alternative_evidence_review": {
+            "status": "not_reviewed", "unannotated_chunk_ids_at_k": unannotated,
+        } if chunk_ranks else None,
+    }
+
+
 def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
                     trace_connection=None, run_id=None, configuration=None, method="dense") -> dict:
-    """Retrieve each raw question once, then inspect annotated evidence IDs."""
+    """Retrieve each raw question once, then measure annotated chunk and claim support."""
     if method != "dense" and trace_connection is not None:
         raise ValueError("Only dense diagnostic tracing is implemented.")
     score_fields = {
@@ -94,24 +129,44 @@ def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
         evidence_ranks = {e["evidence_id"]: ranks.get(e["chunk_id"]) for e in question["evidence"]}
         hits = {str(k): [eid for eid, rank in evidence_ranks.items() if rank is not None and rank <= k]
                 for k in CUTOFFS}
+        measurements = measure_evidence(question, ranks)
         records.append({
             "question_id": question["question_id"], "question": question["question"],
+            "question_type": question["question_type"],
+            "primary_bucket": question.get("primary_bucket"),
+            "scenario_family_id": question.get("scenario_family_id"),
             "answerability": question.get("answerability", "answerable"),
             "positive_evidence_applicable": bool(evidence_ranks),
+            "unanswerability": question.get("unanswerability"),
             "query_input_sha256": sha256((query_prefix + question["question"]).encode()).hexdigest(),
             "returned_chunks": len(matches),
             "elapsed_seconds": elapsed, "evidence_ranks": evidence_ranks, "evidence_hits_at_k": hits,
+            **measurements,
             "ranking": [{key: match[key] for key in (
                 "chunk_id", "source_id", "snapshot_id", "url", "token_count",
             ) + score_fields} for match in matches],
         })
         if trace_id is not None:
             records[-1]["trace_id"] = trace_id
-        summary = ", ".join(f"@{k}={len(hits[str(k)])}/{len(evidence_ranks)}" for k in CUTOFFS)
+        total = len(measurements["evidence_chunk_ranks"])
+        summary = ", ".join(f"@{k}={len(measurements['evidence_chunk_hits_at_k'][str(k)])}/{total}"
+                            for k in CUTOFFS)
         if not evidence_ranks:
             summary = "N/A (no positive evidence; inspect returned context and abstention separately)"
-        print(f"{question['question_id']}: annotated hits {summary}", file=sys.stderr, flush=True)
-    return {"indexed_chunks": count, "cutoffs": list(CUTOFFS), "questions": records}
+        print(f"{question['question_id']}: unique annotated chunk hits {summary}", file=sys.stderr, flush=True)
+    positives = [record for record in records if record["positive_evidence_applicable"]]
+    summary = {"answerable_questions": len(positives), "unanswerable_questions": len(records) - len(positives)}
+    for metric in ("evidence_chunk_recall_at_k", "requirement_coverage_at_k"):
+        summary["mean_" + metric] = {
+            str(k): sum(record[metric][str(k)] for record in positives) / len(positives) if positives else None
+            for k in CUTOFFS
+        }
+    summary["all_requirements_supported_rate_at_k"] = {
+        str(k): sum(record["requirement_coverage_at_k"][str(k)] == 1 for record in positives) / len(positives)
+        if positives else None for k in CUTOFFS
+    }
+    return {"measurement_version": MEASUREMENT_VERSION, "indexed_chunks": count,
+            "cutoffs": list(CUTOFFS), "summary": summary, "questions": records}
 
 
 def main() -> None:
@@ -140,6 +195,7 @@ def main() -> None:
             "sentence-transformers", "transformers", "torch", "tokenizers", "psycopg",
         )
         provenance = {
+            "measurement_version": MEASUREMENT_VERSION,
             "dataset": dataset_check, "dataset_path": str(args.dataset.resolve()),
             "source_state_id": dataset["source_state"]["source_state_id"],
             "libraries": {name: version(name) for name in libraries},
@@ -148,6 +204,7 @@ def main() -> None:
             "code_sha256": {name: file_sha256(ROOT / name) for name in (
                 "scripts/check_retrieval.py", "scripts/check_retrieval.py.lock",
                 "scripts/check_document_questions.py", "configs/pilot.toml",
+                "docs/EVALUATION_PLAN.md",
                 "src/rag_workflow_lab/retrieval.py", "src/rag_workflow_lab/store.py",
                 "src/rag_workflow_lab/embeddings.py", "src/rag_workflow_lab/tracing.py",
             )},
@@ -186,8 +243,8 @@ def main() -> None:
                                      configuration={**provenance, "index": index})
 
         report = {
-            "schema_version": 2, "run_id": run_id, "created_at": created.isoformat(),
-            "scope": "Development annotation-ID diagnostics, not answer-quality grades or a held-out benchmark.",
+            "schema_version": 3, "run_id": run_id, "created_at": created.isoformat(),
+            "scope": "Development annotated chunk/claim coverage, not exhaustive semantic recall, answer grades or a held-out benchmark.",
             "index": index, "read_only": not args.trace, "retrieval_read_only": True,
             "tracing_enabled": args.trace,
             "method": args.method, "query_prefix": "" if args.method == "full-text" else QUERY_PREFIX,

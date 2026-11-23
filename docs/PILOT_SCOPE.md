@@ -1,6 +1,6 @@
 # PostgreSQL pilot — scope and question draft
 
-**Last updated:** 2026-11-23. **Status:** The owner approved PostgreSQL docs
+**Last updated:** 2026-11-24. **Status:** The owner approved PostgreSQL docs
 plus synthetic local runbooks, DB-state tools and prior-knowledge controls.
 The initial four official documentation sources/scopes are selected in
 sources.json; tool contracts and scenario values remain implementation
@@ -19,8 +19,8 @@ batch completed; editorial review found P03/P05 partial and the other four
 meeting recorded requirements. Held-out evaluation has not run.
 
 **Coverage audit, 2026-11-23:** Dense, full-text and equal-weight RRF have now
-been compared on all ten verified unique questions, plus the P08 Atlas v2
-state variant (eleven question/state observations). The live retrieval DB has
+been compared on the initial ten verified unique questions, plus the P08 Atlas v2
+state variant (eleven question/state observations). At that audit the retrieval DB had
 eight snapshots/73 chunks and three indexes/73 vectors: PostgreSQL 49,
 Atlas v1 12 and Atlas v2 12. These contain all chunks in the selected source
 scopes, not only annotated answer passages. P10–P18/P20 are still unverified
@@ -34,6 +34,56 @@ See the [three-method results](HYBRID_RETRIEVAL.md) and local audit
 artifacts use English: corpus/synthetic documents, questions/datasets, prompts,
 answers and gold answers/rubrics. Multilingual/cross-lingual retrieval is not
 required.
+
+## Requested retrieval expansion target — 2026-11-23
+
+The owner approved **100 answerable questions: 50 PostgreSQL-only, 30
+Atlas-only and 20 combined**, plus **20 unanswerable questions**, and broader
+topic coverage. The completed [source/topic/question matrix](RETRIEVAL_DATASET_PLAN.md)
+allocates eight PostgreSQL scopes, six Atlas documents and four negative-case
+groups. It specifies source URLs, planned IDs/files and required evidence.
+
+The expanded development set now completes all 100 answerable plus 20
+unanswerable questions. The original ten are retained and revalidated. P08 v2
+is a related state variant. P10–P18/P20 remain separate tool/scope drafts.
+Completing these document questions does not complete those tool drafts or
+determine the final thesis sample size.
+
+Four new PostgreSQL 18 pages are now captured with a separate
+[expansion manifest](../data/corpus/postgres_expanded_v1.json), retaining the
+original four pinned sources. See [snapshot IDs/hashes](STATUS.md#saved-official-documentation-snapshots).
+The six expanded Atlas documents and their
+[manifest](../data/corpus/synthetic/atlas-expanded-v1/sources.json) are authored
+and persistently parsed. The selected fourteen sources have 638 saved parser
+blocks and 151 saved/imported chunks in the verified shared Nomic index.
+The unchanged ten questions now have a separate [expanded-scope reference file](../data/evaluation/dev/expanded_questions.json),
+including Atlas evidence rebinding and P19's full-corpus absence review.
+The first new batch P21–P30 is in cumulative
+[version 1.1.0](../data/evaluation/dev/expanded_questions_v1_1.json), preserving
+all inherited records/source pins. These twenty dev records do not complete
+the original P01–P20 draft: P10–P18/P20 still need separate verification.
+The second batch P31–P40 is now verified in cumulative
+[version 1.2.0](../data/evaluation/dev/expanded_questions_v1_2.json): thirty dev
+records, with all twenty earlier records and source pins preserved.
+The third batch P41–P50 is verified in cumulative
+[version 1.3.0](../data/evaluation/dev/expanded_questions_v1_3.json): forty dev
+records, with all thirty earlier records/source pins preserved.
+The fourth batch P51–P60 is verified in cumulative
+[version 1.4.0](../data/evaluation/dev/expanded_questions_v1_4.json): fifty dev
+records, with all forty earlier records/source pins preserved.
+The fifth batch P61–P70 is verified in cumulative
+[version 1.5.0](../data/evaluation/dev/expanded_questions_v1_5.json): sixty dev
+records, with all fifty earlier records/source pins preserved.
+The sixth batch P71–P80 is verified in cumulative
+[version 1.6.0](../data/evaluation/dev/expanded_questions_v1_6.json): seventy dev
+records, with all sixty earlier records/source pins preserved.
+Completion batch P81–P130 is verified in cumulative
+[version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json): 120 dev
+records, 100 answerable/20 unanswerable, with all seventy earlier records and
+source pins preserved. Every approved topic budget is complete. Next review
+the development retrieval diagnostic definitions before an expanded comparison.
+New question-level retrieval/answer runs, final held-out selection and scoring
+remain open. Original indexes and results are preserved.
 
 ## Initial target
 
