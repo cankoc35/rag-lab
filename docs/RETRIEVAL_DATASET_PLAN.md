@@ -1,6 +1,6 @@
 # Retrieval dataset expansion
 
-**Updated:** 2026-11-24. **Status:** Expanded corpus indexed; all 120 development questions prepared and reference-verified.
+**Updated:** 2026-11-25. **Status:** Expanded corpus indexed; all 120 development questions compared with dense/full-text/RRF using six quality metrics.
 The owner approved 100 answerable questions split 50 PostgreSQL-only,
 30 Atlas-only and 20 combined, plus 20 unanswerable questions, and broader
 topic coverage. Eight PostgreSQL scopes have pinned HTML snapshots and six
@@ -11,8 +11,9 @@ revalidates the unchanged ten questions against that whole scope. Cumulative
 [version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json) completes
 all 120 records, including the remaining fifty P81–P130. The seventy inherited
 records, source state and prior versions are preserved. All 23 topic budgets
-are complete. All 120 are development material; the expanded comparison and
-final held-out/scoring protocol remain open.
+are complete. All 120 are development material. The expanded retrieval
+comparison and the version-1.8 targeted reference revision/offline rescoring are
+complete. Further relevance review and the final held-out/scoring protocol remain open.
 
 ## Counts and scope
 
@@ -275,13 +276,27 @@ schema passages remain useful but insufficient context, outside positive evidenc
    separate negative records and unannotated candidates for manual review.
    Schema-3 reports retain raw ranks and provenance. No model/DB run was needed.
    Final held-out selection/scoring remain open.
-16. **Next:** compare dense, full-text and RRF on the same raw questions and shared index;
-   retain per-question results. No expanded comparison has run yet.
+16. **Complete:** implement/version/test the
+   [Precision/MRR/nDCG extension](EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25)
+   as `annotated-evidence-v2` / schema 4: six quality metric types at 5/10/20,
+   plus timing separately. Twenty-three diagnostic tests and all-120-record
+   fixture checks through each method passed. No actual retrieval run occurred.
+17. **Complete:** compare dense, full-text and RRF on all 120 raw questions and
+   the exact shared index, preserving per-question ranks and six metrics at
+   5/10/20. Independent scoring/RRF checks passed; DB tables and protected files
+   are unchanged. No Luna call ran. See the
+   [comparison](EXPANDED_RETRIEVAL_COMPARISON.md).
+18. **Complete:** screen all 120 records and apply twelve source-backed annotation
+   corrections in version 1.8.0. Rescore all three saved rankings with common labels;
+   preserve version 1.7, sources, raw questions and negatives. See the
+   [review limits and results](REFERENCE_REVIEW.md). Judging remains non-exhaustive.
+19. **Next:** select/pin a reranker and input handling, then evaluate RRF top-20 →
+   rerank → top-5 against dense/RRF top-5 on the same version-1.8 references.
 
 **Completed:** allocation, source preparation, parsing, chunking, import, indexing
 and all 120 expanded-scope development questions, plus versioned development
-diagnostic measurements.
-**Still to do:** expanded runs and alternative-evidence review, followed
-by separate final held-out/scoring decisions. Existing source/config, corpus and
-dataset files are preserved. The completion session was offline; it made no DB,
+diagnostic measurements and the first three-method retrieval comparison.
+**Still to do:** reranking, further relevance review and separate final
+held-out/scoring decisions. Existing source/config, corpus and
+dataset files are preserved. The question-preparation session was offline; it made no DB,
 retrieval, embedding, migration or hosted API call.

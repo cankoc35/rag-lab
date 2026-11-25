@@ -1,6 +1,6 @@
 # Terminal command reference
 
-Copyable commands for the current implementation, updated on 2026-11-24.
+Copyable commands for the current implementation, updated on 2026-11-25.
 Run them from the repository root. Initial dependency, database
 and model setup are covered in [README](../README.md),
 [PostgreSQL setup](POSTGRES_SETUP.md) and [embedding setup](EMBEDDING_SETUP.md).
@@ -226,29 +226,82 @@ for inspection. No LLM answer or abstention is tested by this command.
 
 ### Expanded 120-question diagnostic
 
-Use the cumulative dataset and its shared fourteen-source/151-chunk index:
+Use the current annotation version and its unchanged shared fourteen-source/151-chunk index:
 
 ```sh
 RAG_EXPANDED_INDEX_ID=nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1
 PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_retrieval.py \
-  --dataset data/evaluation/dev/expanded_questions_v1_7.json \
+  --dataset data/evaluation/dev/expanded_questions_v1_8.json \
   --index-id "$RAG_EXPANDED_INDEX_ID" --method dense
 ```
 
 Replace `--method dense` with `--method full-text` or `--method hybrid` for the
 other two methods, keeping the same dataset/index. Omit `--trace` for read-only
 DB access. These runs do not call Luna; `--offline` controls dependency downloads.
-They have not run on the expanded set yet.
+The original version-1.7 runs completed on 2026-11-25; see their
+[results and preserved report paths](EXPANDED_RETRIEVAL_COMPARISON.md).
+Those saved rankings have already been rescored with version 1.8; the command
+above starts a fresh retrieval run rather than reusing them.
 
-Schema-3 reports use `annotated-evidence-v1`. Per question,
+Schema-4 reports use `annotated-evidence-v2`. Per question,
 `evidence_chunk_recall_at_k` counts distinct annotated chunks and
 `requirement_coverage_at_k` applies each required claim's `any`/`all` evidence
-rule. `summary` averages per-question values over the 100 answerable questions.
+rule. The new `evidence_chunk_precision_at_k`, `reciprocal_rank_at_k` and
+`ndcg_at_k` record the other three measures. `summary` averages per-question
+values over the 100 answerable questions; `mean_reciprocal_rank_at_k` is MRR.
+Precision divides by the fixed cutoff even with fewer returned results;
+nDCG uses binary reference gains. Six summaries at three cutoffs give 18 scores.
 The 20 unanswerable records have `null` positive coverage, with their missing-fact
 reviews and returned rankings retained. Old evidence-ID fields remain inspectable.
 `alternative_evidence_review` lists unannotated candidates as `not_reviewed`;
 the script does not decide their semantic relevance or grade abstention.
-See the [definitions and manual-review procedure](EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
+See the [definitions](EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25)
+and [manual-review procedure](EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
+
+### Rescore saved rankings without retrieval
+
+Use revised annotations with the original reports. These commands access saved
+local files only; they need no DB, embedding model, `.env` or API:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m scripts.rescore_retrieval \
+  --dataset data/evaluation/dev/expanded_questions_v1_8.json \
+  --report outputs/retrieval/dense-20261125T133729034758Z.json
+PYTHONPATH=src .venv/bin/python -m scripts.rescore_retrieval \
+  --dataset data/evaluation/dev/expanded_questions_v1_8.json \
+  --report outputs/retrieval/full-text-20261125T133812795420Z.json
+PYTHONPATH=src .venv/bin/python -m scripts.rescore_retrieval \
+  --dataset data/evaluation/dev/expanded_questions_v1_8.json \
+  --report outputs/retrieval/hybrid-20261125T133826756751Z.json
+```
+
+`--dataset` selects the revised annotations; `--report` selects a schema-4 raw
+report whose dataset hash matches their pinned parent. All three commands were
+verified on 2026-11-25. Each writes a new schema-1 annotation-rescore JSON under
+`outputs/retrieval/`, preserving the raw report and reusing its rankings/query
+hashes/timings. Measurements remain `annotated-evidence-v2`; no new timing was
+measured. See [reference changes and scores](REFERENCE_REVIEW.md).
+
+### Prepare and smoke-test Qwen4B
+
+Download the pinned tokenizer/config only and check all saved RRF top-20 inputs:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --python 3.11 scripts/reranker_smoke.py --prepare
+```
+
+Download approximately 8 GB of original weights and score two fixed passages:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --python 3.11 scripts/reranker_smoke.py --download-model
+```
+
+Omit the flag once weights are local to repeat the smoke offline. `--prepare`
+and `--download-model` are mutually exclusive explicit download modes;
+`uv --offline` only controls package downloads. These commands use no DB,
+`.env` or hosted API. Model settings are in `configs/reranker.toml`; reports
+go to `outputs/reranking/`. Only tokenizer preparation has run so far.
+See [setup/results](QWEN_RERANKER_SETUP.md).
 
 ### Full-text only
 
@@ -397,6 +450,7 @@ Check pinned question references against local artifacts; no model or DB:
 .venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_5.json
 .venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_6.json
 .venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_7.json
+.venv/bin/python scripts/check_document_questions.py --dataset data/evaluation/dev/expanded_questions_v1_8.json
 ```
 
 `--dataset PATH` selects another question JSON file for this reference checker.
@@ -405,10 +459,11 @@ The default file preserves P01–P06. The Atlas file contains P07–P09/P19,
 including a corpus-scope unanswerable case with no positive answer chunk.
 Simple/LLM-only runners also accept `--dataset`; Simple requires an index
 matching that dataset's exact pinned scope. The completed
-`expanded_questions_v1_7.json` contains 120 unique dev questions
+`expanded_questions_v1_8.json` contains the same 120 unique dev questions
 (100 answerable/20 unanswerable), including new P81–P130. No preparation slots
-remain. Earlier `expanded_questions.json` and versions `1.1.0` through `1.6.0`
-preserve the ten- through seventy-question files. All expanded versions pin the
+remain. Version 1.8 changes twelve annotations only; version 1.7 preserves the
+original completed file. Earlier `expanded_questions.json` and versions `1.1.0`
+through `1.6.0` preserve the ten- through seventy-question files. All expanded versions pin the
 same fourteen sources/151 chunks and require the shared index
 `nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`
 for retrieval or Simple runs. Original PostgreSQL/Atlas files and defaults remain.

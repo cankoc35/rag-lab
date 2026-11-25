@@ -19,11 +19,11 @@ contain an annotated pipeline diagram and a one-page project briefing.
 | Area | Implemented | Remaining |
 | --- | --- | --- |
 | Corpus | Fourteen expanded sources/151 chunks imported and embedded; earlier Atlas controls preserved | Sandbox fixtures |
-| Embeddings / DB | 18 snapshots, 175 chunks; four indexes/224 vectors, including the shared 151-vector index | Expanded question/evaluation coverage |
-| Retrieval | Dense, full-text and equal-weight RRF diagnostics; P05 top-five annotations 0/3, 2/3 and 1/3 respectively | Reranking and the complete Enhanced workflow |
+| Embeddings / DB | 18 snapshots, 175 chunks; four indexes/224 vectors, including the shared 151-vector index | Sandbox fixtures |
+| Retrieval | Dense, full-text and equal-weight RRF compared on 120 development questions; saved rankings rescored with revised references | Reranking and the complete Enhanced workflow |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
 | Generation | Simple/LLM-only pairs and Atlas P19 abstention verified; P08 follows a 5 → 8 second source change | Broader evaluation |
-| Evaluation | All 120 development questions prepared in version 1.7.0: 100 answerable + 20 unanswerable | Expanded retrieval comparison; held-out set and final protocol |
+| Evaluation | Version 1.8.0: same 100 answerable + 20 unanswerable; twelve annotation corrections and common offline rescoring | Further relevance review; held-out set and final protocol |
 
 The first dense diagnostic found annotated evidence in the top five for five
 of six questions. P05 showed wording sensitivity; these are development
@@ -80,10 +80,25 @@ completes all 120 development questions: 50 PostgreSQL-only, 30 Atlas-only,
 seventy inherited records, source pins and prior files are preserved.
 The diagnostic now measures unique annotated chunks and required-claim support
 at 5/10/20, with negatives excluded from positive averages and unannotated
-results retained for review. Next compare dense, full-text and RRF on the shared
-scope. No expanded retrieval/model comparison has run.
-Reranking follows as component work.
+results retained for review. The agreed
+[metric extension](docs/EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25)
+now adds Precision/MRR/nDCG at the same cutoffs. All six quality metrics are
+implemented in `annotated-evidence-v2` / schema 4. The
+[expanded comparison](docs/EXPANDED_RETRIEVAL_COMPARISON.md) completed on
+2026-11-25: dense has full annotated support at five for 80/100 answerable
+questions, full-text 60/100 and RRF 77/100. At twenty, RRF reaches 96/100.
+Those original results are preserved. The
+[reference review](docs/REFERENCE_REVIEW.md) now creates
+[version 1.8.0](data/evaluation/dev/expanded_questions_v1_8.json): twelve
+annotation corrections with identical raw questions/corpus. Rescoring the same
+rankings gives full support at five of 83/65/82 and at twenty of 88/95/100 for
+dense/full-text/RRF. These are revised-reference development scores; unannotated
+passages remain unjudged. No Luna call or DB write occurred. Reranker selection
+and a proposed top-20 → top-5 evaluation follow as component work.
 The complete Enhanced workflow, tools, LangGraph and router remain unimplemented.
+The [Qwen4B preparation](docs/QWEN_RERANKER_SETUP.md) now pins a separate runtime
+and verifies all 2,400 saved candidate inputs without truncation. Pretrained
+weight loading, local timing and the full reranking comparison are next.
 See [STATUS](docs/STATUS.md).
 
 ## Working design
@@ -243,9 +258,10 @@ This validates pinned references, loads Nomic once and obtains full ranks in a
 read-only transaction. Unique annotated-chunk recall and claim coverage at
 5/10/20, separate negative records and provenance go to
 `outputs/retrieval/`; progress goes to stderr and the report path to stdout.
-Schema-3 reports use `annotated-evidence-v1`; unannotated candidates need manual
+Schema-4 reports use `annotated-evidence-v2` and include Precision/MRR/nDCG;
+unannotated candidates need manual
 review and the measurements do not grade generated answers. Definitions are in
-the [evaluation plan](docs/EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
+the [evaluation plan](docs/EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25).
 To check Atlas's four unchanged questions against its separate index:
 
 ```sh

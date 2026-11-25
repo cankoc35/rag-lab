@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from importlib.metadata import version
 import json
+from math import log2
 import os
 from pathlib import Path
 import subprocess
@@ -32,7 +33,7 @@ from rag_workflow_lab.tracing import retrieve_with_trace
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "data/evaluation/dev/document_questions.json"
 CUTOFFS = (5, 10, 20)
-MEASUREMENT_VERSION = "annotated-evidence-v1"
+MEASUREMENT_VERSION = "annotated-evidence-v2"
 FULL_TEXT_SETTINGS = {"configuration": "english", "query_parser": "normalized_lexemes_or_v1",
                       "operator": "OR", "ranking": "ts_rank_cd", "normalization": 0,
                       "document_field": "chunks.text"}
@@ -74,22 +75,51 @@ def measure_evidence(question: dict, ranks: dict) -> dict:
             requirement_ranks[requirement["requirement_id"]] = rank
 
     chunk_hits, requirement_hits, recall, coverage, unannotated = {}, {}, {}, {}, {}
+    precision, reciprocal_rank, ndcg = {}, {}, {}
+    found_ranks = sorted(rank for rank in chunk_ranks.values() if rank is not None)
+    first_rank = found_ranks[0] if found_ranks else None
     for k in CUTOFFS:
         key = str(k)
         chunk_hits[key] = [cid for cid, rank in chunk_ranks.items() if rank is not None and rank <= k]
         requirement_hits[key] = [rid for rid, rank in requirement_ranks.items() if rank is not None and rank <= k]
         recall[key] = len(chunk_hits[key]) / len(chunk_ranks) if chunk_ranks else None
         coverage[key] = len(requirement_hits[key]) / len(requirement_ranks) if requirement_ranks else None
+        precision[key] = reciprocal_rank[key] = ndcg[key] = None
+        if chunk_ranks:
+            precision[key] = len(chunk_hits[key]) / k
+            reciprocal_rank[key] = 1 / first_rank if first_rank is not None and first_rank <= k else 0
+            dcg = sum(1 / log2(rank + 1) for rank in found_ranks if rank <= k)
+            ideal_dcg = sum(1 / log2(rank + 1) for rank in range(1, min(k, len(chunk_ranks)) + 1))
+            ndcg[key] = dcg / ideal_dcg
         unannotated[key] = [cid for cid, rank in ranks.items() if rank <= k and cid not in chunk_ranks]
     return {
         "evidence_chunk_ranks": chunk_ranks, "evidence_chunk_hits_at_k": chunk_hits,
         "evidence_chunk_recall_at_k": recall,
+        "evidence_chunk_precision_at_k": precision,
+        "reciprocal_rank_at_k": reciprocal_rank, "ndcg_at_k": ndcg,
         "requirement_ranks": requirement_ranks, "requirements_supported_at_k": requirement_hits,
         "requirement_coverage_at_k": coverage,
         "alternative_evidence_review": {
             "status": "not_reviewed", "unannotated_chunk_ids_at_k": unannotated,
         } if chunk_ranks else None,
     }
+
+
+def summarize(records: list[dict]) -> dict:
+    """Average reference measurements over answerable questions only."""
+    positives = [record for record in records if record["positive_evidence_applicable"]]
+    summary = {"answerable_questions": len(positives), "unanswerable_questions": len(records) - len(positives)}
+    for metric in ("evidence_chunk_recall_at_k", "requirement_coverage_at_k",
+                   "evidence_chunk_precision_at_k", "reciprocal_rank_at_k", "ndcg_at_k"):
+        summary["mean_" + metric] = {
+            str(k): sum(record[metric][str(k)] for record in positives) / len(positives) if positives else None
+            for k in CUTOFFS
+        }
+    summary["all_requirements_supported_rate_at_k"] = {
+        str(k): sum(record["requirement_coverage_at_k"][str(k)] == 1 for record in positives) / len(positives)
+        if positives else None for k in CUTOFFS
+    }
+    return summary
 
 
 def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
@@ -154,19 +184,8 @@ def check_retrieval(connection, embedder, index_id: str, dataset: dict, *,
         if not evidence_ranks:
             summary = "N/A (no positive evidence; inspect returned context and abstention separately)"
         print(f"{question['question_id']}: unique annotated chunk hits {summary}", file=sys.stderr, flush=True)
-    positives = [record for record in records if record["positive_evidence_applicable"]]
-    summary = {"answerable_questions": len(positives), "unanswerable_questions": len(records) - len(positives)}
-    for metric in ("evidence_chunk_recall_at_k", "requirement_coverage_at_k"):
-        summary["mean_" + metric] = {
-            str(k): sum(record[metric][str(k)] for record in positives) / len(positives) if positives else None
-            for k in CUTOFFS
-        }
-    summary["all_requirements_supported_rate_at_k"] = {
-        str(k): sum(record["requirement_coverage_at_k"][str(k)] == 1 for record in positives) / len(positives)
-        if positives else None for k in CUTOFFS
-    }
     return {"measurement_version": MEASUREMENT_VERSION, "indexed_chunks": count,
-            "cutoffs": list(CUTOFFS), "summary": summary, "questions": records}
+            "cutoffs": list(CUTOFFS), "summary": summarize(records), "questions": records}
 
 
 def main() -> None:
@@ -243,8 +262,8 @@ def main() -> None:
                                      configuration={**provenance, "index": index})
 
         report = {
-            "schema_version": 3, "run_id": run_id, "created_at": created.isoformat(),
-            "scope": "Development annotated chunk/claim coverage, not exhaustive semantic recall, answer grades or a held-out benchmark.",
+            "schema_version": 4, "run_id": run_id, "created_at": created.isoformat(),
+            "scope": "Development reference-based retrieval diagnostics, not exhaustive semantic relevance, answer grades or a held-out benchmark.",
             "index": index, "read_only": not args.trace, "retrieval_read_only": True,
             "tracing_enabled": args.trace,
             "method": args.method, "query_prefix": "" if args.method == "full-text" else QUERY_PREFIX,

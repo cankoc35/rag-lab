@@ -239,11 +239,23 @@ all seventy inherited records/source pins preserved. Question preparation is
 complete. Development diagnostic definitions are now implemented as
 `annotated-evidence-v1`: unique annotated chunks, any/all required-claim support,
 answerable-only means and separate negative/candidate-review records.
-Next compare dense, full-text and RRF on the same questions/index. Final
-held-out allocation and scoring remain open; no expanded comparison has run.
+The owner agreed to [six quality metrics plus timing](EVALUATION_PLAN.md#agreed-metric-extension--2026-11-24).
+Precision/MRR/nDCG were implemented and offline-tested on 2026-11-25 as
+`annotated-evidence-v2` / schema 4. All six quality metrics are ready at 5/10/20.
+The [expanded comparison](EXPANDED_RETRIEVAL_COMPARISON.md) completed on
+2026-11-25: three methods × 120 questions, read-only on the shared index.
+The subsequent [reference review](REFERENCE_REVIEW.md) creates version 1.8.0
+with twelve annotation corrections and common offline rescoring. Raw questions,
+source state, negatives and original results remain preserved. The targeted
+review is not exhaustive. Final held-out allocation and scoring remain open;
+no expanded answer comparison ran.
 
-Reranker selection, candidate/context limits and implementation follow as
-component work, with comparison against the three retrieval baselines.
+The owner requested Qwen4B preparation: a pinned config, separate locked
+environment and tokenizer fit check are now complete. All 2,400 saved RRF pairs
+fit; pretrained weight/runtime verification is next. See
+[Qwen setup](QWEN_RERANKER_SETUP.md). Final reranker selection, candidate/context
+limits and full integration remain component work, with comparison against the
+three retrieval baselines.
 Simple remains dense-only; Enhanced answer generation and fixed tools are
 separate work. Final thesis settings are not frozen.
 

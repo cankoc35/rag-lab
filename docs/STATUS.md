@@ -1,6 +1,6 @@
 # Current status
 
-**Last updated:** 2026-11-24. This is the current implementation boundary.
+**Last updated:** 2026-11-25. This is the current implementation boundary.
 Detailed dated records are in [STATUS_HISTORY.md](STATUS_HISTORY.md);
 plans are in [ROADMAP](ROADMAP.md), decisions in [PROJECT_CONTEXT](PROJECT_CONTEXT.md),
 and code/artifact paths in [HANDOFF](HANDOFF.md).
@@ -14,15 +14,17 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 | Parsing | Selected expansion scope: eight PostgreSQL + six Atlas sources, 638 blocks; four original HTML outputs reused |
 | Chunking | Expanded scope: 552 content blocks → 151 saved chunks (113 PostgreSQL/38 Atlas); target 512 / ceiling 1024; maximum 822; original 49 unchanged |
 | Embedding | Pinned local Nomic; normalized 768-dimensional vectors; shared fourteen-snapshot index has 151 vectors |
-| Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (verified 2026-11-23) |
+| Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (read-only verification 2026-11-25) |
 | Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); Simple remains dense with `limit=5` |
-| Diagnostics | Schema 3 / `annotated-evidence-v1`: unique annotated-chunk recall and any/all claim support at 5/10/20; positive means, separate negatives and manual-review candidates |
+| Reranker preparation | Pinned Qwen3-Reranker-4B config and separate locked smoke environment; all 2,400 saved RRF pair inputs fit (max 821 tokens); pretrained weights/runtime smoke pending |
+| Diagnostics | Schema 4 / `annotated-evidence-v2`: all six quality metrics at 5/10/20, answerable-only means, separate negatives and manual-review candidates; elapsed time retained |
+| Expanded comparison | Same saved dense/full-text/RRF rankings rescored with v1.8 references; full support @5: 83/65/82 of 100; @20: 88/95/100. Original v1.7 scores preserved; relevance review is not exhaustive |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
 | Generator | Luna client, source-linked context, `answer_v1` and Simple workflow; one live P04 answer verified |
 | Answer runners | Simple/LLM-only support `--dataset`, one/all selection, shared resources/run ID and per-question records; Simple requires exact index scope |
 | Live Simple batch | P01–P06 completed; editorial review: P01/P02/P04/P06 meet recorded requirements, P03/P05 partial |
 | LLM-only control | Live PostgreSQL and Atlas pairs completed; raw-question-only inputs verified, with one LLM span per question |
-| Questions | Expanded dev version 1.7.0 completes all 120 questions: 100 answerable + 20 unanswerable; P81–P130 added, all prior versions preserved; no preparation slots remain |
+| Questions | Expanded dev version 1.8.0 refines twelve annotations; same 120 raw questions, groups, source pins and twenty negative records; all prior versions preserved |
 | Changed evidence | P08 is unchanged across v1/v2; fresh Simple answers follow the source limit, 5 → 8 seconds, with supporting citations |
 
 Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
@@ -866,15 +868,140 @@ sixteen previous retrieval reports, are unchanged. No model loaded, DB connectio
 opened or hosted API called. Verification:
 `outputs/validation/retrieval-measurements-20261123T215752Z.json`.
 
+## Metric extension recorded for the next session — 2026-11-24
+
+The owner agreed to [six quality metric types](EVALUATION_PLAN.md#agreed-metric-extension--2026-11-24)
+at 5/10/20: recall, requirement coverage, all-requirements-supported rate,
+Precision, MRR and nDCG. Retrieval elapsed time is tracked separately.
+At that stopping point only the first three quality metrics were implemented;
+Precision/MRR/nDCG were pending. Saving the plan changed no code, dataset, DB
+or model. Measurement version/schema at that point were `annotated-evidence-v1`/3.
+
+## Literature check of retrieval metrics — 2026-11-24
+
+The [metric review](RETRIEVAL_METRIC_REVIEW.md) screens all 47 local PDFs
+(44 distinct byte hashes) and checks the relevant evaluation sections in eight
+papers. Five rendered pages verify core definitions/tables. The recommendation
+is to retain the agreed six quality metrics plus time. MAP@K is optional;
+Hits@K/completeness terminology varies, and our reference-based claim coverage
+is not RAGChecker's semantic entailment evaluator. Label sufficiency, grouped
+results and consistent alternative-evidence review remain important.
+No new metric was adopted or implemented; no model/DB run occurred.
+
+## Precision, MRR and nDCG implemented — 2026-11-25
+
+[check_retrieval.py](../scripts/check_retrieval.py) now includes the three
+additional metrics under `annotated-evidence-v2` / schema 4. All six quality
+metrics are implemented at 5/10/20, giving 18 summary scores per method plus
+separate retrieval time. Precision always divides by the fixed cutoff; each
+question's reciprocal rank uses its first reference hit within that cutoff.
+Binary-reference nDCG uses log2 discounting and an ideal ranking of
+`min(k, unique_reference_count)` chunks. Definitions are in the
+[evaluation plan](EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25).
+
+The original measurements and retrieval behavior are unchanged. Duplicate
+references count once, empty positive results score zero, negative scores are
+`null`, and only answerable questions enter quality means. Missing reference
+annotations still need consistent semantic review. Schema-3 and older reports
+remain preserved; there is no model, dependency, migration or dataset change.
+
+**23 diagnostic unit tests and all eleven reference-file checks passed.**
+All 120 records passed each of the three mocked retrieval paths (360 simulated
+question calls), including strict JSON serialization, raw-question-only inputs,
+six summary fields/18 cutoff scores, hand-calculated metrics and negative
+exclusion. These are implementation checks, not measured retrieval results.
+All 262 protected artifacts, including sixteen previous retrieval reports,
+are unchanged. No DB access, model loading or hosted API call ran.
+Verification: `outputs/validation/retrieval-ranking-metrics-20261125T113908Z.json`.
+
+## Expanded retrieval comparison completed — 2026-11-25
+
+All three methods retrieved the same 120 raw questions from the exact shared
+fourteen-snapshot/151-chunk index: 360 method/question calls. All six metrics
+at 5/10/20 and timing are recorded. Dense has the strongest first-five
+reference scores; RRF reaches full annotated support for 96/100 at twenty.
+Twenty negatives retain rankings and `null` positive scores. No answer or
+abstention was generated or graded. See the
+[measured comparison](EXPANDED_RETRIEVAL_COMPARISON.md) for tables, raw report
+hashes, group breakdowns, timing limits and targeted evidence reviews.
+
+Independent raw-ranking recomputation matched all scores; all 120 fused
+rankings matched reconstruction from component top-20 lists. The existing
+stopped PostgreSQL container was started. Exact index scope and all seven
+public-table content fingerprints were unchanged afterward; no migration,
+import, reindexing, trace write or hosted API call ran. All 213 protected
+artifacts, including sixteen earlier retrieval reports, were preserved.
+Twenty-three diagnostic unit tests and the 120-question reference checker passed.
+
+Targeted review covered nine positives and four negative contexts. Valid
+alternative passages and overstrict P108/P116 requirements limit interpretation
+of strict scores. No frozen question/reference or raw report changed.
+Audit prefix: `outputs/validation/expanded-retrieval-comparison-20261125T133609Z-`.
+
+## Reference review and offline rescoring — 2026-11-25
+
+[Version 1.8.0](../data/evaluation/dev/expanded_questions_v1_8.json) keeps all
+120 raw questions, source state, group/family labels and twenty negative records.
+The alignment screen covered all 120 records; twelve received targeted corrections:
+P05/P48/P64/P81/P85/P91/P98/P101/P108/P116/P119/P122. Ten evidence records were
+added, three removed; there are now 251 requirements and 202 evidence records
+over 135 blocks/73 distinct chunks. The other 108 complete question records
+are identical. Exact rationale and accepted spans are in the
+[editorial change record](../data/evaluation/dev/reference_review_v1_8.json).
+
+The new offline [rescorer](../scripts/rescore_retrieval.py) validates the pinned
+parent and unchanged queries/scope, reuses `measure_evidence` and the extracted
+shared `summarize` function, and preserves rankings/query hashes/original timings.
+All three methods were rescored: full support at five is 83/65/82 of 100 and
+at twenty 88/95/100 for dense/full-text/RRF. The original scores reproduce exactly;
+independent revised calculations pass. No retrieval quality changed through this
+annotation-only operation. See [REFERENCE_REVIEW](REFERENCE_REVIEW.md) for limits.
+
+**222 offline unit tests and eleven reference-file checks passed.** All 232
+protected local artifacts and all 360 rankings/query hashes/timings are unchanged.
+No DB access, model/API call, retrieval, embedding, migration or reindexing ran.
+This is a single-editor development review informed by earlier results, not
+exhaustive pooled relevance judging or a held-out benchmark. Other unannotated
+passages remain unjudged. Audit:
+`outputs/validation/reference-review-20261125T140656Z-verification.json`.
+
+## Qwen3-Reranker-4B research — 2026-11-25
+
+The [source-backed model review](QWEN_RERANKER_REVIEW.md) compares Qwen's
+published results with a separate English MTEB reranker evaluation. Both support
+4B as a quality-oriented candidate; the latter directly includes ModernBERT.
+These are external results, not PostgreSQL/Atlas measurements. Local model-file
+sizes make a small-batch M3/24-GB trial plausible, but latency and total memory
+are unmeasured. Runtime/template/quantization compatibility must be checked.
+No model, dependency, index, dataset or experiment setting changed; no model
+download, inference, DB access or paid call ran. Selection remains open.
+
+## Qwen4B preparation — 2026-11-25
+
+The owner requested preparing Qwen3-Reranker-4B. The separate
+[config](../configs/reranker.toml) pins revision
+`22e683669bc0f0bd69640a1354a6d0aebcfeede5`, MPS/float16 and a 2,048-token
+application limit. The [smoke script](../scripts/reranker_smoke.py) has a separate
+uv lock and uses native Transformers scoring with the pinned model's own template.
+Nomic settings, environment locks and indexes are unchanged.
+
+Tokenizer/config preparation completed: all 120 saved RRF questions × 20 candidates
+fit without truncation, maximum 821 tokens. MPS availability is confirmed.
+All 225 offline unit tests passed; a tiny random native Qwen3 forward also checked
+the scoring API and oversized-input rejection. All 194 protected prior files
+were preserved. No pretrained weights, DB access, hosted call or new retrieval ran.
+The approximately 8-GB weight download/local smoke is an explicit separate mode.
+See [setup and limits](QWEN_RERANKER_SETUP.md); report:
+`outputs/reranking/qwen4b-20261125T152717058435Z.json`.
+
 ## Next small step
 
-Run dense, full-text and RRF on
-[the completed set](../data/evaluation/dev/expanded_questions_v1_7.json), with
-unchanged raw questions, the shared 151-chunk index and `annotated-evidence-v1`.
-Recheck DB/index scope before running and retain schema-3 per-question/summary
-reports. Review unannotated candidates consistently across methods; do not
-equate an annotated-reference miss with semantic failure. No real expanded run
-has started. Final scoring, held-out allocation and thesis settings remain open.
+Run the prepared Qwen4B weight download/local runtime smoke, then measure a small
+real candidate set. MPS/float16 is the initial prepared runtime; actual pretrained
+latency/memory and ranking quality remain unverified. Then evaluate
+the proposed RRF top-20 → rerank →
+top-5 path against dense/RRF top-5 using the same version-1.8 references. Keep
+baselines immutable. Final scoring, held-out allocation and thesis settings remain open.
 
 Dense, full-text and initial RRF diagnostics are complete. Reranker selection
 and implementation remain a later component step, followed by comparison

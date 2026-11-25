@@ -1,6 +1,6 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-24. The owner approved the initial
+**Status:** Working draft, updated 2026-11-25. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
 final thesis sample sizes, and the complete final protocol remain open. This is a planning
@@ -19,12 +19,16 @@ including P19's full-corpus absence review. Cumulative
 [version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json) completes
 all 120 records, including P81–P130, while preserving the seventy inherited
 records and source pins. All 23 topic budgets are met; all 120 are dev.
-Development retrieval definitions are now versioned as `annotated-evidence-v1`;
-the expanded method comparison is next. Final held-out selection and scoring
+All six agreed development retrieval metrics are implemented as
+`annotated-evidence-v2` / report schema 4; the
+[expanded retrieval comparison](EXPANDED_RETRIEVAL_COMPARISON.md) completed
+on 2026-11-25. The subsequent targeted reference review creates version 1.8.0;
+all saved rankings have been rescored with the revised shared annotations.
+Further relevance review, final held-out selection and scoring
 remain open. Using this set for tuning requires
 a separate held-out thesis set. Missing attributes and
 runtime observations use explicit editorial reviews; entity scans alone do not
-establish their semantic unanswerability. No expanded method comparison has run.
+establish their semantic unanswerability. No expanded answer comparison has run.
 
 **Language decision (owner, 2026-11-05):** Development and held-out questions,
 corpus/synthetic documents, prompts, answers, gold answers and rubrics will
@@ -118,8 +122,8 @@ improves answer quality. Reranking and answer-level comparisons follow later.
 
 ### Expanded development measurements — 2026-11-24
 
-The owner authorized adapting the diagnostic to all 120 questions. New reports
-use schema **3** and measurement version **`annotated-evidence-v1`**, with fixed
+The owner authorized adapting the diagnostic to all 120 questions. The initial
+reports used schema **3** and measurement version **`annotated-evidence-v1`**, with fixed
 cutoffs **5, 10 and 20**. The dataset remains version 1.7.0; question text,
 source state and retrieval settings are unchanged. These definitions govern
 the next development comparison, not the final thesis scoring protocol.
@@ -166,6 +170,139 @@ Old reports are preserved. Reports also retain question type, primary bucket
 and scenario family for later grouped review. Measurement version and the
 SHA-256 of this document join the existing dataset/code/index provenance.
 No live expanded comparison ran while implementing these measurements.
+
+### Agreed metric extension — 2026-11-24
+
+The owner agreed to retain six development retrieval-quality metric types,
+each reported at **5, 10 and 20**, plus retrieval elapsed time separately.
+The intended comparison table therefore has **18 quality scores per method**;
+latency is a seventh measurement type, not another cutoff-based quality metric.
+
+Implementation status below is current as of 2026-11-25.
+
+| Quality metric | Implementation status | Purpose |
+| --- | --- | --- |
+| Annotated-chunk recall | Implemented | Fraction of distinct reference chunks retrieved. |
+| Requirement coverage | Implemented | Fraction of required claims with available annotated support under any/all rules. |
+| All-requirements-supported rate | Implemented | Fraction of answerable questions with complete required-claim support. |
+| Precision | Implemented 2026-11-25 | Fraction of the fixed top-k positions occupied by distinct reference chunks. |
+| MRR | Implemented 2026-11-25 | Average reciprocal rank of the first reference chunk within the cutoff. |
+| nDCG | Implemented 2026-11-25 | Ranking quality relative to the ideal reference ordering, rewarding reference chunks near the top. |
+
+Recall and claim support remain the main evidence-availability measures;
+Precision, MRR and nDCG are complementary diagnostics. MRR alone cannot show
+that every claim of a multi-evidence answer is supported. Retrieval elapsed
+time is already recorded per question. Saving the agreement on 2026-11-24 did
+not change code; the extension was implemented on 2026-11-25 as described below.
+
+Initial new scores must be labeled **reference-based**: current positive
+annotations do not enumerate every valid passage. An unannotated chunk is
+unjudged, not automatically semantically irrelevant; annotation gaps can affect
+all these metrics. Start with binary reference relevance for nDCG; graded
+relevance labels are not prepared. The 20 unanswerable questions stay outside
+positive-quality averages, with separate context/answer-level review.
+
+**Resume order:** check the live index scope and run dense/full-text/RRF with
+the implemented six metrics on the same 120 raw questions
+and 151-chunk index. Review alternative evidence consistently across methods;
+version accepted reference additions and rescore all methods against the same
+labels. Preserve raw reports. No new LLM calls are needed to compute the metrics.
+Final held-out selection, semantic judging and thesis scoring remain open.
+
+The [local-paper metric review](RETRIEVAL_METRIC_REVIEW.md), completed on
+2026-11-24, recommends keeping this six-metric plan for the first comparison.
+MAP@K is optional; paper-specific Hits/completeness definitions are not
+interchangeable with ours. Consistent alternative-evidence judgments and
+grouped results take priority over adding more metric names. These review
+recommendations add no metrics or implementation changes.
+
+### Implemented ranking metrics — 2026-11-25
+
+`check_retrieval.py` now writes schema **4** with measurement version
+**`annotated-evidence-v2`**. The original three metric definitions, raw inputs,
+cutoffs, corpus/index scope and retrieval settings are unchanged. Old reports
+remain immutable. No dependency or database schema change is needed.
+
+Use the same set `G` of distinct annotated chunk IDs. An unannotated chunk is
+not counted as a reference hit; this is a reference-based scoring convention,
+not a semantic irrelevance judgment. Duplicate evidence records never give a
+chunk extra gain. With one-based returned rank `r`, binary relevance is 1 for
+reference chunks and 0 otherwise in these calculations.
+
+| New per-question field | Formula / rule | Batch summary |
+| --- | --- | --- |
+| `evidence_chunk_precision_at_k` | `len(G & R_k) / k`, always dividing by the requested cutoff. | `mean_evidence_chunk_precision_at_k` |
+| `reciprocal_rank_at_k` | `1 / r` for the first reference chunk if `r <= k`; otherwise 0. This is reciprocal rank for one question, not MRR yet. | `mean_reciprocal_rank_at_k` is MRR@k. |
+| `ndcg_at_k` | `DCG_k / IDCG_k`, with `DCG_k = sum(1 / log2(r + 1))` over reference hits at ranks `r <= k`. `IDCG_k` puts `min(k, len(G))` reference chunks at consecutive ranks starting at 1. | `mean_ndcg_at_k` |
+
+Short results are not padded with fake chunks. Precision nevertheless uses
+fixed `k`: two returned reference chunks yield P@5 = 2/5. If those are all
+reference chunks and occur at ranks 1 and 2, recall and nDCG can both be 1.
+IDCG uses the total unique reference count, not only the hits returned, so
+missing references do not artificially make nDCG perfect. At a cutoff below
+the total reference count, IDCG is limited to that cutoff.
+
+An answerable question with no returned references has zero for all three new
+scores. A reference beyond the cutoff contributes nothing at that cutoff.
+The 20 unanswerable questions have `null` values and are excluded from positive
+means; all-negative batches have `null` means. Every answerable question has
+equal weight. The five mean fields plus all-requirements-supported rate give
+six quality summaries at three cutoffs: 18 scores per method. Retrieval elapsed
+time remains a separate per-question observation.
+
+Twenty-three diagnostic unit tests passed, including hand-calculated examples,
+rank/cutoff boundaries, duplicate references, short/empty results, ideal-gain
+normalization and negative exclusion. All 120 questions also passed fixture
+checks through each method, without a model or DB. These are implementation
+checks, not measured retrieval results. The subsequent measured run is recorded below.
+
+### Expanded retrieval run — 2026-11-25
+
+Dense/full-text/RRF each retrieved all 120 raw version-1.7.0 questions from
+the same exact 151-chunk index, with the definitions and settings above frozen.
+All six metrics at 5/10/20 were independently recomputed. Positive means cover
+100 answerable questions; 20 negatives remain unscored. Full reference support
+at five is 80/60/77 of 100 for dense/full-text/RRF; at twenty it is 87/90/96.
+These are annotated-support results, not answer accuracy or final-study estimates.
+
+The [comparison record](EXPANDED_RETRIEVAL_COMPARISON.md) preserves raw report
+hashes, descriptive timing, group results and targeted alternative-evidence notes.
+No source, question, reference or retrieval setting changed. P108/P116 have
+proposed requirement corrections; other questions have candidate equivalent
+passages. They were unapplied in the original run. The subsequent version-1.8
+review and common rescoring are recorded below; original rankings stay frozen.
+No Luna call or trace write ran; all DB table fingerprints were preserved.
+The reports pin this protocol's pre-run hash; subsequent progress edits are
+documentation changes, not retroactive measurement changes.
+
+### Reference revision and offline rescoring — 2026-11-25
+
+[Version 1.8.0](../data/evaluation/dev/expanded_questions_v1_8.json) preserves
+the 120 raw questions, source state, bucket/family labels and twenty negative
+records. An alignment screen covered all 120; twelve questions received
+targeted source-backed corrections. Ten equivalent evidence records were added,
+three unasked/redundant records removed, two comparisons made optional and one
+compound guarantee requirement separated into two necessary claims. Counts are
+251 requirements and 202 evidence records; the schema/formulas remain unchanged.
+The [change record](../data/evaluation/dev/reference_review_v1_8.json) explains
+every accepted span and before/after requirement. No automatic semantic acceptance
+or exhaustive pooled judging is claimed; this is a single-editor development review
+informed by observed retrieval results.
+
+`python -m scripts.rescore_retrieval` validates the revised dataset and its pinned
+parent, requires unchanged queries/scope/negative records, and applies the same
+measurements to saved ranks. It writes a new schema-1 `retrieval_annotation_rescore`
+report with parent-report/revised-dataset hashes and measurement version
+`annotated-evidence-v2`. Original queries, rankings and timings remain unchanged;
+no DB/model access or new timing run occurs. Raw reports are immutable.
+
+The [rescored comparison](REFERENCE_REVIEW.md) gives full support @5 of 83/65/82
+and @20 of 88/95/100 for dense/full-text/RRF. These changes result from labels,
+not improved retrieval execution. Individual recall/ranking scores can decrease
+when references are added or redundant references removed. Equivalent reference
+passages need not all be retrieved to support every required claim. RRF's 100/100
+at twenty is complete annotated support on this development set; answer accuracy,
+abstention and held-out performance remain unmeasured here.
 
 ## Candidate final-study metrics and definitions to finalize
 

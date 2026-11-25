@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-24. Use [STATUS](STATUS.md) for the current boundary and
+**Updated:** 2026-11-25. Use [STATUS](STATUS.md) for the current boundary and
 [STATUS_HISTORY](STATUS_HISTORY.md) for dated evidence. Scaffolds are not features.
 
 ## Read first
@@ -40,14 +40,41 @@ The owner approved 100 answerable questions (50 PostgreSQL-only, 30 Atlas-only,
 20 combined) plus 20 unanswerable and broader topics. The
 [source/topic/question matrix](RETRIEVAL_DATASET_PLAN.md) is complete: eight
 PostgreSQL scopes, six authored Atlas documents, exact budgets and evidence
-requirements. The current [version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json)
+requirements. [Version 1.7.0](../data/evaluation/dev/expanded_questions_v1_7.json)
 completes all 120 development questions: 50 PostgreSQL-only, 30 Atlas-only,
 20 combined answerable and 20 unanswerable. No question-preparation slots remain.
 The development measurement step is implemented in `check_retrieval.py`:
-schema 3 / `annotated-evidence-v1` adds unique annotated-chunk recall and any/all
-required-claim coverage at 5/10/20, answerable-only means, separate negative
-records and unannotated candidates for manual review. Final scoring/held-out
-settings remain open. Next run the expanded three-method retrieval comparison.
+schema 4 / `annotated-evidence-v2` implements all six quality metrics at
+5/10/20: unique annotated-chunk recall, any/all required-claim coverage,
+all-requirements-supported rate, Precision, MRR and nDCG. Retrieval time is
+separate. Precision divides by fixed `k`; nDCG uses binary reference gains and
+ideal `min(k, reference_count)` normalization. Negative scores stay `null` and
+outside positive means. Alternatives remain unjudged. Details are in
+[the metric definitions](EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25).
+The real [expanded comparison](EXPANDED_RETRIEVAL_COMPARISON.md) completed on
+2026-11-25: three methods × 120 raw questions, read-only on the exact shared
+151-chunk index. Full annotated support at five is dense 80/100, full-text
+60/100 and RRF 77/100; RRF reaches 96/100 at twenty. Independent metric and
+RRF reconstruction checks passed. A targeted review found equivalent evidence
+and overstrict requirements; frozen scores and raw rankings are preserved.
+The subsequent [reference review](REFERENCE_REVIEW.md) creates current
+[version 1.8.0](../data/evaluation/dev/expanded_questions_v1_8.json), with twelve
+source-backed annotation corrections, identical raw questions/source state and
+unchanged negatives. All saved rankings were rescored offline. Full support at
+five is now 83/65/82 and at twenty 88/95/100 for dense/full-text/RRF; these are
+annotation-only score changes. The original scores reproduce exactly. Current
+verification: 222 unit tests, eleven reference checks, 232 preserved local
+artifacts, no DB/model/API access. The review is not exhaustive pooled judging.
+The [local-paper review](RETRIEVAL_METRIC_REVIEW.md) supports retaining that
+plan; MAP is optional and no additional metric was adopted. It distinguishes
+paper-specific Hits/completeness formulas and stresses shared label review.
+Final scoring/held-out settings remain open. No expanded answer generation ran.
+The existing PostgreSQL container was started; all seven public-table contents
+were unchanged afterward (18 snapshots, 175 chunks, four indexes/224 vectors,
+24 traces/37 spans). This service check is dated 2026-11-25, not a guarantee
+for the next session. All 213 protected artifacts were preserved; 23 diagnostic
+unit tests and the current reference checker passed. Raw report paths, hashes
+and local verification/review artifacts are in the comparison document.
 The following records describe the earlier preparation stages. The separate
 [expansion manifest](../data/corpus/postgres_expanded_v1.json) and
 [acquisition config](../configs/corpus_expansion.toml) now exist. Four new HTML
@@ -268,7 +295,7 @@ The HTML-only manifest and existing source artifacts are unchanged.
 | [evaluation/dataset.py](../src/rag_workflow_lab/evaluation/dataset.py) | Shared selection that retains only question IDs/text and excludes gold from workflows |
 | [import_corpus.py](../scripts/import_corpus.py) | Validate snapshots/chunks and commit one corpus transaction |
 | [index_corpus.py](../scripts/index_corpus.py) | Embed stored chunks; repeatable source or exact snapshot selection, one index transaction, flushed progress |
-| [check_retrieval.py](../scripts/check_retrieval.py) | Exact scope; dense/full-text/hybrid ranks, unique-chunk/claim coverage at 5/10/20, positive means and separate negative/manual-review records; schema 3, dense tracing only |
+| [check_retrieval.py](../scripts/check_retrieval.py) | Exact scope; all six quality metrics at 5/10/20, ranks, positive means and separate negative/manual-review records; schema 4, dense tracing only |
 | [check_document_questions.py](../scripts/check_document_questions.py) | Offline pinned-reference checks; single or multiple source manifests, exact evidence and negative-case scope |
 | [llm_smoke.py](../scripts/llm_smoke.py) | Explicit `--call-api`; one fixed English test, no corpus/DB access |
 | [run_simple_rag.py](../scripts/run_simple_rag.py) | `--dataset`, exact pinned index scope, explicit `--call-api` and one/all selection; shared resources/run ID, per-question records |
@@ -311,6 +338,9 @@ old comment scaffold; Alembic revisions are authoritative.
 | Fifth new batch, cumulative version 1.5.0 | `data/evaluation/dev/expanded_questions_v1_5.json`; sixty questions, preserved |
 | Sixth new batch, cumulative version 1.6.0 | `data/evaluation/dev/expanded_questions_v1_6.json`; seventy questions, preserved |
 | Completed cumulative expanded references, version 1.7.0 | `data/evaluation/dev/expanded_questions_v1_7.json`; 120 questions, 100 answerable + 20 unanswerable, dev only |
+| Current annotation revision, version 1.8.0 | `data/evaluation/dev/expanded_questions_v1_8.json`; same raw questions/scope, twelve annotation corrections |
+| Editorial review | `data/evaluation/dev/reference_review_v1_8.json`; exact accepted spans and requirement changes; [summary](REFERENCE_REVIEW.md) |
+| Offline rescoring | `scripts/rescore_retrieval.py`; run as `python -m scripts.rescore_retrieval`; no DB/model |
 | Atlas v2 source copies/manifest | `data/corpus/synthetic/atlas-docs-v2/` |
 | Atlas v2 snapshots and chunks | `data/local/markdown/atlas-docs-v2-3jvgwbl6/`, `data/local/chunks/atlas-docs-v2-section-blocks-v1/` |
 | Unchanged P08 with v2 references and pair metadata | `data/evaluation/dev/atlas_changed_evidence_v2.json` |
@@ -343,13 +373,20 @@ from README. The app loads `.env` only when explicitly requested through uv.
 
 ## Next small step
 
-Run dense/full-text/RRF with the same 120 raw questions in version 1.7.0 and
-the shared 151-chunk index, using `annotated-evidence-v1`. Recheck live DB/index
-scope before running; implementation verification used mocks, with no model,
-API or DB access. Inspect schema-3 per-question and summary fields, then review
-unannotated candidate evidence consistently across methods. Keep raw reports
-unchanged; accepted reference additions need versioning and shared rescoring.
-Final held-out/scoring decisions remain open; no expanded comparison has run.
+Read the [Qwen4B research review](QWEN_RERANKER_REVIEW.md). Qwen3-Reranker-4B
+is now prepared as the initial quality candidate: [setup](QWEN_RERANKER_SETUP.md),
+`configs/reranker.toml`, `scripts/reranker_smoke.py` and its separate uv lock.
+Pinned tokenizer/config assets are local; all 2,400 saved RRF input pairs fit
+without truncation (max 821 / limit 2,048). MPS is available. Pretrained weights
+and their runtime smoke remain pending; the script exposes `--download-model`.
+225 unit tests and a tiny random native Qwen forward passed. No Nomic lock/index
+or prior data/report changed. Run the local weight smoke, then time a small
+real candidate set; external benchmark scores do not establish local gains.
+Then evaluate the proposed RRF top-20 → rerank → top-5 path on version 1.8.0
+against unchanged dense/RRF top-5 baselines. Preserve both annotation versions,
+raw reports and rescores. Relevance review remains non-exhaustive; final
+held-out/scoring decisions remain open. No live service was checked during
+offline rescoring; recheck service state before any later DB work.
 
 ### Earlier verification records
 

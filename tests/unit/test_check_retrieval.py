@@ -57,6 +57,52 @@ class CheckRetrievalTests(unittest.TestCase):
         self.assertEqual(record["evidence_chunk_hits_at_k"]["5"], ["chunk-5"])
         self.assertEqual(len(record["evidence_chunk_ranks"]), 5)
         self.assertEqual(record["evidence_chunk_recall_at_k"], {"5": .2, "10": .4, "20": .6})
+        self.assertEqual(record["evidence_chunk_precision_at_k"]["5"], .2)
+        self.assertEqual(record["reciprocal_rank_at_k"]["5"], .2)
+        self.assertAlmostEqual(record["ndcg_at_k"]["5"], .13120507751234178)
+
+    def test_ranking_metrics_match_a_hand_calculated_two_reference_example(self):
+        question = {**self.question, "evidence": self.question["evidence"][:2],
+                    "answer_requirements": self.question["answer_requirements"][:1]}
+        metrics = measure_evidence(question, {"chunk-5": 2, "chunk-10": 5})
+        self.assertEqual(metrics["evidence_chunk_precision_at_k"], {"5": .4, "10": .2, "20": .1})
+        self.assertEqual(metrics["reciprocal_rank_at_k"], {"5": .5, "10": .5, "20": .5})
+        for k in ("5", "10", "20"):
+            self.assertAlmostEqual(metrics["ndcg_at_k"][k], .6240505200038379)
+        earlier = measure_evidence(question, {"chunk-5": 1, "chunk-10": 3})
+        self.assertEqual(earlier["evidence_chunk_precision_at_k"], metrics["evidence_chunk_precision_at_k"])
+        self.assertGreater(earlier["reciprocal_rank_at_k"]["5"], metrics["reciprocal_rank_at_k"]["5"])
+        self.assertGreater(earlier["ndcg_at_k"]["5"], metrics["ndcg_at_k"]["5"])
+
+    def test_short_results_keep_precision_denominator_k(self):
+        question = {**self.question, "evidence": self.question["evidence"][:2],
+                    "answer_requirements": self.question["answer_requirements"][:1]}
+        metrics = measure_evidence(question, {"chunk-5": 1, "chunk-10": 2})
+        self.assertEqual(metrics["evidence_chunk_precision_at_k"], {"5": .4, "10": .2, "20": .1})
+        self.assertEqual(metrics["evidence_chunk_recall_at_k"], {"5": 1, "10": 1, "20": 1})
+        self.assertEqual(metrics["ndcg_at_k"], {"5": 1, "10": 1, "20": 1})
+
+    def test_ndcg_ideal_uses_reference_count_not_just_returned_hits(self):
+        question = {**self.question, "evidence": self.question["evidence"][:3],
+                    "answer_requirements": self.question["answer_requirements"][:1]}
+        metrics = measure_evidence(question, {"chunk-5": 1, "chunk-10": 2})
+        self.assertAlmostEqual(metrics["ndcg_at_k"]["5"], .7653606369886217)
+
+    def test_ndcg_ideal_is_limited_to_the_requested_cutoff(self):
+        question = {**self.question, "evidence": [
+            {"evidence_id": f"E{i}", "chunk_id": f"chunk-{i}"} for i in range(1, 11)
+        ]}
+        metrics = measure_evidence(question, {f"chunk-{i}": i for i in range(1, 11)})
+        self.assertEqual(metrics["evidence_chunk_recall_at_k"]["5"], .5)
+        self.assertEqual(metrics["evidence_chunk_precision_at_k"]["5"], 1)
+        self.assertEqual(metrics["ndcg_at_k"], {"5": 1, "10": 1, "20": 1})
+
+    def test_first_reference_outside_cutoff_scores_zero_until_it_is_included(self):
+        metrics = measure_evidence(self.question, {"chunk-5": 10})
+        self.assertEqual(metrics["reciprocal_rank_at_k"], {"5": 0, "10": .1, "20": .1})
+        self.assertEqual(metrics["evidence_chunk_precision_at_k"], {"5": 0, "10": .1, "20": .05})
+        self.assertEqual(metrics["ndcg_at_k"]["5"], 0)
+        self.assertGreater(metrics["ndcg_at_k"]["10"], 0)
 
     def test_any_and_all_requirements_use_the_first_sufficient_cutoff(self):
         ranks = {"chunk-5": 5, "chunk-10": 10, "chunk-20": 20}
@@ -101,6 +147,9 @@ class CheckRetrievalTests(unittest.TestCase):
         self.assertEqual(summary["unanswerable_questions"], 1)
         self.assertAlmostEqual(summary["mean_evidence_chunk_recall_at_k"]["5"], .6)
         self.assertAlmostEqual(summary["mean_requirement_coverage_at_k"]["5"], 2/3)
+        self.assertAlmostEqual(summary["mean_evidence_chunk_precision_at_k"]["5"], .2)
+        self.assertAlmostEqual(summary["mean_reciprocal_rank_at_k"]["5"], .6)
+        self.assertAlmostEqual(summary["mean_ndcg_at_k"]["5"], .5656025387561709)
         self.assertEqual(summary["all_requirements_supported_rate_at_k"]["5"], .5)
 
     def test_each_original_question_is_retrieved_once_without_gold(self):
@@ -139,6 +188,8 @@ class CheckRetrievalTests(unittest.TestCase):
         self.assertEqual(record["evidence_hits_at_k"], {"5": [], "10": [], "20": []})
         self.assertEqual(record["evidence_chunk_recall_at_k"], {"5": 0, "10": 0, "20": 0})
         self.assertEqual(record["requirement_coverage_at_k"], {"5": 0, "10": 0, "20": 0})
+        for metric in ("evidence_chunk_precision_at_k", "reciprocal_rank_at_k", "ndcg_at_k"):
+            self.assertEqual(record[metric], {"5": 0, "10": 0, "20": 0})
         self.search.assert_not_called()
 
     def test_hybrid_passes_only_raw_question_and_records_component_ranks(self):
@@ -178,6 +229,9 @@ class CheckRetrievalTests(unittest.TestCase):
         self.assertEqual(record["unanswerability"], {"reason": "missing_policy"})
         self.assertEqual(record["evidence_chunk_recall_at_k"], {"5": None, "10": None, "20": None})
         self.assertEqual(record["requirement_coverage_at_k"], {"5": None, "10": None, "20": None})
+        for metric in ("evidence_chunk_precision_at_k", "reciprocal_rank_at_k", "ndcg_at_k"):
+            self.assertEqual(record[metric], {"5": None, "10": None, "20": None})
+            self.assertEqual(result["summary"]["mean_" + metric], {"5": None, "10": None, "20": None})
         self.assertEqual(record["requirement_ranks"], {})
         self.assertIsNone(record["alternative_evidence_review"])
         self.assertEqual(result["summary"]["mean_evidence_chunk_recall_at_k"]["5"], None)
@@ -265,8 +319,8 @@ class CheckRetrievalTests(unittest.TestCase):
             self.assertEqual(check.call_args.kwargs["run_id"], report["run_id"])
             self.assertTrue(report["retrieval_read_only"] and report["tracing_enabled"])
             self.assertFalse(report["read_only"])
-            self.assertEqual(report["schema_version"], 3)
-            self.assertEqual(report["measurement_version"], "annotated-evidence-v1")
+            self.assertEqual(report["schema_version"], 4)
+            self.assertEqual(report["measurement_version"], "annotated-evidence-v2")
             self.assertEqual(report["questions"][0]["trace_id"], "trace")
 
     def test_cli_full_text_needs_no_model_settings_weights_or_ml_packages(self):

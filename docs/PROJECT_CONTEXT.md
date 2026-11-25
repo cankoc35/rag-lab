@@ -1,6 +1,6 @@
 # Project context
 
-**Updated:** 2026-11-24. This file records purpose and lasting decisions.
+**Updated:** 2026-11-25. This file records purpose and lasting decisions.
 Use [STATUS](STATUS.md) for progress, [ROADMAP](ROADMAP.md) for sequence,
 [HANDOFF](HANDOFF.md) for code/artifacts and [history](STATUS_HISTORY.md) for
 dated implementation details. Repository: `/Users/cankoc/Desktop/rag-workflow-lab`.
@@ -65,8 +65,11 @@ completes the approved 120-question development set: 100 answerable
 (50 PostgreSQL-only, 30 Atlas-only, 20 combined) and 20 unanswerable, five per
 negative bucket. P81–P130 complete the remaining budgets; all seventy inherited
 records, source pins and prior files are unchanged. Reference preparation is
-complete; the expanded retrieval comparison and final scoring/held-out protocol
-remain open. Using this set for tuning requires a separate held-out thesis set.
+complete. The expanded retrieval comparison completed on 2026-11-25. The
+subsequent [reference review](REFERENCE_REVIEW.md) creates version 1.8.0 with
+twelve annotation corrections and offline rescoring of the same rankings.
+Further relevance review and the final scoring/held-out protocol remain open.
+Using this set for tuning requires a separate held-out thesis set.
 
 The owner authorized the expanded retrieval measurement step on 2026-11-24.
 `annotated-evidence-v1` now defines distinct-chunk recall and required-claim
@@ -74,6 +77,25 @@ support at 5/10/20, answerable-only question means and separate negative records
 Unannotated results remain unjudged candidates for manual review. This versions
 the development diagnostic; final semantic/answer scoring is still open.
 The dataset, index scope and retrieval settings are unchanged.
+
+On 2026-11-24, the owner agreed to the
+[six-metric development plan](EVALUATION_PLAN.md#agreed-metric-extension--2026-11-24):
+recall, requirement coverage, all-requirements-supported rate, Precision, MRR
+and nDCG at 5/10/20, with retrieval time separately. All six are implemented
+as of 2026-11-25 under `annotated-evidence-v2` / schema 4. Precision uses fixed
+`k` for short result sets; nDCG uses binary unique-reference relevance and an
+ideal prefix limited by both `k` and the total reference count. Only answerable
+questions enter quality means. The
+[expanded comparison](EXPANDED_RETRIEVAL_COMPARISON.md) now records all three
+methods on the same 120 questions/index. Keep reference-based scores distinct
+from exhaustive semantic relevance judgments. Targeted review found equivalent
+passages and overstrict requirements. Accepted changes are recorded in
+[version 1.8.0](../data/evaluation/dev/expanded_questions_v1_8.json) and its
+[editorial change record](../data/evaluation/dev/reference_review_v1_8.json);
+version 1.7.0 and raw reports remain immutable. All three methods were rescored
+offline using the same new labels. This single-editor development review is
+not exhaustive pooled judging. No final retrieval strategy or context budget
+was selected from these results.
 
 The first source allowlist selects PostgreSQL 18: Using EXPLAIN, Multicolumn
 Indexes, Partial Indexes and the `pg_stat_replication` statistics section.
@@ -187,6 +209,7 @@ and [evaluation](EVALUATION_PLAN.md); neither is a finalized protocol.
 | Embeddings | Local `nomic-ai/nomic-embed-text-v1.5`, pinned revision, CPU float32, 768 dimensions |
 | Chunking | Whole blocks within sections; target 512 / ceiling 1024 tokens including context; no overlap or silent truncation |
 | Generator | Initial `gpt-6-luna` via OpenAI Responses API; reasoning `none`, maximum 1000 output tokens; SDK `3.51.0` |
+| Initial reranker preparation | Owner requested Qwen3-Reranker-4B; pinned separate config/environment and tokenizer preparation, MPS/float16; weight execution and comparative quality pending |
 | Tracing | Project-owned `traces` / `spans` through raw SQL; separate writer for retrieval and LLM records |
 | Agent orchestration | LangGraph selected, not installed |
 

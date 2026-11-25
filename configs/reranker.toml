@@ -1,0 +1,11 @@
+# Paths are relative to this file. Separate from the pinned Nomic environment.
+[reranker]
+model_id = "Qwen/Qwen3-Reranker-4B"
+revision = "22e683669bc0f0bd69640a1354a6d0aebcfeede5"
+models_dir = "../data/local/models"
+device = "mps"
+dtype = "float16"
+max_tokens = 2048
+instruction = "Given a web search query, retrieve relevant passages that answer the query"
+dataset = "../data/evaluation/dev/expanded_questions_v1_8.json"
+retrieval_report = "../outputs/retrieval/hybrid-20261125T133826756751Z.json"

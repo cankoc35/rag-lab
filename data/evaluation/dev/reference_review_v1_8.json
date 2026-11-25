@@ -1,0 +1,752 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-11-25",
+  "parent": {
+    "path": "data/evaluation/dev/expanded_questions_v1_7.json",
+    "sha256": "f03c1802d5da69274cf2397a58ef6077314050fc53955aee924703e041d4decc"
+  },
+  "revised_dataset": {
+    "path": "data/evaluation/dev/expanded_questions_v1_8.json",
+    "sha256": "78d93eb0166eab9d32164ae849863150771b386c95b7cf7f79788b3d4da8b527"
+  },
+  "scope": {
+    "alignment_screened_questions": 120,
+    "targeted_changed_questions": 12,
+    "source_state_changed": false,
+    "raw_questions_changed": false,
+    "negative_records_changed": false,
+    "retrieval_methods": [
+      "dense",
+      "full-text",
+      "hybrid"
+    ],
+    "cutoffs": [
+      5,
+      10,
+      20
+    ],
+    "judging": "Single-editor development review informed by earlier diagnostics; not blinded or independent.",
+    "exhaustive_pooled_relevance_review": false
+  },
+  "decision_rule": "Accept a passage only for a requirement whose actual facts it supports; preserve complementary requirements. Optional explanations are not additional mandatory prerequisites. Apply the same decisions to all methods, regardless of score direction.",
+  "changes": [
+    {
+      "question_id": "P05",
+      "reason": "Accept two independently sufficient EXPLAIN-inspection passages for R3; keep the multicolumn/cost requirements.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P05-R1",
+          "statement": "Reject the claim that a missing customer_id filter always requires a Seq Scan; explain index use conditionally for B-tree.",
+          "supporting_evidence_ids": [
+            "P05-E1",
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R2",
+          "statement": "Describe index use as a cost-dependent possibility, not a guaranteed chosen path; skip scan is a documented example.",
+          "supporting_evidence_ids": [
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R3",
+          "statement": "Use EXPLAIN to inspect the actual chosen execution plan.",
+          "supporting_evidence_ids": [
+            "P05-E3"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P05-R1",
+          "statement": "Reject the claim that a missing customer_id filter always requires a Seq Scan; explain index use conditionally for B-tree.",
+          "supporting_evidence_ids": [
+            "P05-E1",
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R2",
+          "statement": "Describe index use as a cost-dependent possibility, not a guaranteed chosen path; skip scan is a documented example.",
+          "supporting_evidence_ids": [
+            "P05-E2"
+          ],
+          "support_mode": "any"
+        },
+        {
+          "requirement_id": "P05-R3",
+          "statement": "Use EXPLAIN to inspect the actual chosen execution plan.",
+          "supporting_evidence_ids": [
+            "P05-E3",
+            "P05-E4",
+            "P05-E5"
+          ],
+          "support_mode": "any"
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P48",
+      "reason": "Remove the redundant dependency on a different query's billing-state explanation; retain exact index DDL and PostgreSQL predicate implication.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P48-R1",
+          "statement": "Read the declared predicate as billed IS NOT TRUE, covering false and NULL rather than true.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P48-E1",
+            "P48-E2"
+          ]
+        },
+        {
+          "requirement_id": "P48-R2",
+          "statement": "Apply PostgreSQL's recognized-implication rule and reject the proposed billed = TRUE query as establishing partial-index predicate eligibility.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P48-E1",
+            "P48-E2",
+            "P48-E3"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P48-R1",
+          "statement": "Identify the declared billed IS NOT TRUE predicate and distinguish it from the proposed billed = TRUE condition.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P48-E1"
+          ]
+        },
+        {
+          "requirement_id": "P48-R2",
+          "statement": "Apply PostgreSQL's recognized-implication rule and reject the proposed billed = TRUE query as establishing partial-index predicate eligibility.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P48-E1",
+            "P48-E3"
+          ]
+        }
+      ],
+      "removed_evidence_ids": [
+        "P48-E2"
+      ]
+    },
+    {
+      "question_id": "P64",
+      "reason": "Accept equivalent RR and Serializable passages while preserving separate stable-view, monitoring/guarantee and retry requirements.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P64-R1",
+          "statement": "Distinguish a stable Repeatable Read view from a serializable concurrent result.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P64-E1"
+          ]
+        },
+        {
+          "requirement_id": "P64-R2",
+          "statement": "Describe Serializable's monitoring and serial-execution guarantee for committed transactions.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P64-E2"
+          ]
+        },
+        {
+          "requirement_id": "P64-R3",
+          "statement": "Allow serialization failure and required application retry rather than guarantee that every attempt commits.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P64-E2"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P64-R1",
+          "statement": "Distinguish a stable Repeatable Read view from a serializable concurrent result.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P64-E1",
+            "P64-E3"
+          ]
+        },
+        {
+          "requirement_id": "P64-R2",
+          "statement": "Describe Serializable's monitoring and serial-execution guarantee for committed transactions.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P64-E2",
+            "P64-E4",
+            "P64-E5"
+          ]
+        },
+        {
+          "requirement_id": "P64-R3",
+          "statement": "Allow serialization failure and required application retry rather than guarantee that every attempt commits.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P64-E2",
+            "P64-E5"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P81",
+      "reason": "Accept the documented LIMIT explanation for completion cost and early stopping; do not credit it as the complete startup definition.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P81-R1",
+          "statement": "Explain startup work before output begins.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P81-E1"
+          ]
+        },
+        {
+          "requirement_id": "P81-R2",
+          "statement": "Explain the full-completion assumption and possible early stop by LIMIT.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P81-E2"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P81-R1",
+          "statement": "Explain startup work before output begins.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P81-E1"
+          ]
+        },
+        {
+          "requirement_id": "P81-R2",
+          "statement": "Explain the full-completion assumption and possible early stop by LIMIT.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P81-E2",
+            "P81-E3"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P85",
+      "reason": "Move unrequested contextual comparison to optional guidance; retain the exact raw-question requirement and source evidence.",
+      "changed_fields": [
+        "answer_requirements",
+        "optional_guidance"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P85-R1",
+          "statement": "Identify different pages_per_range values as the documented reason for separate BRIN indexes.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P85-E1"
+          ]
+        },
+        {
+          "requirement_id": "P85-R2",
+          "statement": "Explain the multicolumn BRIN subset-search property.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P85-E1"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P85-R1",
+          "statement": "Identify different pages_per_range values as the documented reason for separate BRIN indexes.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P85-E1"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P91",
+      "reason": "Move unrequested contextual comparison to optional guidance; retain the exact raw-question requirement and source evidence.",
+      "changed_fields": [
+        "answer_requirements",
+        "optional_guidance"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P91-R1",
+          "statement": "Describe optional lag-tracking messages for logical decoding plugins and NULL when absent.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P91-E1"
+          ]
+        },
+        {
+          "requirement_id": "P91-R2",
+          "statement": "Distinguish automatic physical-replication lag tracking.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P91-E1"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P91-R1",
+          "statement": "Describe optional lag-tracking messages for logical decoding plugins and NULL when absent.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P91-E1"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P98",
+      "reason": "Accept the explicit forced-autovacuum/unfrozen-XID-age paragraph as alternative wraparound-protection evidence; retain the static-table requirement.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P98-R1",
+          "statement": "Identify transaction-ID freezing and wraparound protection as a separate need.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P98-E1"
+          ]
+        },
+        {
+          "requirement_id": "P98-R2",
+          "statement": "Apply that need to static and insert-only tables despite no update/delete reclamation work.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P98-E2"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P98-R1",
+          "statement": "Identify transaction-ID freezing and wraparound protection as a separate need.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P98-E1",
+            "P98-E3"
+          ]
+        },
+        {
+          "requirement_id": "P98-R2",
+          "statement": "Apply that need to static and insert-only tables despite no update/delete reclamation work.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P98-E2"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P101",
+      "reason": "The explicit automatic-index-creation paragraph suffices; the GiST syntax example is optional corroboration rather than an extra mandatory prerequisite.",
+      "changed_fields": [
+        "answer_requirements",
+        "optional_guidance"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P101-R1",
+          "statement": "State the at-least-one-false-or-NULL operator-comparison rule.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P101-E1"
+          ]
+        },
+        {
+          "requirement_id": "P101-R2",
+          "statement": "Describe automatic creation of the declared index type, with GiST only as the example.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P101-E2",
+            "P101-E3"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P101-R1",
+          "statement": "State the at-least-one-false-or-NULL operator-comparison rule.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P101-E1"
+          ]
+        },
+        {
+          "requirement_id": "P101-R2",
+          "statement": "Describe automatic creation of the declared index type, with GiST only as the example.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P101-E3"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P108",
+      "reason": "Remove the unasked jsonb-type prerequisite and narrow R2 to the requested filter question; preserve index identity and exact no-filter evidence.",
+      "changed_fields": [
+        "expected_answer",
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P108-R1",
+          "statement": "Identify the index, table, column and jsonb type.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P108-E1",
+            "P108-E2"
+          ]
+        },
+        {
+          "requirement_id": "P108-R2",
+          "statement": "State that no catalog query filters payload and reject a planner-selection inference.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P108-E3"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P108-R1",
+          "statement": "Identify the declared GIN index on atlas_app.device_events.payload.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P108-E2"
+          ]
+        },
+        {
+          "requirement_id": "P108-R2",
+          "statement": "State that none of the three catalog queries filters payload.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P108-E3"
+          ]
+        }
+      ],
+      "removed_evidence_ids": [
+        "P108-E1"
+      ]
+    },
+    {
+      "question_id": "P116",
+      "reason": "Remove redundant mandatory inspection-boundary evidence; retain the PostgreSQL GIN mechanism and local index/no-filter limitations.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P116-R1",
+          "statement": "Explain the PostgreSQL inverted/component-entry design.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P116-E1"
+          ]
+        },
+        {
+          "requirement_id": "P116-R2",
+          "statement": "Connect the local payload index and absent payload filters to the lack of plan/speed evidence.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P116-E2",
+            "P116-E3",
+            "P116-E4"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P116-R1",
+          "statement": "Explain the PostgreSQL inverted/component-entry design.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P116-E1"
+          ]
+        },
+        {
+          "requirement_id": "P116-R2",
+          "statement": "Connect the local payload index and absent payload filters to the lack of plan/speed evidence.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P116-E2",
+            "P116-E3"
+          ]
+        }
+      ],
+      "removed_evidence_ids": [
+        "P116-E4"
+      ]
+    },
+    {
+      "question_id": "P119",
+      "reason": "Apply the same total-cost/early-stop evidence equivalence used for P81 to this combined question.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P119-R1",
+          "statement": "Identify the added LIMIT as a change from the exact catalog SQL that must be recorded.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P119-E1",
+            "P119-E2"
+          ]
+        },
+        {
+          "requirement_id": "P119-R2",
+          "statement": "Apply early-stop versus child-completion cost semantics to the limited variant.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P119-E3"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P119-R1",
+          "statement": "Identify the added LIMIT as a change from the exact catalog SQL that must be recorded.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P119-E1",
+            "P119-E2"
+          ]
+        },
+        {
+          "requirement_id": "P119-R2",
+          "statement": "Apply early-stop versus child-completion cost semantics to the limited variant.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P119-E3",
+            "P119-E4"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    },
+    {
+      "question_id": "P122",
+      "reason": "Separate the compound guarantee requirement into two necessary claims and apply the same equivalent RR/Serializable passages as P64.",
+      "changed_fields": [
+        "answer_requirements",
+        "evidence",
+        "evidence_combination_note"
+      ],
+      "requirements_before": [
+        {
+          "requirement_id": "P122-R1",
+          "statement": "Identify the distinct local order-creation and reporting-export profiles.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P122-E1",
+            "P122-E2"
+          ]
+        },
+        {
+          "requirement_id": "P122-R2",
+          "statement": "Explain stable-view versus serial-equivalence guarantees and Serializable anomaly monitoring/retry possibility.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P122-E3",
+            "P122-E4"
+          ]
+        }
+      ],
+      "requirements_after": [
+        {
+          "requirement_id": "P122-R1",
+          "statement": "Identify the distinct local order-creation and reporting-export profiles.",
+          "support_mode": "all",
+          "supporting_evidence_ids": [
+            "P122-E1",
+            "P122-E2"
+          ]
+        },
+        {
+          "requirement_id": "P122-R2",
+          "statement": "Explain that a stable Repeatable Read view does not guarantee a serial-equivalent result.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P122-E3",
+            "P122-E5"
+          ]
+        },
+        {
+          "requirement_id": "P122-R3",
+          "statement": "Explain Serializable anomaly monitoring, serial-equivalent committed results and possible serialization failures requiring retry.",
+          "support_mode": "any",
+          "supporting_evidence_ids": [
+            "P122-E4",
+            "P122-E6"
+          ]
+        }
+      ],
+      "removed_evidence_ids": []
+    }
+  ],
+  "accepted_passages": [
+    {
+      "question_id": "P05",
+      "evidence_id": "P05-E4",
+      "source_id": "PG-EXPLAIN",
+      "block_index": 30,
+      "chunk_id": "PG-EXPLAIN-b4cb15a9fb97883c519eaf626794fb1084a5555bbe5681b5624dff2dc26ab919",
+      "decision": "accepted",
+      "reason": "The SQL example explicitly uses EXPLAIN and displays its chosen scan plan."
+    },
+    {
+      "question_id": "P05",
+      "evidence_id": "P05-E5",
+      "source_id": "LOCAL-MAINTENANCE",
+      "block_index": 14,
+      "chunk_id": "LOCAL-MAINTENANCE-b824267d3ba78115a88728386bf82f02e66630483aca743abf18e5b5d0ef5885",
+      "decision": "accepted",
+      "reason": "The local procedure explicitly requests plain EXPLAIN (FORMAT JSON) for plan inspection."
+    },
+    {
+      "question_id": "P64",
+      "evidence_id": "P64-E3",
+      "source_id": "PG-ISOLATION",
+      "block_index": 35,
+      "chunk_id": "PG-ISOLATION-8befd487e5458ad31caf3030103a53f53f59387fc04f56eac0d12235a67cbe32",
+      "decision": "accepted",
+      "reason": "Repeatable Read excludes concurrent committed changes but explicitly still permits serialization anomalies."
+    },
+    {
+      "question_id": "P64",
+      "evidence_id": "P64-E4",
+      "source_id": "PG-ISOLATION",
+      "block_index": 59,
+      "chunk_id": "PG-ISOLATION-2037c2b71772f6832e5a79a622ec0cf08481408bd9f6aa97409811c351b13e2f",
+      "decision": "accepted",
+      "reason": "Predicate locking monitors dependencies to guarantee serializability; supports the monitoring/guarantee requirement."
+    },
+    {
+      "question_id": "P64",
+      "evidence_id": "P64-E5",
+      "source_id": "PG-ISOLATION",
+      "block_index": 61,
+      "chunk_id": "PG-ISOLATION-b862d1a3ad647f3269ebbb94c43b32811a6f9ed204df0eb5f65ceb521d490756",
+      "decision": "accepted",
+      "reason": "States serial-equivalent committed effects, dependency monitoring, serialization failures and transaction restarts."
+    },
+    {
+      "question_id": "P81",
+      "evidence_id": "P81-E3",
+      "source_id": "PG-EXPLAIN",
+      "block_index": 45,
+      "chunk_id": "PG-EXPLAIN-0e656cd442ddf040f3186c8e0e472d19e0304ba8392168b5bcf18c14c437addf",
+      "decision": "accepted",
+      "reason": "Directly explains child completion costs, an early-stopping LIMIT and unavoidable startup cost. It supports R2, not the complete R1 startup definition."
+    },
+    {
+      "question_id": "P98",
+      "evidence_id": "P98-E3",
+      "source_id": "PG-VACUUM",
+      "block_index": 48,
+      "chunk_id": "PG-VACUUM-4bad8783bd584dbca529b538ef1ef5962fe575d6887f54d86c0720d9f0b7aa79",
+      "decision": "accepted",
+      "reason": "Under the wraparound-prevention heading, unfrozen XID age, possible data loss and forced autovacuum explicitly establish the separate freezing/age-protection need."
+    },
+    {
+      "question_id": "P119",
+      "evidence_id": "P119-E4",
+      "source_id": "PG-EXPLAIN",
+      "block_index": 11,
+      "chunk_id": "PG-EXPLAIN-68f5df913777f094712be42e64065f8e7283dd35a3c300ed39284eb7819e1f31",
+      "decision": "accepted",
+      "reason": "The cost definition explicitly assumes full completion and states that a parent may stop early; use the same equivalence as P81."
+    },
+    {
+      "question_id": "P122",
+      "evidence_id": "P122-E5",
+      "source_id": "PG-ISOLATION",
+      "block_index": 35,
+      "chunk_id": "PG-ISOLATION-8befd487e5458ad31caf3030103a53f53f59387fc04f56eac0d12235a67cbe32",
+      "decision": "accepted",
+      "reason": "Provides the same stable-visibility/serialization-anomaly distinction accepted for P64."
+    },
+    {
+      "question_id": "P122",
+      "evidence_id": "P122-E6",
+      "source_id": "PG-ISOLATION",
+      "block_index": 61,
+      "chunk_id": "PG-ISOLATION-b862d1a3ad647f3269ebbb94c43b32811a6f9ed204df0eb5f65ceb521d490756",
+      "decision": "accepted",
+      "reason": "Provides the same committed serial-equivalence/monitoring/restart explanation accepted for P64."
+    }
+  ],
+  "retained_gaps": [
+    {
+      "question_id": "P21",
+      "decision": "No equivalent explicit equality-only Hash explanation found in inspected first-five contexts; keep the original paragraph."
+    },
+    {
+      "question_id": "P27",
+      "decision": "Exact device-range SQL remains necessary; an index definition alone does not establish the query filters."
+    },
+    {
+      "question_id": "P81",
+      "decision": "The LIMIT example is accepted for completion/early-stop only, not the full startup-cost definition."
+    },
+    {
+      "question_id": "P98",
+      "decision": "Insert-only daemon paragraph 91 does not explicitly cover static tables; visibility-map block 45 alone does not fully establish the wraparound explanation. Keep them unjudged/partial, not universal substitutes."
+    }
+  ],
+  "limits": "The alignment screen and targeted corrections do not label every returned passage for every question. Other unannotated passages remain unjudged; rankings were observed during development. Changes to reference denominators can raise or lower metrics without changing retrieval."
+}

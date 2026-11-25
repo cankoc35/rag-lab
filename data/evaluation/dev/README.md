@@ -10,15 +10,34 @@ across the two subsets; P10–P18/P20 remain drafts. This is development data,
 not the held-out thesis test set. The original six-question file is unchanged.
 The separate [expanded_questions.json](expanded_questions.json) revalidates
 these same ten questions against the expanded shared corpus; it adds no new
-unique questions. Current cumulative [version 1.7.0](expanded_questions_v1_7.json)
+unique questions. Cumulative [version 1.7.0](expanded_questions_v1_7.json)
 preserves all earlier records and completes the approved target:
 **120 unique development questions, 100 answerable + 20 unanswerable**.
 All topic budgets are met; this is not a held-out thesis set or a quality result.
 
+## Current annotations — version 1.8.0, 2026-11-25
+
+Use [expanded_questions_v1_8.json](expanded_questions_v1_8.json) for the current
+annotations. All 120 raw questions, source pins, groups/families and twenty negative
+records are identical to version 1.7. An alignment screen covered all records;
+twelve received source-backed corrections. The other 108 complete question
+records are unchanged. There are now 251 requirements and 202 evidence records
+over 135 blocks/73 distinct chunks. Exact changes and accepted passages are in
+[reference_review_v1_8.json](reference_review_v1_8.json).
+
+All three saved rankings were rescored offline. Full support at five is
+dense 83/100, full-text 65/100 and RRF 82/100; at twenty it is 88/95/100.
+The [review report](../../../docs/REFERENCE_REVIEW.md) preserves old/new scores,
+raw/rescore paths and limitations. This single-editor development review is not
+exhaustive pooled judging. Other unannotated contexts remain unjudged; final
+held-out/scoring decisions remain open. No new retrieval, DB access or model call
+ran. All 222 unit tests and eleven reference checks passed; old files are preserved.
+
 ## Completed cumulative file — 2026-11-24
 
-Use [expanded_questions_v1_7.json](expanded_questions_v1_7.json) for all 120
-questions. Dataset ID is `postgresql18-atlas-expanded-dev`, version `1.7.0`.
+The original [expanded_questions_v1_7.json](expanded_questions_v1_7.json) completes
+all 120 questions. Dataset ID is `postgresql18-atlas-expanded-dev`, version `1.7.0`.
+Use version 1.8 above for current refined annotations.
 P81–P130 add 21 PostgreSQL-only, 13 Atlas-only, eight combined and eight
 unanswerable records. All seventy inherited records and the fourteen-source/
 151-chunk state are identical to version 1.6.0, whose file remains hash-pinned
@@ -51,20 +70,39 @@ Ten reference unit tests and all eleven reference-file checks passed;
 only IDs/raw questions; no DB, retrieval, embedding or hosted API call ran.
 Record: `outputs/validation/expanded-questions-complete-20261123T211259Z.json`.
 
-Question preparation is complete. The diagnostic now uses schema 3 and
-`annotated-evidence-v1`: distinct annotated-chunk recall and any/all required-claim
-coverage at 5/10/20, means over answerable questions only, and separate negative
-records. Unannotated results remain candidates for manual review, not automatic
+Question preparation is complete. The diagnostic now uses schema 4 and
+`annotated-evidence-v2`: all six quality metrics at 5/10/20, means over answerable
+questions only, and separate negative records. Unannotated results remain
+candidates for manual review, not automatic
 errors. Definitions and review instructions are in the
 [evaluation plan](../../../docs/EVALUATION_PLAN.md#expanded-development-measurements--2026-11-24).
-Eighteen diagnostic unit tests and all eleven reference-file checks passed;
+The original v1 step passed eighteen diagnostic unit tests and all eleven reference-file checks;
 all 120 questions also passed offline compatibility checks through each mocked
 retrieval path. These fixtures do not measure real retrieval quality.
 No dataset/source files, DB records or previous reports changed.
 Verification: `outputs/validation/retrieval-measurements-20261123T215752Z.json`.
 
-Next compare dense/full-text/RRF on the same raw questions and shared index.
-Final scoring and a separate held-out thesis set remain open.
+The [Precision/MRR/nDCG extension](../../../docs/EVALUATION_PLAN.md#implemented-ranking-metrics--2026-11-25)
+was completed on 2026-11-25: 23 diagnostic tests and eleven reference-file
+checks passed, with all 120 questions checked through each mocked method.
+Fixed-k Precision, truncated reciprocal rank and binary nDCG join the original
+three metrics. No real retrieval/answer run occurred. Validation:
+`outputs/validation/retrieval-ranking-metrics-20261125T113908Z.json`.
+
+## Expanded retrieval comparison — 2026-11-25
+
+Dense/full-text/RRF each retrieved these same 120 raw questions from the exact
+shared 151-chunk index. Full annotated support at five is 80/60/77 of the 100
+answerable questions; at twenty it is 87/90/96. All six metrics and raw rankings
+are preserved in the [comparison](../../../docs/EXPANDED_RETRIEVAL_COMPARISON.md).
+Twenty negatives have no positive score or answer/abstention grade.
+
+Independent scoring and RRF reconstruction passed. A targeted editorial review
+found equivalent passages and overstrict P108/P116 requirements; frozen version
+1.7.0 and all raw scores remain unchanged. The subsequent version-1.8 review
+and common offline rescoring are recorded above.
+No Luna call or DB write ran. Final scoring and a separate held-out thesis set
+remain open.
 
 ## Sixth new batch — 2026-11-23
 
