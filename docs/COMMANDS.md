@@ -300,8 +300,87 @@ Omit the flag once weights are local to repeat the smoke offline. `--prepare`
 and `--download-model` are mutually exclusive explicit download modes;
 `uv --offline` only controls package downloads. These commands use no DB,
 `.env` or hosted API. Model settings are in `configs/reranker.toml`; reports
-go to `outputs/reranking/`. Only tokenizer preparation has run so far.
+go to `outputs/reranking/`. Tokenizer preparation and the pretrained MPS/float16
+two-passage smoke have passed; the weights are already local.
 See [setup/results](QWEN_RERANKER_SETUP.md).
+
+### Probe Qwen4B on saved RRF candidates
+
+Rerank the same saved top-20 chunks for explicitly selected questions:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py \
+  --question-id P05 --question-id P07 --question-id P27 --question-id P19
+```
+
+Run all 120 questions (including the four previously probed) in one new report:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py --all
+```
+
+This scores 2,400 pairs; the small probe suggests roughly 55 minutes, not a
+guaranteed runtime. Repeat `--question-id ID` for a subset instead; it cannot be
+combined with `--all`. The model loads once from local
+files; progress appears after each batch (one pair by default). A new report under `outputs/reranking/`
+preserves RRF ranks, reranker scores, timings and the existing metrics at 5/10/20
+using development annotations 1.8.0. Reference answers never enter model inputs.
+This command makes no downloads, DB/API calls, new retrieval or generated answers.
+
+### Run Qwen4B with batch size four
+
+Score the same four questions with four question/chunk pairs per forward pass:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py \
+  --config configs/reranker.toml --batch-size 4 \
+  --question-id P05 --question-id P07 --question-id P27 --question-id P19
+```
+
+For all 120 questions:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py \
+  --config configs/reranker.toml --batch-size 4 --all
+```
+
+Twenty candidates require five forwards per question. `--batch-size` defaults
+to 1 and must be positive; profiles, candidate selection and metrics are unchanged.
+Inputs are left-padded with attention masks/position IDs and are never truncated.
+Each chunk receives its own score. New probe reports use schema 2 and record
+`batch_size`. Per-pair times are `null` for batched runs because individual pair
+latency was not measured; question/total times remain actual observations.
+Compare those times with the batch-size-one baseline; no linear speedup is assumed.
+
+### Run the Qwen0.6B profile
+
+The original 4B profile remains the default. Select the separate pinned 0.6B
+profile explicitly. Download its approximately 1.19-GB weights and run the toy
+smoke when setting up a fresh machine:
+
+```sh
+PYTHONPATH=src uv run --offline --locked --no-project --python 3.11 scripts/reranker_smoke.py \
+  --config configs/reranker_qwen06b.toml --download-model
+```
+
+Use `--prepare` instead of `--download-model` to check all 2,400 saved inputs
+with its tokenizer. To rerank the same four comparison questions:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py \
+  --config configs/reranker_qwen06b.toml \
+  --question-id P05 --question-id P07 --question-id P27 --question-id P19
+```
+
+For the complete 120-question set:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py \
+  --config configs/reranker_qwen06b.toml --all
+```
+
+Reports use the `qwen06b-` prefix. These runs use the same saved candidates,
+sequential batch size one, full documents and existing metrics as the 4B probe.
 
 ### Full-text only
 

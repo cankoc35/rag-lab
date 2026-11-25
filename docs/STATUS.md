@@ -16,7 +16,7 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 | Embedding | Pinned local Nomic; normalized 768-dimensional vectors; shared fourteen-snapshot index has 151 vectors |
 | Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (read-only verification 2026-11-25) |
 | Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); Simple remains dense with `limit=5` |
-| Reranker preparation | Pinned Qwen3-Reranker-4B config and separate locked smoke environment; all 2,400 saved RRF pair inputs fit (max 821 tokens); pretrained weights/runtime smoke pending |
+| Reranker runtime | Qwen4B completed 120 questions/2,400 pairs, batch one: 43.69 s/question; full support @5 improves RRF's 82/100 to 92/100. Full 0.6B comparison and workflow integration pending |
 | Diagnostics | Schema 4 / `annotated-evidence-v2`: all six quality metrics at 5/10/20, answerable-only means, separate negatives and manual-review candidates; elapsed time retained |
 | Expanded comparison | Same saved dense/full-text/RRF rankings rescored with v1.8 references; full support @5: 83/65/82 of 100; @20: 88/95/100. Original v1.7 scores preserved; relevance review is not exhaustive |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
@@ -36,6 +36,43 @@ Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 - Expanded shared scope, 151 vectors: `nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`.
 
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
+
+## Full Qwen4B run verified — 2026-11-25
+
+The owner's saved run is complete: **120 unique questions, 2,400 scored pairs**,
+dataset v1.8, unchanged saved RRF top-20 lists and **batch size one**. Offline
+checks independently reproduced all six metrics and summaries, verified raw
+question/candidate/source preservation and provenance hashes, and confirmed
+the timing totals. No model inference, DB/API access or application code change
+was needed for this verification.
+
+Full annotated support @5 rises **82/100 → 92/100**, and @10 **93/100 → 100/100**;
+@20 stays 100/100. Mean reranking is **43.69 s/question**, scoring total
+**87 min 23 s**, plus a 6.58-second load. This improves evidence ranking but
+exceeds the owner's 10-second latency constraint. Twenty negatives are outside
+positive means; no generated answers were evaluated. Details and all six
+top-five scores: [Qwen comparison](QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run).
+Raw report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
+audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
+Next: matched full-set 0.6B comparison before model selection/integration.
+The earlier presentation diagram predates this completed-report review.
+
+## Supervisor diagram revision — 2026-11-25
+
+Updated the existing [presentation diagram](presentations/2026-11-23/README.md)
+in SVG/PNG/PDF, with a small renderer for later edits. It now shows the 14-source,
+151-chunk scope, dense Simple path, Enhanced's dense/full-text → RRF → top-20
+→ Qwen3 reranker components, planned tools/Agentic/router, and shared generation
+and validation statuses. Tracing coverage and all six retrieval metrics at
+5/10/20 are explained separately from the live response path. The earlier
+23-November speaking notes remain unchanged and are marked as historical.
+
+The owner reported starting a 120-question 4B run; no completed full-set result
+was reviewed for this diagram. Next: review that report when available before
+choosing a reranker or integrating Enhanced. PDF rendering, visual review,
+required labels, text bounds and local links were checked. No application code,
+model inference, API/DB access, benchmark input or report changed; application
+tests were not repeated for this presentation-only update.
 
 ## Retrieval findings and limits
 
@@ -994,18 +1031,107 @@ The approximately 8-GB weight download/local smoke is an explicit separate mode.
 See [setup and limits](QWEN_RERANKER_SETUP.md); report:
 `outputs/reranking/qwen4b-20261125T152717058435Z.json`.
 
+## Qwen4B weight download and local runtime — 2026-11-25
+
+The owner authorized the download. Both pinned safetensors shards are local
+under ignored `data/local/models/`, totaling 8.04 GB; their SHA-256 hashes match
+the download metadata. The existing smoke passed on MPS/float16: loading took
+18.51 seconds and scoring two short passages took 2.99 seconds. The relevant
+EXPLAIN passage scored 0.962953 versus 0.000005104 for the unrelated passage.
+Report: `outputs/reranking/qwen4b-20261125T180455418462Z.json`.
+This is a runtime check, not a retrieval-quality result. No code/config/lock,
+dataset or prior report changed; no DB access or hosted model call occurred.
+
+## Qwen4B real-candidate probe — 2026-11-25
+
+The new [probe runner](../scripts/reranker_probe.py) reuses the native smoke scorer
+and existing metrics with a separate lockfile containing the same dependencies.
+It reranked P05/P07/P27/P19's unchanged RRF top-20 lists: 80 pairs, MPS/float16,
+one model load. Loading took 8.18 seconds; scoring totaled 110.40 seconds.
+At five, supported required claims changed from 0/3 to 2/3 for P05, stayed 2/2
+for P07, and changed from 1/3 to 3/3 for P27. P19 remains unscored as a negative;
+its high top score (0.906653) is not evidence that Boreal's limit is known.
+This targeted three-positive/one-negative check establishes feasibility, not
+general quality. No references, baseline ranks, model settings or existing code
+changed; no new retrieval, DB access, embedding or hosted call occurred.
+
+All 227 offline unit tests passed. Independent checks verified candidate/source
+preservation, all six metric summaries, negative exclusion and unchanged
+recall/claim coverage at twenty. Results and limits are in
+[Qwen setup](QWEN_RERANKER_SETUP.md#saved-candidate-probe--2026-11-25).
+Report: `outputs/reranking/qwen4b-probe-20261125T181229740228Z.json`.
+Audit: `outputs/validation/qwen4b-probe-20261125T181229740228Z.json`.
+
+## Reranker latency requirement — 2026-11-25
+
+The owner requires reranking below 10 seconds per question, preferably much less.
+The measured Qwen4B top-20 latency misses this requirement. The
+[source-backed shortlist](RERANKER_LATENCY_REVIEW.md) proposes Ettin 68M as the
+first smaller-model probe, with Ettin 150M/GTE ModernBERT/Qwen 0.6B alternatives.
+At that research step no smaller model was installed or locally verified.
+The owner subsequently chose Qwen0.6B; measured results follow below.
+Preserve Qwen4B results as a quality reference.
+
+## Qwen0.6B preparation and paired comparison — 2026-11-25
+
+The owner chose Qwen3-Reranker-0.6B for the next trial. Its separate
+[profile](../configs/reranker_qwen06b.toml) pins revision
+`e61197ed45024b0ed8a2d74b80b4d909f1255473`; weights are local (1.19 GB),
+with a verified download hash. Smoke and all 2,400 token-fit checks passed.
+Shared scripts now accept `--config`; the original 4B profile/default and
+all dependency locks remain unchanged. The native scorer is unchanged.
+
+Both models scored the same P05/P07/P27/P19 top-20 lists using MPS/float16,
+batch size one and the same code. Fresh 4B rankings reproduce the historical
+probe. Mean question time is 27.90 s for 4B versus 5.95 s for 0.6B (4.69x faster).
+0.6B's observed range is 5.11–6.86 s, below the 10-second budget. P05 support
+at five falls from 2/3 to 0/3; P07/P27 stay 2/2 and 3/3. Mean claim coverage
+is 0.8889/0.6667 and nDCG@5 0.7380/0.6176 for 4B/0.6B over three positives.
+Both still score related P19 text highly; no answerability threshold is selected.
+This targeted sample is not general accuracy or a future latency guarantee.
+
+All 227 offline tests passed. Independent checks verified all six metric
+summaries, preserved candidates/sources, identical input token sequences and
+model/code/lock hashes. No DB, embedding, new retrieval or hosted call ran.
+See [comparison and report paths](QWEN_RERANKER_COMPARISON.md).
+
+## Qwen4B batch-size-four command — 2026-11-25
+
+The owner requested a runnable batch-size-four script. The probe now accepts
+`--batch-size` (default 1), using left padding, attention masks and per-sequence
+position IDs for batched native yes/no scoring. Inputs stay whole and all
+candidates keep individual scores. New reports use schema 2, record batch size
+and leave per-pair times null when only batch/question latency was measured.
+
+All 229 offline unit tests passed. One native P05 check scored all 20 candidates
+in five forwards, preserving the complete batch-one ranking and quality metrics;
+maximum score difference was 0.003842. It took **46.36 seconds**, versus the
+previous batch-one P05's 30.85 seconds. This check shows no speed gain and does
+not establish general batch performance. No four-question/full-set batch-four
+benchmark ran. Report: `outputs/reranking/qwen4b-probe-20261125T184838008770Z.json`.
+Audit: `outputs/validation/qwen4b-batch4-20261125T184838008770Z.json`.
+
 ## Next small step
 
-Run the prepared Qwen4B weight download/local runtime smoke, then measure a small
-real candidate set. MPS/float16 is the initial prepared runtime; actual pretrained
-latency/memory and ranking quality remain unverified. Then evaluate
-the proposed RRF top-20 → rerank →
-top-5 path against dense/RRF top-5 using the same version-1.8 references. Keep
+Use [the batch-four command](COMMANDS.md#run-qwen4b-with-batch-size-four) for the
+same four questions and compare observed latency/ranks with batch one; do not
+assume a speedup. The complete 120-question 0.6B quality comparison remains
+pending. Both profiles, candidate/evidence state and prior reports are preserved.
+
+The probe runner now accepts `--all` for the configured 120 questions, or
+repeatable `--question-id` for a subset. The all-question selection was checked
+offline (120 questions/2,400 pairs); that command-preparation step did not start model inference.
+See [the command](COMMANDS.md#probe-qwen4b-on-saved-rrf-candidates).
+
+The earlier full-Qwen comparison remains available as a quality reference:
+120-question RRF top-20 → Qwen rerank → top-5 against
+dense/RRF top-5 using the same version-1.8 references. The small probe suggests
+about 55 minutes for 2,400 pairs by linear projection; full-run latency, peak
+memory and comparative quality remain unverified. Keep
 baselines immutable. Final scoring, held-out allocation and thesis settings remain open.
 
-Dense, full-text and initial RRF diagnostics are complete. Reranker selection
-and implementation remain a later component step, followed by comparison
-against these baselines. Simple remains dense-only;
+Dense, full-text and initial RRF diagnostics are complete. Full reranker
+comparison and workflow integration remain component work. Simple remains dense-only;
 the Enhanced answer workflow and fixed tools follow separately. Final thesis
 budgets remain open. Preserve both Atlas states, their results and P09's
 explicit-role omission; no prompt was tuned to these results.
@@ -1028,7 +1154,7 @@ Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 ## Not yet completed
 
 - Broader paired evaluation and additional source-specific/abstention/changed-evidence cases.
-- Reranker, the complete Enhanced workflow and its tool conditions.
+- Full reranker comparison/integration, the complete Enhanced workflow and its tool conditions.
 - Additional changed document states, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.
 - Verified P10–P18/P20 answers, a held-out test set, rubric/judges, metrics,

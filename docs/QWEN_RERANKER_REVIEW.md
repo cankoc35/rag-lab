@@ -4,8 +4,12 @@
 model or a final reranker decision. No model weights were downloaded or executed.
 
 Follow-up: the owner requested [Qwen4B preparation](QWEN_RERANKER_SETUP.md).
-Its pinned tokenizer/config and separate native-Transformers environment are
-ready; pretrained weights and their runtime smoke remain pending.
+Its pinned weights and separate native-Transformers environment are now local;
+the runtime smoke and four-question probe passed. Measured top-20 latency is
+24–32 seconds, exceeding the owner's new 10-second budget. The
+[latency review](RERANKER_LATENCY_REVIEW.md) motivated smaller candidates. The
+owner chose Qwen0.6B; its [paired probe](QWEN_RERANKER_COMPARISON.md) is complete.
+The evidence below remains the earlier quality-oriented comparison.
 
 Qwen3-Reranker-4B is a strong quality-oriented candidate. The earlier ModernBERT
 recommendation prioritized a small, English-focused model. Published evidence

@@ -1,0 +1,13 @@
+# Paths are relative to this file. Preserve the separate 4B profile.
+[reranker]
+model_id = "Qwen/Qwen3-Reranker-0.6B"
+revision = "e61197ed45024b0ed8a2d74b80b4d909f1255473"
+models_dir = "../data/local/models"
+device = "mps"
+dtype = "float16"
+max_tokens = 2048
+instruction = "Given a web search query, retrieve relevant passages that answer the query"
+dataset = "../data/evaluation/dev/expanded_questions_v1_8.json"
+retrieval_report = "../outputs/retrieval/hybrid-20261125T133826756751Z.json"
+tokenizer_files = ["config.json", "tokenizer.json", "tokenizer_config.json", "chat_template.jinja", "merges.txt", "vocab.json"]
+weight_files = ["model.safetensors"]

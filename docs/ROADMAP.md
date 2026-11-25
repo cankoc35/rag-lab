@@ -252,7 +252,16 @@ no expanded answer comparison ran.
 
 The owner requested Qwen4B preparation: a pinned config, separate locked
 environment and tokenizer fit check are now complete. All 2,400 saved RRF pairs
-fit; pretrained weight/runtime verification is next. See
+fit; pinned weights are now local and the MPS/float16 two-passage smoke passed.
+A four-question/80-pair real-candidate probe completed in 110.40 seconds of
+scoring. The owner now requires reranking below 10 seconds per question and
+chose Qwen0.6B for a paired trial. Its pinned profile and
+runtime are ready: mean 5.95 seconds versus 27.90 for a fresh 4B run, with P05
+support loss. The owner then requested a batch-four 4B command; it is prepared
+and one P05 correctness check passed, but was slower (46.36 versus 30.85 seconds).
+Next collect the same four-question batching comparison; the 120-question 0.6B
+comparison remains pending. Keep candidates/references fixed. No final production model is selected. See the
+[paired results](QWEN_RERANKER_COMPARISON.md) and
 [Qwen setup](QWEN_RERANKER_SETUP.md). Final reranker selection, candidate/context
 limits and full integration remain component work, with comparison against the
 three retrieval baselines.

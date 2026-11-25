@@ -6,7 +6,7 @@
 #   "tokenizers==0.22.2",
 # ]
 # ///
-"""Prepare Qwen4B token inputs or run an opt-in two-passage local smoke."""
+"""Prepare pinned Qwen reranker inputs or run an opt-in two-passage local smoke."""
 
 import argparse
 from datetime import datetime, timezone
@@ -67,21 +67,45 @@ def score(model, tokenizer, question: str, document: str, settings: dict) -> flo
     return yes_probability(yes, no)
 
 
+def score_batch(model, tokenizer, question: str, documents: list[str], settings: dict) -> list[float]:
+    """Left-pad complete inputs and score each pair at its final real token."""
+    import torch
+
+    rows = [pair_tokens(tokenizer, question, document, settings["instruction"]) for document in documents]
+    width = max(map(len, rows))
+    if width > settings["max_tokens"]:
+        raise ValueError("Reranker input exceeds max_tokens; it was not truncated.")
+    tokens = torch.tensor([[tokenizer.pad_token_id] * (width - len(row)) + row for row in rows],
+                          device=settings["device"])
+    mask = torch.tensor([[0] * (width - len(row)) + [1] * len(row) for row in rows],
+                        device=settings["device"])
+    positions = (mask.cumsum(dim=-1) - 1).clamp(min=0)
+    with torch.inference_mode():
+        logits = model(input_ids=tokens, attention_mask=mask, position_ids=positions,
+                       use_cache=False, logits_to_keep=1).logits[:, -1]
+    values = logits[:, [tokenizer.convert_tokens_to_ids("yes"), tokenizer.convert_tokens_to_ids("no")]].float().tolist()
+    return [yes_probability(yes, no) for yes, no in values]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, default=ROOT / "configs/reranker.toml", help="Pinned reranker TOML; defaults to Qwen4B.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--prepare", action="store_true", help="Download tokenizer/config only and check all saved RRF top-20 inputs.")
-    mode.add_argument("--download-model", action="store_true", help="Download about 8 GB of original weights, then run the local smoke.")
+    mode.add_argument("--download-model", action="store_true", help="Download the configured weights, then run the local smoke.")
     args = parser.parse_args()
-    config_path = ROOT / "configs/reranker.toml"
+    config_path = args.config.resolve()
     settings = tomllib.loads(config_path.read_text())["reranker"]
+    tokenizer_files = tuple(settings.get("tokenizer_files", TOKENIZER_FILES))
+    weight_files = tuple(settings.get("weight_files", WEIGHT_FILES))
+    tag = "qwen" + settings["model_id"].split("-")[-1].lower().replace(".", "")
     model_dir = (config_path.parent / settings["models_dir"] / settings["model_id"].replace("/", "--") / settings["revision"]).resolve()
     os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     if args.prepare or args.download_model:
         from huggingface_hub import snapshot_download
 
-        files = TOKENIZER_FILES + (WEIGHT_FILES if args.download_model else ())
+        files = tokenizer_files + (weight_files if args.download_model else ())
         print("Downloading pinned tokenizer/config" + (" and weights..." if args.download_model else "..."), flush=True)
         snapshot_download(settings["model_id"], revision=settings["revision"], local_dir=model_dir,
                           allow_patterns=list(files), token=False, max_workers=2)
@@ -97,7 +121,7 @@ def main() -> None:
         "lock_sha256": checksum(Path(__file__ + ".lock")),
         "platform": platform.platform(), "mps_available": torch.backends.mps.is_available(),
         "packages": {name: version(name) for name in ("torch", "transformers", "tokenizers", "huggingface-hub")},
-        "tokenizer_sha256": {name: checksum(model_dir / name) for name in TOKENIZER_FILES},
+        "tokenizer_sha256": {name: checksum(model_dir / name) for name in tokenizer_files},
         "database_access": False, "hosted_model_calls": 0}
     if args.prepare:
         from check_document_questions import validate
@@ -128,7 +152,7 @@ def main() -> None:
     else:
         if settings["device"] == "mps" and not torch.backends.mps.is_available():
             raise ValueError("MPS is unavailable; local smoke was not started.")
-        print("Loading Qwen4B locally...", flush=True)
+        print(f"Loading {settings['model_id']} locally...", flush=True)
         started = perf_counter()
         model = AutoModelForCausalLM.from_pretrained(model_dir, local_files_only=True,
             trust_remote_code=False, use_safetensors=True, dtype=getattr(torch, settings["dtype"])).to(settings["device"]).eval()
@@ -143,8 +167,8 @@ def main() -> None:
         report.update(mode="local_runtime_smoke", weight_inference=True, question=question,
             documents=documents, scores=scores, relevant_above_unrelated=scores[0] > scores[1],
             load_seconds=load_seconds, scoring_seconds=perf_counter() - started,
-            weights_sha256={name: checksum(model_dir / name) for name in WEIGHT_FILES})
-    output = ROOT / "outputs/reranking" / (datetime.now(timezone.utc).strftime("qwen4b-%Y%m%dT%H%M%S%fZ.json"))
+            weights_sha256={name: checksum(model_dir / name) for name in weight_files})
+    output = ROOT / "outputs/reranking" / (tag + datetime.now(timezone.utc).strftime("-%Y%m%dT%H%M%S%fZ.json"))
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("x") as handle:
         json.dump(report, handle, indent=2, allow_nan=False)

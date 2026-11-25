@@ -304,6 +304,43 @@ passages need not all be retrieved to support every required claim. RRF's 100/10
 at twenty is complete annotated support on this development set; answer accuracy,
 abstention and held-out performance remain unmeasured here.
 
+### Qwen4B development feasibility probe — 2026-11-25
+
+The local MPS/float16 probe uses unchanged saved RRF top-20 candidates and
+version-1.8 references. P05 (known difficult PostgreSQL), P07 (Atlas lookup),
+P27 (combined evidence) and P19 (unanswerable) were selected before inference
+to exercise the path, not estimate general quality. Only raw question text,
+heading paths and whole chunk bodies enter scoring. All candidates and source
+fields are retained, with original RRF ranks, new scores and measured times.
+The same six metrics at 5/10/20 apply; P19 remains outside positive means.
+No score threshold, generator or workflow change was selected. The
+[probe results](QWEN_RERANKER_SETUP.md#saved-candidate-probe--2026-11-25) precede
+the complete 120-question comparison. Original baselines remain immutable.
+
+### Paired Qwen0.6B/4B development check — 2026-11-25
+
+The owner requested the smaller Qwen model after requiring reranking below
+10 seconds per question. Both models used the same four selected questions,
+saved top-20 candidates, raw input token sequences, version-1.8 labels, native
+scorer, dependencies, MPS/float16 and batch size one. A fresh 4B run reproduced
+the historical ranking. Cold-process model loading is recorded separately;
+scoring includes first inference without a separate warm-up. The
+[paired result](QWEN_RERANKER_COMPARISON.md) shows lower latency with a P05
+support loss. These four observations do not estimate p95, held-out quality
+or answer accuracy. No threshold, production winner or final protocol was
+selected; the complete 120-question 0.6B comparison remains next.
+
+### Batch-four preparation — 2026-11-25
+
+The probe's batch size is now explicit (default 1). Batch-four inputs retain
+the same question text, whole documents, candidate order and per-pair scores;
+left padding, attention masks and position IDs isolate the inputs. Schema-2
+reports record batch size and actual question time; per-pair times are null
+when not individually measured. A native P05 verification preserved all ranks
+but took 46.36 seconds versus the earlier 30.85-second batch-one observation.
+This is one correctness/runtime check, not evidence that batching is faster.
+Four-question and full-set batch-four measurements remain unrun.
+
 ## Candidate final-study metrics and definitions to finalize
 
 | Metric | Proposed measurement | Decision still open |

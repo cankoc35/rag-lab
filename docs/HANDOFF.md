@@ -296,6 +296,7 @@ The HTML-only manifest and existing source artifacts are unchanged.
 | [import_corpus.py](../scripts/import_corpus.py) | Validate snapshots/chunks and commit one corpus transaction |
 | [index_corpus.py](../scripts/index_corpus.py) | Embed stored chunks; repeatable source or exact snapshot selection, one index transaction, flushed progress |
 | [check_retrieval.py](../scripts/check_retrieval.py) | Exact scope; all six quality metrics at 5/10/20, ranks, positive means and separate negative/manual-review records; schema 4, dense tracing only |
+| [reranker_probe.py](../scripts/reranker_probe.py) | Explicit question/all selection and 4B/0.6B profiles, saved RRF top-20 reranking, per-pair progress/timing and existing metrics; no DB/API |
 | [check_document_questions.py](../scripts/check_document_questions.py) | Offline pinned-reference checks; single or multiple source manifests, exact evidence and negative-case scope |
 | [llm_smoke.py](../scripts/llm_smoke.py) | Explicit `--call-api`; one fixed English test, no corpus/DB access |
 | [run_simple_rag.py](../scripts/run_simple_rag.py) | `--dataset`, exact pinned index scope, explicit `--call-api` and one/all selection; shared resources/run ID, per-question records |
@@ -373,16 +374,63 @@ from README. The app loads `.env` only when explicitly requested through uv.
 
 ## Next small step
 
+The owner's **120-question Qwen4B run is complete and verified**: 2,400 pairs,
+MPS/float16, **batch size one**, version-1.8 references and unchanged RRF top-20
+candidates. Full support @5 is RRF 82/100 → reranked 92/100; @10 93/100 → 100/100.
+Mean reranking is 43.69 s/question, 87 min 23 s total scoring. All six metrics
+and summaries were independently recomputed with preserved questions/candidates
+and matching provenance; no model/DB/API call ran during verification.
+Read [the full-set results](QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run).
+Report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
+audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
+Next: matched 120-question 0.6B comparison; do not rerun 4B unnecessarily. The
+earlier supervisor diagram still describes the pre-review state.
+
+**Latest owner constraint:** top-20 reranking must take less than 10 seconds per
+question, preferably much less. Qwen4B's 24–32-second probe is too slow for the
+interactive path. Read [the latency shortlist](RERANKER_LATENCY_REVIEW.md) first.
+The owner chose Qwen0.6B for the next trial. It is now pinned/downloaded under
+`configs/reranker_qwen06b.toml`; the native smoke and 2,400 input checks passed.
+The paired four-question test averages 5.95 s for 0.6B versus a fresh 27.90 s for
+4B, both MPS/float16/batch one. P05 top-five support is 0/3 versus 2/3; P07/P27
+stay 2/2 and 3/3. All 227 offline tests and independent metric/input checks passed.
+Read [the paired comparison](QWEN_RERANKER_COMPARISON.md) for limits/artifacts.
+The owner's latest request was a batch-four 4B command. It is now prepared:
+`--batch-size 4`, with schema-2 batch metadata and correct left-padding/masks.
+All 229 offline tests passed. A native P05 check preserved the full ranking but
+took 46.36 seconds versus batch one's 30.85; it does not show a speedup. Report:
+`outputs/reranking/qwen4b-probe-20261125T184838008770Z.json`; verification:
+`outputs/validation/qwen4b-batch4-20261125T184838008770Z.json`.
+Next run the [same four-question batch test](COMMANDS.md#run-qwen4b-with-batch-size-four).
+The 120-question 0.6B comparison is still pending. Scripts default to 4B/batch
+one; neither model is integrated into the answer workflow. Preserve both
+profiles and all prior results. Ettin remains an untested alternative.
+
 Read the [Qwen4B research review](QWEN_RERANKER_REVIEW.md). Qwen3-Reranker-4B
 is now prepared as the initial quality candidate: [setup](QWEN_RERANKER_SETUP.md),
 `configs/reranker.toml`, `scripts/reranker_smoke.py` and its separate uv lock.
 Pinned tokenizer/config assets are local; all 2,400 saved RRF input pairs fit
-without truncation (max 821 / limit 2,048). MPS is available. Pretrained weights
-and their runtime smoke remain pending; the script exposes `--download-model`.
-225 unit tests and a tiny random native Qwen forward passed. No Nomic lock/index
-or prior data/report changed. Run the local weight smoke, then time a small
-real candidate set; external benchmark scores do not establish local gains.
-Then evaluate the proposed RRF top-20 → rerank → top-5 path on version 1.8.0
+without truncation (max 821 / limit 2,048). The pinned pretrained weights are now
+downloaded (8.04 GB, ignored by Git); shard hashes match the download metadata.
+The MPS/float16 smoke passed: load 18.51 seconds, two short passages 2.99 seconds,
+relevant/unrelated scores 0.962953/0.000005104. Runtime report:
+`outputs/reranking/qwen4b-20261125T180455418462Z.json`.
+The earlier preparation passed 225 unit tests and a tiny random native forward;
+this download ran the pretrained smoke without code/config/lock changes or DB/API
+access. The subsequent four-question real-candidate probe is now complete:
+P05/P07/P27/P19, 80 pairs, 8.18-second load and 110.40-second scoring. Required
+claims supported at five are P05 0/3 → 2/3, P07 2/2 → 2/2 and P27 1/3 → 3/3.
+P19 remains a separate negative; its high score is not calibrated answerability.
+The probe preserves all candidates and original source/rank fields. All 227
+offline tests and independent metric/preservation checks passed. Report:
+`outputs/reranking/qwen4b-probe-20261125T181229740228Z.json`; audit:
+`outputs/validation/qwen4b-probe-20261125T181229740228Z.json`.
+No new retrieval, DB access, hosted call or answer generation ran. No prior
+code/config/lock, dataset or baseline report changed. The small targeted sample
+does not establish general quality. The runner now supports `--all` (120 questions,
+2,400 pairs, selection checked offline); `--question-id` remains available for
+subsets. This selector change ran no model inference. After a smaller model
+meets the latency requirement, complete its RRF top-20 → rerank → top-5 comparison on version 1.8.0
 against unchanged dense/RRF top-5 baselines. Preserve both annotation versions,
 raw reports and rescores. Relevance review remains non-exhaustive; final
 held-out/scoring decisions remain open. No live service was checked during
@@ -488,20 +536,21 @@ Synthetic-source ingestion/tools, Enhanced and Agentic follow the Simple baselin
 
 ## Checks and resume commands
 
-Supervisor materials prepared on 2026-11-23 are in
+Supervisor materials originally prepared on 2026-11-23 are in
 [presentations/2026-11-23/](presentations/2026-11-23/README.md): annotated
 pipeline PDF/PNG/SVG and a one-page briefing PDF with editable Markdown.
-Code/design were inspected; the results summarized remain the 2026-11-18
-development checks. Router, Enhanced, Agentic and sandbox tools are still
-scaffolds. Router method remains open, not implicitly selected as an LLM.
-No application code, corpus, dataset, experiment or service state changed
-while preparing these materials.
-The chart was subsequently revised at the owner's request: C explains the
-separate thesis evaluation process, tracing's partial status is in its heading,
-and a shared Output validation box precedes Response. Only completion/nonempty
-checks currently exist; citation checks are planned and grounding/failure/retry
-behavior is open. The diagram change did not implement a validator or alter
-the experiment. The briefing PDF/Markdown remain unchanged.
+The **25-November diagram revision** adds the 14-source/151-chunk scope,
+dense/full-text/RRF and Qwen3 reranking stages, current/planned workflow and tool
+statuses, tracing coverage and six retrieval metrics. It separates offline
+evaluation from the live response. Router method remains open; Enhanced and
+Agentic workflow composition and DB tools are not built. Shared validation is
+partial: Simple's completion/nonempty checks exist; citation checks are planned
+and grounding/failure/retry policy is open. The 4B full run is owner-reported,
+not a reviewed full-set result. The [renderer](presentations/2026-11-23/render_pipeline.py)
+regenerates all three exports. PDF visual/text checks and local links passed;
+no model/DB/API work or experiment change ran for this revision. The briefing
+PDF/Markdown remain the earlier 23-November snapshot, explicitly dated in the
+presentation README.
 
 The [command reference](COMMANDS.md) lists runnable commands, short descriptions
 and supported options. Update it when commands or their options change.

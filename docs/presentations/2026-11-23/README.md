@@ -1,57 +1,66 @@
 # Supervisor discussion materials
 
-Prepared on 23 November 2026 from the current code and project records.
-Repository language is English. These are presentation artifacts, not a new
-experiment or an implementation decision.
+The pipeline was updated on **25 November 2026**. The folder retains its original
+preparation date. These artifacts describe implementation status; they do not
+change the experiment or finalize open design choices.
 
-- [Pipeline PDF](pipeline.pdf): one-page diagram with implementation/status notes.
-- [Pipeline PNG](pipeline.png): image for slides.
-- [Pipeline SVG](pipeline.svg): editable vector diagram.
-- [Briefing PDF](supervisor-brief.pdf): one-page speaking notes.
-- [Briefing source](supervisor-brief.md): editable text matching the PDF.
+- [Pipeline PNG](pipeline.png): high-resolution image for slides, 4200 x 3000.
+- [Pipeline PDF](pipeline.pdf): one-page vector diagram for zooming or printing.
+- [Pipeline SVG](pipeline.svg): editable vector image.
+- [Renderer](render_pipeline.py): diagram text, layout and export commands.
+- [Earlier briefing PDF](supervisor-brief.pdf) and [Markdown](supervisor-brief.md):
+  speaking notes from **23 November**, unchanged. Their counts and status predate
+  the expanded corpus, 120-question evaluation and reranker probes; use the updated
+  diagram for the current implementation boundary.
 
-Status labels are explicit: **DONE**, **NOT BUILT**, **PARTIAL** and **OPEN**.
-Green arrows show the current direct Simple path. Dashed arrows show proposed
-routing; they do not claim that a router or the other RAG methods exist.
-The response box is an output, not an extra LLM call after a RAG workflow.
-Tracing happens during execution; offline evaluation is a separate process.
+## Reading the diagram
 
-## Diagram revision
+**DONE** means implemented, **PARTIAL** means some components work, **NOT BUILT**
+means planned, and **OPEN** marks an undecided choice. Green arrows connect
+implemented components; dashed arrows show planned connections. Implemented
+retrieval components inside Enhanced do not mean its answer workflow is built.
 
-The revised C section is **Evaluation for the thesis**, with four numbered
-steps: fix the same questions/evidence, run every method plus LLM-only,
-compare outcomes, and test whether routing helps. "Offline" means outside
-live user traffic; it does not prohibit internet/API calls. This is a
-separate comparison process, not additional steps before a user gets an answer.
+- **A. Preparation:** 14 selected sources become 151 chunks and Nomic vectors
+  in the shared PostgreSQL/pgvector index. Earlier control states are retained.
+- **B. Question time:** current CLI requests go directly to Simple. The future
+  router selects one workflow; rules, classifier or LLM remain open. Simple uses
+  dense top-five retrieval. Enhanced shows dense/full-text top-20, RRF fusion,
+  the first 20 candidates, Qwen3 reranking and proposed answer-context selection.
+  Qwen3-Reranker-4B and 0.6B have local probes; final model, context budget and
+  complete workflow integration remain open. Shared DB tools and Agentic control
+  are not built. Luna generation is implemented for Simple; a shared output
+  validator is partial: completion/nonempty checks exist, citation checks are
+  planned, and grounding/retry policy remains open.
+- **C. Observability:** a trace records one question/workflow; spans record its
+  operations. Simple retrieval and LLM calls record prompt, chunks/ranks, answer,
+  usage and timing in PostgreSQL. Router, reranker, DB-tool and validator spans
+  are not built. Reranker probes currently save separate JSON reports. Small
+  timing comparisons are labeled as development evidence. The owner reported
+  starting the 120-question 4B run; no completed full-set report was reviewed
+  for this revision.
+- **D. Offline evaluation:** separate from returning a user response. The six
+  implemented summaries at 5/10/20 are annotated-chunk Recall, required-claim
+  coverage, all-claims-supported rate, Precision, MRR and nDCG. Means cover 100
+  answerable questions; 20 unanswerable cases are separate. These measure
+  annotated retrieval evidence, not LLM answer accuracy. Unannotated passages
+  remain unjudged; the held-out thesis protocol remains open.
 
-The tracing status is now part of the heading **Tracing - partial coverage**,
-with separate DONE / NOT BUILT lines. There is no detached status badge.
+## Regenerate and verify
 
-All three RAG paths now lead to a shared **Output validation** box before
-Response. Its status is **PARTIAL / SHARED SCOPE OPEN**: completion/nonempty
-checks already exist inside the Simple workflow; citation-label validation
-is planned; grounding verification, failure/retry behavior and any extra LLM
-call remain undecided. A valid source label alone does not establish support.
-This depicts a proposed common stage, not a newly implemented validator or a
-final experimental-policy decision. The briefing PDF/text are unchanged.
+From the repository root, with Python and `rsvg-convert` installed:
 
-## Scope and evidence
+```bash
+python3 docs/presentations/2026-11-23/render_pipeline.py
+```
 
-“Basic” is the presentation label for the implemented **Simple** baseline.
-The router currently has only a scaffold. Its method is undecided; rules,
-a classifier and an LLM are options, not approved selections. It must use
-question text/permitted runtime signals, never gold question-type labels.
-LangGraph is selected for later Agentic work but is not implemented.
-Frozen sandbox data and validated DB tools are also not implemented.
+This overwrites only the three pipeline exports. The revised PDF was rendered
+and visually inspected; SVG XML, page count, required labels, text bounds and
+local Markdown links were checked. No model inference, API call, migration,
+DB access or benchmark change was needed. Application tests were not repeated.
 
-Current evidence comes from [STATUS](../../STATUS.md),
-[PROJECT_CONTEXT](../../PROJECT_CONTEXT.md), [ROADMAP](../../ROADMAP.md),
-[METHOD_DESIGN](../../METHOD_DESIGN.md), [EVALUATION_PLAN](../../EVALUATION_PLAN.md)
-and the [paired development review](../../LLM_ONLY_COMPARISON.md).
-Code was checked in the [workflow modules](../../../src/rag_workflow_lab/workflows/)
-and [DB-tool scaffold](../../../src/rag_workflow_lab/tools/database.py).
-
-The recorded corpus has 49 PostgreSQL and 12 Atlas chunks in separate embedding
-sets. Ten questions are reference-verified development material; the held-out
-test set is not prepared. The last paired Atlas results are from 18 November.
-No paid calls, migrations or service changes were made to prepare these files.
+Sources: [STATUS](../../STATUS.md), [METHOD_DESIGN](../../METHOD_DESIGN.md),
+[EVALUATION_PLAN](../../EVALUATION_PLAN.md), [HANDOFF](../../HANDOFF.md) and
+[Qwen comparison](../../QWEN_RERANKER_COMPARISON.md), checked against the current
+[workflows](../../../src/rag_workflow_lab/workflows/),
+[retrieval](../../../src/rag_workflow_lab/retrieval.py) and
+[tracing](../../../src/rag_workflow_lab/tracing.py) code.

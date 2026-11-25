@@ -35,6 +35,11 @@ This is not the MOTIF-RAG evaluation library.
   and access policies. The [allocation plan](RETRIEVAL_DATASET_PLAN.md) is
   complete; all 120 development records are now prepared. The final held-out
   set, scoring protocol and thesis sample size remain open.
+- **2026-11-25:** Per-question reranking must stay below 10 seconds, preferably
+  substantially less. Qwen4B's measured 24–32 seconds is too slow for the intended
+  interactive path. The owner subsequently requested preparing Qwen3-Reranker-0.6B
+  and comparing it with 4B on quality and time. Ettin 68M remains an alternative
+  proposal; no final production reranker is selected. See [latency review](RERANKER_LATENCY_REVIEW.md).
 
 The PostgreSQL expansion now has a separate
 [eight-source allowlist](../data/corpus/postgres_expanded_v1.json) and
@@ -209,7 +214,7 @@ and [evaluation](EVALUATION_PLAN.md); neither is a finalized protocol.
 | Embeddings | Local `nomic-ai/nomic-embed-text-v1.5`, pinned revision, CPU float32, 768 dimensions |
 | Chunking | Whole blocks within sections; target 512 / ceiling 1024 tokens including context; no overlap or silent truncation |
 | Generator | Initial `gpt-6-luna` via OpenAI Responses API; reasoning `none`, maximum 1000 output tokens; SDK `3.51.0` |
-| Initial reranker preparation | Owner requested Qwen3-Reranker-4B; pinned separate config/environment and tokenizer preparation, MPS/float16; weight execution and comparative quality pending |
+| Reranker candidates | Owner requested 4B and then 0.6B Qwen3 trials; separate pinned local MPS/float16 profiles and paired four-question checks verified; full comparison and workflow integration pending |
 | Tracing | Project-owned `traces` / `spans` through raw SQL; separate writer for retrieval and LLM records |
 | Agent orchestration | LangGraph selected, not installed |
 
