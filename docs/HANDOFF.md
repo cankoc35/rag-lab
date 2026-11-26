@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-25. Use [STATUS](STATUS.md) for the current boundary and
+**Updated:** 2026-11-26. Use [STATUS](STATUS.md) for the current boundary and
 [STATUS_HISTORY](STATUS_HISTORY.md) for dated evidence. Scaffolds are not features.
 
 ## Read first
@@ -10,7 +10,7 @@ Verify `/Users/cankoc/Desktop/rag-workflow-lab`, then read [AGENTS](../AGENTS.md
 and [ROADMAP](ROADMAP.md), in that order. Read METHOD_DESIGN/EVALUATION_PLAN
 before experiment changes and LITERATURE_GAPS before novelty claims.
 
-## Resume snapshot — 2026-11-25
+## Resume snapshot — 2026-11-26
 
 This is the current stopping point for a new assistant, including Claude.
 The longer preparation records below are historical; use this snapshot and
@@ -36,12 +36,39 @@ wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same ru
   **93/100 → 100/100**. Mean reranking **43.69 s/question**, scoring total
   **87 min 23 s**. These are retrieval-support metrics, not Luna answer accuracy;
   the twenty negatives are outside positive means. See [results](QWEN_RERANKER_COMPARISON.md).
-- **Live reranked retrieval (added 2026-11-25, offline-tested only):**
+- **Live reranked retrieval (added 2026-11-25, live-verified 2026-11-26):**
   `retrieve_reranked(connection, embedder, index_id, question, score_passage, limit=5)`
   in [retrieval.py](../src/rag_workflow_lab/retrieval.py) calls
   `retrieve_hybrid(..., limit=20)`, scores `" > ".join(metadata["heading_path"]) + "\n\n" + text`
   for each candidate and returns the top `limit` (1–20) with `rrf_rank` and
-  `reranker_score`. It has not run against the live DB/model; no workflow calls it.
+  `reranker_score`. One real P05 check matches all saved candidate/passage/source
+  fields, reranked positions, scores and metrics exactly. Enhanced's new context
+  hook calls it; final answer generation is pending. Report:
+  `outputs/validation/live-reranked-P05-20261126T170717699333Z.json`.
+- **Evidence policies (added 2026-11-26):** independent `baseline`, `threshold`
+  (maximum Qwen score >= 0.95, keep all five) and `sufficiency` modes in
+  [evidence.py](../src/rag_workflow_lab/evidence.py). The sufficiency checker uses
+  the existing Luna settings and `sufficiency_v1`, with structured status,
+  source quotes and missing facts. Only `sufficient` allows generation. Python
+  checks attribution, not semantic entailment. The owner replaced the expired
+  key; the authorized sample completed: P07/P05 `sufficient`, P19 `insufficient`.
+  `whitespace_v1` repairs quote line-wrapping rejection; all three original
+  responses pass offline revalidation, with P19 still blocked. See [sample](EVIDENCE_CHECK_SAMPLE.md).
+  The subsequent eight-negative follow-up returned `insufficient` for every
+  selected gate pass (P30/P39/P40/P79/P80/P126/P128/P129), with no operational
+  errors or runtime changes. Review input pins and selection limits before
+  inferring quality beyond this diagnostic.
+  The twelve-positive follow-up is also complete: all twelve model assessments
+  are `sufficient`, but only ten pass runtime validation. P36 removes Markdown
+  bold markers in quotes; P122 changes an initial `this` to `This`. These two
+  operational errors are preserved in the original `whitespace_v1` reports.
+  The subsequent `source_span_v2` repair replays all 23 recorded responses
+  offline: 14 positives pass, 9 negatives remain blocked, no validation errors.
+  Only P36/P122 change against the prior reviews. `verified_evidence` now
+  contains literal source quotes; model assessments/raw responses are unchanged.
+  [Enhanced `prepare_context()`](../src/rag_workflow_lab/workflows/enhanced.py)
+  combines reranked retrieval and an explicitly selected policy; blocked usable
+  context is empty, with original matches retained for inspection.
 - **Not built:** the Enhanced answer workflow, a runner that loads Qwen for live
   retrieval, DB tools and frozen fixtures, Agentic graph, router,
   reranker/tool/router spans and shared output validator. Simple has
@@ -50,35 +77,61 @@ wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same ru
 
 ### Next small increment
 
-**Proposed:** run the live reranked path once on one development question
-(for example P05) and compare its RRF top 20 and reranked order with the saved
-full-run report `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`.
-Expect identical candidates; small float16 score differences are possible.
-The caller loads the pinned Qwen model/tokenizer once (as in
-[reranker_probe.py](../scripts/reranker_probe.py)) and passes the unchanged
-native scorer:
+All three samples and the quote repair are complete; do not repeat paid calls
+to resume. Next add Enhanced's **shared answer-generation path**, honoring the
+explicit evidence mode from `prepare_context()`. Reuse Luna settings and
+`answer_v1`; keep resources caller-owned and test offline before an explicitly
+enabled live run. Do not choose a default policy or claim broad quality from
+the selected development samples. Add tracing in a separate increment.
 
-```python
-from scripts.reranker_smoke import score
-from rag_workflow_lab.retrieval import retrieve_reranked
+`source_span_v2` first matches literal/whitespace text, then narrowly recovers
+bold markers and model-initial capitalization. Recovery must be unique, retains
+all remaining wording/casing and returns literal source text. The updated
+`validate_assessment()` returns these `verified_evidence` records without
+mutating the model assessment. Current offline decisions are 14 positives
+allowed/9 negatives blocked. Original P36/P122 failure reports remain historical
+evidence; use the versioned replay for the current validated decisions.
+[Commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
 
-matches = retrieve_reranked(connection, embedder, index_id, question,
-                            lambda q, passage: score(model, tokenizer, q, passage, settings))
-```
+P05/P19's original runtime reports contain quote-validation errors, although
+their model responses completed. Only whitespace differed from source quotes.
+The earlier `whitespace_v1` repair fixed this; the paired review records an
+offline replay of the same responses, not three new live calls. P05's S4
+EXPLAIN ANALYZE passage is unannotated alternative support; its saved 2/3
+coverage does not alone establish semantic insufficiency. No references changed.
 
-`settings` is the `[reranker]` table of [configs/reranker.toml](../configs/reranker.toml).
-The Nomic retrieval lock (`check_retrieval.py.lock`) pins the same torch
-`2.10.0`, transformers `5.5.0` and tokenizers `0.22.2` as the reranker lock;
-whether one environment can load both models has not been checked. Recheck DB
-service state first. After that, add shared Luna generation and a reranker span
-for Enhanced in separate increments. `build_answer_input()` currently copies
-`distance` into sources; decide then whether Enhanced sources also record
-`rrf_rank`/`reranker_score`. Final context token budget is still open; the
-initial five-chunk target does not freeze the thesis protocol.
+Integration note: `build_answer_input()` currently copies `distance` into source records; preserve
+compatibility and decide how to retain RRF/reranker metadata when wiring Enhanced.
+
+The first live P05 check is complete; do not repeat it just to resume. Nomic
+CPU and Qwen MPS/float16 loaded successfully in one environment using the
+unchanged `check_retrieval.py.lock`. The scorer uses `[reranker]` settings from
+[configs/reranker.toml](../configs/reranker.toml), raw question and complete
+heading/body passages. The twenty live candidates, complete reranked order and
+scores match the saved full run exactly. Coverage remains 2/3 at five and 3/3
+at ten/twenty. Retrieval + reranking took 33.66 s, of which scoring took 32.74 s;
+model loads were separate (0.90 s Nomic, 16.50 s Qwen). Final context token
+budget remains open; the initial five-chunk target does not freeze the protocol.
 
 Do not call the complete Enhanced workflow finished before its fixed tool
 behavior is implemented. Simple stays dense-only. Do not repeat the 87-minute
 benchmark or run paid calls just to resume.
+
+**Threshold discussion, 26 November:** [research/replay](RERANKER_THRESHOLD_REVIEW.md)
+compares question gating with individual chunk filtering. A maximum-score cutoff
+of 0.95 passes every answerable question but also 8/20 negatives; applying that
+cutoff to each chunk separately drops full annotated support @5 from 92 to 85.
+The 0.95 question gate is now implemented as an explicit comparison mode,
+not a selected final policy. These saved-score development results do not measure
+answer accuracy. Retain the unfiltered baseline; any chosen policy needs
+development/calibration and a separate held-out evaluation.
+
+The owner requested broader alternatives research, then approved implementation
+of the three independent modes. The [extended review](RERANKER_THRESHOLD_REVIEW.md#alternatives-review--2026-11-26)
+distinguishes scope filtering, context sufficiency, post-answer grounding and
+corrective retrieval. Only the evidence comparison is added: no fallback,
+automatic context expansion, new model or shared output validator. The checker
+is opt-in and fallible. Enhanced answer generation remains pending.
 
 ### Focused code and evidence map
 
@@ -90,14 +143,47 @@ benchmark or run paid calls just to resume.
 | [reranker_smoke.py](../scripts/reranker_smoke.py) | Native `pair_tokens`, `score`, `score_batch`; no silent truncation |
 | [reranker_probe.py](../scripts/reranker_probe.py) | Saved-candidate selection, whole-passage assembly, ranking and provenance |
 | [simple.py](../src/rag_workflow_lab/workflows/simple.py), [tracing.py](../src/rag_workflow_lab/tracing.py) | Existing workflow and trace ownership to reuse later |
-| [enhanced.py](../src/rag_workflow_lab/workflows/enhanced.py) | Still only a scaffold; no callable Enhanced workflow |
+| [enhanced.py](../src/rag_workflow_lab/workflows/enhanced.py) | `prepare_context()` = live reranking + explicit evidence policy; no final answer/tools yet |
+| [evidence.py](../src/rag_workflow_lab/evidence.py), [sufficiency_v1.md](../src/rag_workflow_lab/prompts/sufficiency_v1.md) | Three independent policies, strict checker output and literal quote checks |
+| [check_evidence.py](../scripts/check_evidence.py), its lock, [test_evidence.py](../tests/unit/test_evidence.py), [runner tests](../tests/unit/test_evidence_runner.py) | Saved top-five replay, paid opt-in, provenance and offline failure/decision coverage |
 | [test_reranker_smoke.py](../tests/unit/test_reranker_smoke.py), [test_reranker_probe.py](../tests/unit/test_reranker_probe.py) | Existing offline scoring/candidate tests |
 
 Saved local evidence, all present at handoff:
 
 - Raw 4B run: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`.
 - Independent audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
+- Live P05 check: `outputs/validation/live-reranked-P05-20261126T170717699333Z.json`;
+  includes the temporary verification source, runtime hashes and full twenty matches.
 - RRF input: `outputs/retrieval/hybrid-20261125T133826756751Z.json`.
+- Offline evidence replays: `outputs/evidence/evidence-baseline-20261126T184857860062Z.json`
+  and `outputs/evidence/evidence-threshold-20261126T184857860354Z.json`. Baseline
+  allows 120/120; threshold allows 100/100 positives plus 8/20 negatives.
+  These are gate decisions, not answer accuracy. Contexts match exactly.
+- Attempted P07: `outputs/evidence/evidence-sufficiency-20261126T190007781039Z.json`;
+  sanitized auth diagnosis: `outputs/validation/luna-auth-check-20261126.json`.
+  P07/P05/P19 editorial preparation: `outputs/validation/evidence-sample-preflight-20261126.json`.
+  This authentication failure is historical; the owner replaced the key.
+- Completed sample reports: `outputs/evidence/evidence-sufficiency-20261126T190542214886Z.json`
+  (P07), `outputs/evidence/evidence-sufficiency-20261126T190554878399Z.json` (P05),
+  `outputs/evidence/evidence-sufficiency-20261126T190623012759Z.json` (P19).
+  Review/replay: `outputs/validation/evidence-sample-20261126.json`. The raw
+  P05/P19 reports preserve pre-repair errors; use the paired review for current
+  validation decisions and [the summary](EVIDENCE_CHECK_SAMPLE.md) for limitations.
+- Negative follow-up: `outputs/validation/evidence-hard-negatives-preflight-20261126.json`,
+  `outputs/validation/evidence-hard-negatives-runs-20261126.json` (all eight raw
+  reports), `outputs/validation/evidence-hard-negatives-20261126.json` (audit/review).
+  All eight were live-validated with the current unchanged checker. Mean 2.40 s;
+  15,815 input / 1,183 output tokens; no final answers or DB access.
+- Positive follow-up: `outputs/validation/evidence-positives-preflight-20261126.json`,
+  `outputs/validation/evidence-positives-runs-20261126.json` (first five),
+  `outputs/validation/evidence-positives-resume-runs-20261126.json` (remaining seven),
+  `outputs/validation/evidence-positives-20261126.json` (paired review/audit).
+  All twelve were called once under unchanged settings. Ten runtime passes,
+  two quote errors; mean 2.72 s; 29,091 input / 1,734 output tokens.
+- Current offline repair: `outputs/validation/evidence-quote-replay-20261126.json`.
+  Reuses all 23 original responses, records old/new decisions and hashes, and
+  verifies all 61 recovered quotes against their cited source bodies. No paid
+  calls; 261 unit tests passed. No source/prompt/model-setting change.
 - Shared index ID and earlier control indexes: STATUS's index list above its
   selected-reranker section. Do not substitute an Atlas-only index.
 - Supervisor diagram: [presentation folder](presentations/2026-11-23/README.md),
@@ -105,16 +191,17 @@ Saved local evidence, all present at handoff:
 
 ### Local state and verification boundary
 
-Handoff checkout: `main`, HEAD `11dad36b47dbe225357d37d6596cc012cdf1530e`, with
-existing uncommitted documentation/presentation edits, `CLAUDE.md` and the
-uncommitted reranked-retrieval code/tests/docs above. Inspect `git status` and
-`git diff`; preserve them. Model files under `data/local/` and run reports under
+Checkout checked on 26 November: `main`, HEAD
+`3d6075c5426cadda47e910808ead244b6fda8a9d` (`Update Qwen4B integration and documentation`).
+The earlier reranked-retrieval code and handoff changes are now committed;
+this live-check session leaves README/COMMANDS/HANDOFF/ROADMAP/STATUS edits.
+Inspect `git status` and `git diff`; preserve existing work. Model files under `data/local/` and run reports under
 `outputs/` are local/ignored artifacts, not guaranteed by a fresh clone.
 
-This handoff refresh confirmed the pinned 4B model directory and both safetensors
+The earlier 25-November handoff confirmed the pinned 4B model directory and both safetensors
 shards exist. The saved full-run SHA-256 matches its audit; recorded runtime-code
 hashes match the current files. No weights were reloaded, inference rerun or live
-DB/API state checked. Earlier unit-test counts and service checks below are dated
+DB/API state checked in that refresh. Earlier unit-test counts and service checks below are dated
 evidence, not newly executed checks. Use [COMMANDS](COMMANDS.md) for existing
 offline test/reference commands; verify services before later DB work. No new
 Alembic migration is implied by a reranker adapter.
@@ -123,6 +210,23 @@ The reranked-retrieval increment (2026-11-25) passed 233 offline unit tests,
 Ruff `F` checks and `git diff --check`. `reranker_smoke.py`, `reranker_probe.py`
 and `check_retrieval.py` are unchanged, so the saved reports' code hashes still
 match. No model, DB or API access occurred in that increment.
+
+On 26 November, **233 offline tests passed again** and the live P05 check above
+loaded both models and read the exact index scope. PostgreSQL was healthy and
+`transaction_read_only` was verified `on`; there were zero DB/trace writes or
+hosted calls. This is dated verification, not a guarantee for the next session.
+
+The later evidence-policy increment passed **252 offline tests**, both real
+offline replays and an installed-SDK/mock-HTTP structured-output check. It
+made no network/model/DB calls and added no migration. Exact code/input hashes
+are saved in the new evidence reports; old benchmark inputs/reports are unchanged.
+The current worktree also contains existing presentation/review edits; inspect
+and preserve them. Evidence checks are not yet written to DB traces.
+
+The subsequent three-question live sample and whitespace-only quote repair
+passed **254 offline tests** and Ruff `F`. Exactly three live responses were
+revalidated offline after the repair; no additional hosted calls, benchmark
+reruns or DB access were needed. The earlier expired-key issue is resolved.
 
 ## Goal and established decisions
 
@@ -499,9 +603,9 @@ and matching provenance; no model/DB/API call ran during verification.
 Read [the full-set results](QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run).
 Report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
 audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
-**Next:** integrate RRF top-20 → selected Qwen4B → initial top-5 into Enhanced's
-document retrieval path. Shared answer generation and reranker spans follow in
-separate increments. Do not rerun 4B unnecessarily; the supervisor diagram now
+The live document retrieval path is now verified on P05. **Next:** add shared
+answer generation, then reranker spans in a separate increment. Do not rerun 4B
+unnecessarily; the supervisor diagram now
 includes the verified result and owner decision.
 
 **Current owner decision:** keep **Qwen3-Reranker-4B** for the school project and

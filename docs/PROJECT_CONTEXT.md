@@ -1,6 +1,6 @@
 # Project context
 
-**Updated:** 2026-11-25. This file records purpose and lasting decisions.
+**Updated:** 2026-11-26. This file records purpose and lasting decisions.
 Use [STATUS](STATUS.md) for progress, [ROADMAP](ROADMAP.md) for sequence,
 [HANDOFF](HANDOFF.md) for code/artifacts and [history](STATUS_HISTORY.md) for
 dated implementation details. Repository: `/Users/cankoc/Desktop/rag-workflow-lab`.
@@ -43,6 +43,15 @@ This is not the MOTIF-RAG evaluation library.
   profile and batch-one default. Full-set 0.6B testing is optional, not a
   prerequisite for Enhanced integration. Preserve earlier smaller-model/batching
   results; the final thesis protocol remains open. See [results](QWEN_RERANKER_COMPARISON.md).
+- **2026-11-26:** Implement three independent development evidence policies:
+  unfiltered baseline, maximum-Qwen-score gate at 0.95, and whole-context
+  sufficiency using Luna with structured evidence quotes and missing facts.
+  Keep the same initial five chunks; the threshold does not filter individual
+  passages. Only `sufficient` permits generation in checker mode; `partial`,
+  `insufficient` and invalid results block it. The checker adds one explicitly
+  enabled API call, separate from the final answer. This approves the comparison,
+  not a winning policy or final threshold. Simple remains unchanged. See
+  [commands and scope](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
 
 The PostgreSQL expansion now has a separate
 [eight-source allowlist](../data/corpus/postgres_expanded_v1.json) and
@@ -189,7 +198,8 @@ per method as initial development settings, chosen before its live check.
 It retains both component ranks and deduplicates by chunk ID. P05 has 1/3
 annotated evidence records at five versus dense 0/3 and full-text 2/3; the
 mixed result is preserved. Parameters were not retuned to that question.
-Reranking, final study budgets and the complete Enhanced workflow remain open.
+Qwen4B reranked retrieval is now implemented and live-verified. Final study
+budgets and the complete Enhanced workflow remain open.
 
 **Evaluation controls approved, 2026-11-01:**
 

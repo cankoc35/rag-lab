@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3200" height="1800" viewBox="0 0 3200 1800">
+<title>RAG Workflow Lab - target pipeline from user question to final answer</title>
+<desc>Target design: router, Simple, Enhanced and Agentic RAG, answer context, generation, validation, offline data layer and tracing. Solid boxes are built; dashed boxes are planned. 26 November 2026.</desc>
+<defs><marker id="green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#087F6F"/></marker>
+<marker id="gray" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#61768A"/></marker></defs>
+<rect width="3200" height="1800" fill="#FCFDFE"/>
+<text x="70" y="62" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#087F6F">RAG WORKFLOW LAB</text>
+<text x="70" y="112" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="44" font-weight="700" fill="#173342">Target pipeline: from user question to final answer</text>
+<text x="70" y="150" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">How the finished system answers one question | Target design, 26 November 2026</text>
+<rect x="2330" y="36" width="60" height="28" rx="6" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="2405" y="58" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="400" fill="#173342">Built and checked</text>
+<rect x="2330" y="78" width="60" height="28" rx="6" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="2405" y="100" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="400" fill="#173342">Planned, not built yet</text>
+<rect x="2323" y="120" width="74" height="28" rx="7" fill="#385E8B" stroke="#385E8B" stroke-width="2"/>
+<text x="2360" y="140" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="white">OPEN</text>
+<text x="2405" y="142" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="400" fill="#173342">Design choice still undecided</text>
+<text x="2780" y="58" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="400" fill="#087F6F">Green arrow: working connection</text>
+<text x="2780" y="100" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="400" fill="#526977">Dashed arrow: planned connection</text>
+<rect x="680" y="200" width="1520" height="175" rx="18" fill="white" stroke="#B9C9D4" stroke-width="2"/>
+<text x="705" y="242" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#173342">Simple RAG - baseline</text>
+<text x="2180" y="242" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">Built; runs end to end</text>
+<rect x="680" y="405" width="1520" height="575" rx="18" fill="white" stroke="#B9C9D4" stroke-width="2"/>
+<text x="705" y="447" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#173342">Enhanced RAG - hybrid retrieval, reranking, fixed tool steps</text>
+<text x="2180" y="447" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">Retrieval built and checked live; answer wiring next</text>
+<rect x="680" y="1010" width="1520" height="300" rx="18" fill="white" stroke="#B9C9D4" stroke-width="2"/>
+<text x="705" y="1052" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#173342">Agentic RAG - the LLM chooses the next tool (LangGraph)</text>
+<text x="2180" y="1052" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">Planned</text>
+<polyline points="300,750 340,750" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="640,750 660,750 660,310 680,310" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="660,750 660,690 680,690" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="660,750 660,1140 680,1140" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="1470,310 1530,310" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="2170,310 2290,310" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="1110,550 1135,550 1135,610 1160,610" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="1110,725 1135,725 1135,670 1160,670" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="1500,640 1550,640" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="1960,640 2000,640" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="2170,640 2230,640 2230,350 2290,350" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="2170,890 2245,890 2245,385 2290,385" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="2170,1145 2260,1145 2260,415 2290,415" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="1040,1145 1100,1145" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="1480,1145 1540,1145" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="1840,1145 1900,1145" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="2035,1215 2035,1255 875,1255 875,1220" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="2710,450 2710,495" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="2710,730 2710,785" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="2710,1020 2710,1075" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<polyline points="1000,1395 1000,1316" fill="none" stroke="#087F6F" stroke-width="3" marker-end="url(#green)"/>
+<polyline points="1770,1395 1770,1316" fill="none" stroke="#61768A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#gray)"/>
+<rect x="70" y="670" width="230" height="160" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="88" y="704" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#173342">User question</text>
+<text x="88" y="732" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Raw English text,</text>
+<text x="88" y="761" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">sent unchanged</text>
+<rect x="340" y="590" width="300" height="320" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="358" y="624" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Workflow router</text>
+<text x="358" y="651" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Picks ONE workflow</text>
+<text x="358" y="679" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">per question</text>
+<text x="358" y="707" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Input: question text only</text>
+<text x="358" y="735" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">No gold labels or</text>
+<text x="358" y="763" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">other workflows&#x27; answers</text>
+<text x="358" y="791" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Method: rules, classifier</text>
+<text x="358" y="819" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">or LLM</text>
+<rect x="358" y="868" width="74" height="28" rx="7" fill="#385E8B" stroke="#385E8B" stroke-width="2"/>
+<text x="395" y="888" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="white">OPEN</text>
+<rect x="710" y="262" width="760" height="95" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="728" y="296" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Dense retrieval - top 5</text>
+<text x="728" y="323" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Nomic query embedding + pgvector cosine search</text>
+<rect x="1530" y="262" width="640" height="95" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="1548" y="296" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Top 5 chunks go to the answer</text>
+<text x="1548" y="323" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">One retrieval pass; no hybrid search, reranking or tools</text>
+<rect x="710" y="475" width="400" height="150" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="728" y="509" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Dense retrieval - top 20</text>
+<text x="728" y="536" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Nomic Embed Text v1.5, local CPU</text>
+<text x="728" y="564" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">768-dimensional query vector</text>
+<text x="728" y="592" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">pgvector cosine distance</text>
+<rect x="710" y="650" width="400" height="150" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="728" y="684" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Lexical retrieval - top 20</text>
+<text x="728" y="711" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">PostgreSQL full-text search</text>
+<text x="728" y="739" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">English stemming, OR of terms</text>
+<text x="728" y="767" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Ranked by ts_rank_cd</text>
+<rect x="1160" y="555" width="340" height="170" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="1178" y="589" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">RRF fusion</text>
+<text x="1178" y="616" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Sum of 1 / (60 + rank)</text>
+<text x="1178" y="644" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Equal weights, k = 60</text>
+<text x="1178" y="672" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Deduplicate by chunk ID</text>
+<text x="1178" y="700" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Keep top 20 candidates</text>
+<rect x="1550" y="520" width="410" height="235" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="1568" y="554" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Qwen3-Reranker-4B</text>
+<text x="1568" y="581" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Local model on Apple MPS, float16</text>
+<text x="1568" y="609" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Scores question + heading + chunk</text>
+<text x="1568" y="637" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Relevance = probability of &quot;yes&quot;</text>
+<text x="1568" y="665" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Re-sorts all 20 candidates</text>
+<text x="1568" y="693" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Dev set, full evidence in top 5:</text>
+<text x="1568" y="721" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">82 -&gt; 92 of 100 questions</text>
+<rect x="2000" y="555" width="170" height="170" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="2018" y="589" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Top 5</text>
+<text x="2018" y="616" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Whole chunks</text>
+<text x="2018" y="644" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Source IDs</text>
+<text x="2018" y="672" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">RRF rank</text>
+<text x="2018" y="700" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Rerank score</text>
+<rect x="710" y="830" width="1460" height="120" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="728" y="864" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Fixed DB-tool steps</text>
+<text x="728" y="891" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Python rules decide when to inspect the frozen sandbox database: read-only schema / index lookup</text>
+<text x="728" y="919" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">and EXPLAIN for allowlisted queries. Conditions and tool contracts are not defined yet.</text>
+<rect x="2080" y="842" width="74" height="28" rx="7" fill="#385E8B" stroke="#385E8B" stroke-width="2"/>
+<text x="2117" y="862" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="white">OPEN</text>
+<rect x="710" y="1075" width="330" height="140" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="728" y="1109" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">LLM picks next action</text>
+<text x="728" y="1136" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Retrieve documents,</text>
+<text x="728" y="1164" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">use the DB tool,</text>
+<text x="728" y="1192" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">or answer</text>
+<rect x="1100" y="1075" width="380" height="140" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="1118" y="1109" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Run the chosen tool</text>
+<text x="1118" y="1136" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Document retrieval tool</text>
+<text x="1118" y="1164" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Sandbox DB tool</text>
+<text x="1118" y="1192" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">(same tools as Enhanced)</text>
+<rect x="1540" y="1075" width="300" height="140" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="1558" y="1109" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Observe result</text>
+<text x="1558" y="1136" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Add the evidence</text>
+<text x="1558" y="1164" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">to the agent state</text>
+<rect x="1900" y="1075" width="270" height="140" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="1918" y="1109" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Enough evidence?</text>
+<text x="1918" y="1136" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Yes -&gt; answer</text>
+<text x="1918" y="1164" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">No -&gt; repeat</text>
+<text x="1455" y="1293" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="18" font-weight="400" fill="#526977">Repeat within iteration and time limits; limits not decided yet</text>
+<rect x="2290" y="230" width="840" height="220" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="2308" y="264" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#173342">Build answer context</text>
+<text x="2308" y="294" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Chunks labelled S1 ... S5, with source IDs and URLs</text>
+<text x="2308" y="324" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Whole chunks, never truncated</text>
+<text x="2308" y="354" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Tool results added when a tool was used (planned)</text>
+<text x="2308" y="384" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Final token budget not decided yet</text>
+<rect x="3040" y="242" width="74" height="28" rx="7" fill="#385E8B" stroke="#385E8B" stroke-width="2"/>
+<text x="3077" y="262" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="white">OPEN</text>
+<rect x="2290" y="500" width="840" height="230" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="2308" y="534" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#173342">Generate answer</text>
+<text x="2308" y="564" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">gpt-6-luna via the OpenAI Responses API</text>
+<text x="2308" y="594" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Prompt answer_v1, reasoning none, max 1000 output tokens</text>
+<text x="2308" y="624" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Cites S-labels or says &quot;insufficient evidence&quot;</text>
+<text x="2308" y="654" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Same model and prompt in every workflow</text>
+<rect x="2290" y="790" width="840" height="230" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="2308" y="824" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#173342">Validate the output</text>
+<text x="2308" y="854" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Today: answer is completed and nonempty</text>
+<text x="2308" y="884" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Planned: every citation label is valid</text>
+<text x="2308" y="914" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Undecided: are claims supported by the sources?</text>
+<text x="2308" y="944" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Undecided: retry / repair policy</text>
+<rect x="3040" y="802" width="74" height="28" rx="7" fill="#385E8B" stroke="#385E8B" stroke-width="2"/>
+<text x="3077" y="822" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="white">OPEN</text>
+<rect x="2290" y="1080" width="840" height="200" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="4"/>
+<text x="2308" y="1114" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="32" font-weight="700" fill="#173342">Final answer</text>
+<text x="2308" y="1148" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="24" font-weight="400" fill="#526977">Answer with cited sources (S1 ... S5),</text>
+<text x="2308" y="1179" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="24" font-weight="400" fill="#526977">or &quot;insufficient evidence&quot; when the sources</text>
+<text x="2308" y="1210" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="24" font-weight="400" fill="#526977">do not support an answer</text>
+<text x="70" y="1375" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="24" font-weight="700" fill="#173342">PREPARED OFFLINE - SHARED BY EVERY WORKFLOW</text>
+<text x="1015" y="1362" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="18" font-weight="400" fill="#087F6F">feeds retrieval in all workflows</text>
+<text x="1785" y="1362" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="18" font-weight="400" fill="#526977">feeds the DB-tool steps</text>
+<rect x="70" y="1395" width="1250" height="160" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="88" y="1429" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Document index</text>
+<text x="88" y="1456" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">14 sources: 8 PostgreSQL 18 docs + 6 synthetic Atlas docs</text>
+<text x="88" y="1485" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Parsed into 151 chunks (target 512 / max 1024 tokens, no overlap)</text>
+<text x="88" y="1514" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Nomic vectors and chunk text in PostgreSQL + pgvector</text>
+<rect x="1370" y="1395" width="800" height="160" rx="12" fill="#F0F4F8" stroke="#61768A" stroke-width="2" stroke-dasharray="12 8"/>
+<text x="1388" y="1429" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Frozen sandbox database</text>
+<text x="1388" y="1456" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Fixed tables and indexes for tool questions</text>
+<text x="1388" y="1485" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Read-only; identical state for every run</text>
+<text x="1388" y="1514" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Fixtures not defined yet</text>
+<rect x="2080" y="1407" width="74" height="28" rx="7" fill="#385E8B" stroke="#385E8B" stroke-width="2"/>
+<text x="2117" y="1427" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="white">OPEN</text>
+<rect x="2290" y="1395" width="840" height="160" rx="12" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="2308" y="1429" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="25" font-weight="700" fill="#173342">Models</text>
+<text x="2308" y="1456" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Nomic Embed Text v1.5 - embeddings, local CPU</text>
+<text x="2308" y="1485" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Qwen3-Reranker-4B - reranking, local Apple MPS</text>
+<text x="2308" y="1514" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">gpt-6-luna - answer generation, hosted API</text>
+<rect x="70" y="1590" width="3060" height="110" rx="14" fill="#F6F8FA" stroke="#B9C9D4" stroke-width="2"/>
+<text x="92" y="1630" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="24" font-weight="700" fill="#173342">Tracing - every question is one trace and every step one span, stored in PostgreSQL</text>
+<text x="92" y="1670" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="22" font-weight="400" fill="#526977">Records prompts, chunk IDs and ranks, scores, answer, tokens, time and errors. Built: retrieval and LLM spans. Planned: router, reranker, DB-tool and validator spans.</text>
+<text x="70" y="1745" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">Target design, not a measured result. The router, Agentic control, DB tools and shared validator are not built yet; the 82 -&gt; 92 figure is retrieval evidence on development questions, not answer accuracy.</text>
+<text x="70" y="1775" text-anchor="start" font-family="Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#526977">Sources: METHOD_DESIGN, STATUS, HANDOFF, QWEN_RERANKER_COMPARISON | Detailed status: pipeline.png</text>
+</svg>

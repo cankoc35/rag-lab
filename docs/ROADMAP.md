@@ -7,11 +7,19 @@ The owner rejected MLflow on 2026-11-16. Project-owned PostgreSQL tracing is
 the new direction. Its [code and migration](TRACING_PLAN.md) were subsequently
 applied on the owner's instruction and verified with one real P04 query.
 
-**Current position, 2026-11-25:** the 120-question Qwen4B evaluation is verified
+**Current position, 2026-11-26:** the 120-question Qwen4B evaluation is verified
 and the owner selected 4B with its latency accepted. The live RRF top-20 →
-Qwen4B → initial top-5 retrieval function is added and offline-tested; next is
-one live check, then shared generation, reranker tracing and fixed tools separately. Read the latest
-[handoff snapshot](HANDOFF.md#resume-snapshot--2026-11-25) before the dated records.
+Qwen4B → initial top-5 path passed a real P05 check with exact saved-order/score
+parity. Three explicit evidence policies and an Enhanced context hook are now
+offline-tested. The authorized P07/P05/P19 Luna sample is complete; a quote
+line-wrapping repair is verified by offline replay. The eight negative score-gate
+passes are also checked: all blocked, without errors. Twelve sufficient-context
+positives originally had ten runtime passes and two quote-format errors.
+`source_span_v2` now resolves those failures in a 23-response offline replay,
+preserving all negative blocks. Next shared generation, tracing and fixed tools
+in separate increments.
+Read the latest [handoff snapshot](HANDOFF.md#resume-snapshot--2026-11-26)
+before the dated records.
 
 The working study compares three RAG workflows and an adaptive router. The
 owner approved a PostgreSQL docs + synthetic-runbook pilot with frozen sandbox
@@ -119,8 +127,8 @@ end-to-end CLI and its question/step records can be inspected in PostgreSQL.
   retrieval, RRF merge/deduplication and reranking, then one shared answer call.
   Keep corpus/chunks, embedding and generator settings, answer prompt and maximum
   context token budget comparable with Simple. Measure component ablations on
-  development data. Qwen3-Reranker-4B is selected for this project/demo; integrate
-  it next using the existing pinned profile and batch-one default. The owner
+  development data. Qwen3-Reranker-4B is selected for this project/demo; its live
+  retrieval path and explicit evidence-policy context hook are implemented. The owner
   accepts its observed latency; no under-10-second gate or mandatory 0.6B
   comparison remains. Numeric budgets and final thesis settings are still open.
 - Define bounded Enhanced tool steps in Python with explicit conditions/order;
@@ -178,6 +186,17 @@ margin before final testing. Adaptive routing itself is not claimed as novel.
 - Additional tools without evidence that the use case needs them.
 
 ## Immediate next step
+
+The authorized P07/P05/P19 Luna sample is complete after replacing the expired
+key. All three original responses pass the updated quote check offline; see
+[results](EVIDENCE_CHECK_SAMPLE.md). The checker and 0.95 gate make the same
+three decisions. The subsequent eight gate-passing unanswerable questions are
+now complete: all blocked by the checker. The twelve-positive sample is also
+complete: all model-sufficient, originally ten runtime passes/two quote errors.
+The subsequent `source_span_v2` offline repair resolves both and preserves nine
+negative blocks across all 23 saved responses. Next add Enhanced final-answer generation and
+tracing separately. The following paragraphs retain the earlier development
+sequence; [HANDOFF](HANDOFF.md#next-small-increment) is the current resume point.
 
 The connectivity smoke and one Simple P04 answer passed on 2026-11-17.
 The [single/batch runner](../README.md#run-simple-rag) completed P01–P06;
@@ -271,9 +290,10 @@ The subsequent 120-question 4B run is verified: full support @5 rises from
 82/100 to 92/100, averaging 43.69 seconds per question. The owner now selects
 **Qwen3-Reranker-4B**, accepts this wait for a short school-project demo and
 withdraws the 10-second requirement. Full 0.6B/batching comparisons are optional.
-Next integrate RRF top-20 → Qwen4B → initial top-5 into the Enhanced document
-retrieval path, then add shared answer generation and reranker spans in separate
-increments. Keep candidates/references fixed and preserve all baseline reports.
+The RRF top-20 → Qwen4B → initial top-5 retrieval path is now live-verified;
+explicit baseline/threshold/sufficiency modes and a context hook are added.
+Next review the checker, then add shared answer generation and reranker/checker
+spans separately. Keep candidates/references fixed and preserve all baseline reports.
 See [results](QWEN_RERANKER_COMPARISON.md) and [setup](QWEN_RERANKER_SETUP.md).
 Final candidate/context limits remain open.
 Simple remains dense-only; Enhanced answer generation and fixed tools are

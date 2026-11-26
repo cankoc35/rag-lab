@@ -14,8 +14,12 @@ def build_answer_input(question: str, matches: list[dict]) -> tuple[str, list[di
     return json.dumps({"question": question, "sources": evidence}, ensure_ascii=False, indent=2), sources
 
 
-def generate_text(client, settings: GeneratorSettings, *, instructions: str, prompt: str) -> dict:
+def generate_text(client, settings: GeneratorSettings, *, instructions: str, prompt: str,
+                  text_format: dict | None = None) -> dict:
     """Return text, completion status and reported usage; the caller owns the client."""
+    options = {}
+    if text_format is not None:
+        options["text"] = {"format": text_format}
     response = client.responses.create(
         model=settings.model_id,
         instructions=instructions,
@@ -24,6 +28,7 @@ def generate_text(client, settings: GeneratorSettings, *, instructions: str, pro
         max_output_tokens=settings.max_output_tokens,
         service_tier="default",
         store=False,
+        **options,
     )
     return {
         "response_id": response.id,

@@ -1,6 +1,6 @@
 # Terminal command reference
 
-Copyable commands for the current implementation, updated on 2026-11-25.
+Copyable commands for the current implementation, updated on 2026-11-26.
 Run them from the repository root. Initial dependency, database
 and model setup are covered in [README](../README.md),
 [PostgreSQL setup](POSTGRES_SETUP.md) and [embedding setup](EMBEDDING_SETUP.md).
@@ -8,6 +8,7 @@ and model setup are covered in [README](../README.md),
 Jump to [ask the LLM directly](#ask-the-llm-directly), [Simple RAG](#simple-rag),
 [changed evidence](#changed-evidence-control),
 [LLM-only](#llm-only-control), [retrieval](#retrieval-without-answer-generation),
+[evidence checks](#compare-evidence-policies-on-saved-rankings),
 [PostgreSQL](#postgresql-and-migrations), [tests](#tests-and-local-checks) or
 [corpus preparation](#corpus-preparation-and-embedding-tools).
 
@@ -319,13 +320,77 @@ Run all 120 questions (including the four previously probed) in one new report:
 PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/reranker_probe.py --all
 ```
 
-This scores 2,400 pairs; the small probe suggests roughly 55 minutes, not a
-guaranteed runtime. Repeat `--question-id ID` for a subset instead; it cannot be
+This scores 2,400 pairs; the completed batch-one run took 87 minutes 23 seconds
+of scoring, not a guaranteed future runtime. Repeat `--question-id ID` for a subset instead; it cannot be
 combined with `--all`. The model loads once from local
 files; progress appears after each batch (one pair by default). A new report under `outputs/reranking/`
 preserves RRF ranks, reranker scores, timings and the existing metrics at 5/10/20
 using development annotations 1.8.0. Reference answers never enter model inputs.
 This command makes no downloads, DB/API calls, new retrieval or generated answers.
+
+The separate live `retrieve_reranked()` function passed a real read-only P05
+DB/model check on 26 November; see [STATUS](STATUS.md#live-reranked-retrieval-verified--2026-11-26).
+The command above still uses saved candidates. A live Enhanced answer runner
+has not been added yet.
+
+### Compare evidence policies on saved rankings
+
+These independent modes reuse the completed Qwen4B report and exactly the same
+five whole chunks per question. They do not access the DB, load Nomic/Qwen,
+rerun retrieval/reranking, or generate final answers. Local ignored report and
+chunk files must already exist; a fresh clone does not contain them.
+
+Run the two offline conditions on all 120 development questions:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/check_evidence.py --mode baseline --all
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/check_evidence.py --mode threshold --all
+```
+
+`baseline` permits any nonempty context without a sufficiency judgment.
+`threshold` permits the original five chunks when their maximum Qwen score is
+at least 0.95. It does not remove individual lower-scoring chunks. This cutoff
+is a development comparison, not a calibrated answerability guarantee.
+
+Explicitly allow one paid Luna sufficiency check, initially for P19:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_evidence.py \
+  --mode sufficiency --question-id P19 --call-api
+```
+
+Use P07 for a straightforward positive or P05 for multi-evidence inspection.
+Replace `--question-id ID` with `--all` only when intentionally allowing up to
+120 paid checker calls. The modes are separate; the checker does not first
+apply the score threshold. `uv --offline` does not block these API calls.
+
+The checker receives only the raw question, source identifiers/headings and
+passage bodies, with `sufficiency_v1`; no scores or gold answers. It returns
+`sufficient`, `partial` or `insufficient`, with source labels, exact quotes and
+missing facts. Only `sufficient` allows generation. Python checks quotes against
+their cited text using `source_span_v2`: literal/whitespace matching first,
+then unique recovery for `**` markers and a model-capitalized first letter.
+Other wording, numbers, punctuation, internal casing and source attribution
+remain strict. `verified_evidence` records literal source substrings; the model
+assessment and raw response remain unchanged. A matching quote does not prove
+the model's semantic judgment. The [first three-question sample](EVIDENCE_CHECK_SAMPLE.md)
+preserves the original reports and offline replay after the line-wrapping repair.
+The subsequent [negative follow-up](EVIDENCE_CHECK_SAMPLE.md#gate-passing-hard-negatives--2026-11-26)
+used P30, P39, P40, P79, P80, P126, P128 and P129, one `--question-id` per
+invocation. These eight cases are already complete; no rerun is needed to resume.
+The [twelve-positive follow-up](EVIDENCE_CHECK_SAMPLE.md#sufficient-context-positives--2026-11-26)
+is also complete. P36/P122's recorded exit code 2 is a quote-format failure,
+despite a completed `sufficient` model response. Preserve those failures;
+the [versioned offline repair](EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26)
+now resolves them using the same responses. No paid rerun is needed to resume.
+
+Progress prints before each question. New JSON reports under `outputs/evidence/`
+preserve contexts, decisions and provenance; checker mode also saves its exact
+prompt, response, usage and latency. No DB traces are written yet. Operational
+errors save a partial report, stop the batch and exit with code 2; normal
+`partial`/`insufficient` decisions exit successfully. Override `--dataset` and
+`--report` together only with a matching pinned dataset/report pair. See
+[method and limits](EVALUATION_PLAN.md#evidence-policy-development-comparison--2026-11-26).
 
 ### Run Qwen4B with batch size four
 

@@ -1,6 +1,6 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-25. The owner approved the initial
+**Status:** Working draft, updated 2026-11-26. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
 final thesis sample sizes, and the complete final protocol remain open. This is a planning
@@ -41,6 +41,53 @@ establish their semantic unanswerability. No expanded answer comparison has run.
 corpus/synthetic documents, prompts, answers, gold answers and rubrics will
 be in English across all arms. Multilingual/cross-lingual retrieval is not
 part of the required scope. The remaining protocol choices are still open.
+
+## Evidence-policy development comparison — 2026-11-26
+
+Compare `baseline`, `threshold` (maximum Qwen score >= 0.95) and `sufficiency`
+independently on the same v1.8 raw questions and saved Qwen4B top-five whole
+passages. The score gate retains all five on a pass. Sufficiency uses Luna,
+`sufficiency_v1` and structured source quotes/missing facts; scores and gold
+answers are excluded from its prompt. Only `sufficient` allows generation.
+Python checks structure and literal source attribution, not semantic support.
+
+The saved-ranking runner records decisions, inputs, prompt/settings/hashes,
+raw response, usage, elapsed time and operational errors under `outputs/evidence/`.
+It generates no final answers. Invalid/incomplete output or provider failures
+stop the batch and must be counted separately from normal blocked decisions.
+Baseline/threshold are offline; sufficiency requires explicit `--call-api`.
+
+Begin live review with straightforward positives, multi-evidence positives and
+hard negatives. Compare wrong passes and unnecessary abstentions against manual
+evidence judgments; then assess final answers, partial answers and grounding
+when answer generation is wired. Record checker latency, calls/tokens and cost
+in addition to answer costs. A checker pass does not establish answer accuracy.
+Do not mix a 5-to-10 expansion into this ablation. Freeze any chosen policy on
+development data before a separate held-out test. The
+[first three-question sample](EVIDENCE_CHECK_SAMPLE.md) is complete: two
+sufficient and one insufficient model decisions. P05/P19's whitespace-only
+quote failures were repaired and all three responses revalidated offline;
+original reports remain unchanged. The score gate makes the same three
+allow/block decisions. No winning policy is selected.
+The subsequent owner-authorized eight-negative sample includes every known
+unanswerable v1.8 question passed by the 0.95 gate. All eight are blocked by the
+checker with valid outputs and source quotes; [results](EVIDENCE_CHECK_SAMPLE.md#gate-passing-hard-negatives--2026-11-26)
+record selection pins, prompts, timing, usage and assistant editorial review.
+This selected-negative diagnostic does not measure overall accuracy or false
+rejections. The subsequent twelve-positive sample pre-reviews actual top-five
+sufficiency before calls, four questions per source group. All model decisions
+are sufficient; ten pass runtime checks and P36/P122 fail quote validation
+(Markdown/capitalization). No case was retried or policy changed mid-sample.
+Report both semantic decisions and operational blocking; do not drop the two
+errors or count them as normal evidence abstentions. [Positive results](EVIDENCE_CHECK_SAMPLE.md#sufficient-context-positives--2026-11-26).
+The later `source_span_v2` repair is a separate offline replay of all 23 saved
+responses, not a new generation experiment. Only P36/P122 change against the
+prior reviews; fourteen positives pass and nine negatives remain blocked.
+Raw outputs and parsed model assessments stay unchanged; `verified_evidence`
+contains exact recovered source substrings. Limited formatting recovery must
+be unique and never proves semantic entailment. Preserve both original runtime
+failures and the [versioned replay](EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26).
+[Commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
 
 ## Comparisons
 

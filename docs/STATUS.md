@@ -1,12 +1,12 @@
 # Current status
 
-**Last updated:** 2026-11-25. This is the current implementation boundary.
+**Last updated:** 2026-11-26. This is the current implementation boundary.
 Detailed dated records are in [STATUS_HISTORY.md](STATUS_HISTORY.md);
 plans are in [ROADMAP](ROADMAP.md), decisions in [PROJECT_CONTEXT](PROJECT_CONTEXT.md),
 and code/artifact paths in [HANDOFF](HANDOFF.md).
 
 **Assistant handoff refreshed, 2026-11-25:** [CLAUDE.md](../CLAUDE.md) points to
-the repository rules; [HANDOFF's resume snapshot](HANDOFF.md#resume-snapshot--2026-11-25)
+the repository rules; [HANDOFF's resume snapshot](HANDOFF.md#resume-snapshot--2026-11-26)
 records the selected 4B model, completed run, exact evidence/code paths, local
 artifact caveats and next live-retrieval increment. Its report/runtime-code hash
 checks passed without inference, DB/API access or a repeated benchmark. No
@@ -23,8 +23,9 @@ links and `git diff --check` passed; application tests were not repeated.
 | Chunking | Expanded scope: 552 content blocks → 151 saved chunks (113 PostgreSQL/38 Atlas); target 512 / ceiling 1024; maximum 822; original 49 unchanged |
 | Embedding | Pinned local Nomic; normalized 768-dimensional vectors; shared fourteen-snapshot index has 151 vectors |
 | Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (read-only verification 2026-11-25) |
-| Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); live `retrieve_reranked()` scores the fused top 20 and returns the top five (offline-tested, not yet run live); Simple remains dense with `limit=5` |
+| Retrieval | Dense, English OR full-text and equal-weight RRF (`k=60`, 20 candidates/method); live `retrieve_reranked()` verified on P05 with exact saved-order/score parity; Simple remains dense with `limit=5` |
 | Reranker runtime | Selected Qwen4B: 120 questions/2,400 pairs verified, batch one, 43.69 s/question; full support @5 improves 82/100 to 92/100. Latency accepted; live retrieval function added, Enhanced answer workflow pending |
+| Evidence checks | `source_span_v2` resolves two quote-format failures; 23-response offline replay permits 14 positives/blocks 9 negatives with no validation errors |
 | Diagnostics | Schema 4 / `annotated-evidence-v2`: all six quality metrics at 5/10/20, answerable-only means, separate negatives and manual-review candidates; elapsed time retained |
 | Expanded comparison | Same saved dense/full-text/RRF rankings rescored with v1.8 references; full support @5: 83/65/82 of 100; @20: 88/95/100. Original v1.7 scores preserved; relevance review is not exhaustive |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
@@ -44,6 +45,201 @@ Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 - Expanded shared scope, 151 vectors: `nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`.
 
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
+
+## Quote alignment repaired offline — 2026-11-26
+
+The owner authorized the next repair. `source_span_v2` in
+[evidence.py](../src/rag_workflow_lab/evidence.py) preserves literal/whitespace
+matching and adds narrow recovery for `**` markers and model-initial
+capitalization. Recovery must find a unique span in the cited source; changed
+words, numbers, negation, other punctuation, internal casing and source
+substitution remain rejected. Actual source text is returned in
+`verified_evidence`, while the parsed assessment and raw response stay unchanged.
+This verifies attribution, not semantic entailment.
+
+All **23 recorded responses** were replayed offline with identical inputs,
+prompts/settings and raw outputs. The only changes against prior reviews are
+**P36/P122: error → sufficient**. All twelve positive follow-up contexts now
+pass; the two initial positives still pass and all nine negatives remain
+blocked. Every one of **61 verified quotes** is a literal substring of its
+cited source. No hosted call, new inference, DB access, migration or reranking
+occurred. Original live reports and their failures are preserved.
+
+**261 offline unit tests passed**, covering the two regressions and substantive
+quote changes, wrong sources, ambiguous recovery, prefix removal and SQL
+value/identifier casing. Audit/code/input hashes and full replay are saved in
+`outputs/validation/evidence-quote-replay-20261126.json`.
+See [repair details](EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26).
+Next: wire Enhanced's shared answer-generation path using an explicitly
+selected evidence mode; tracing follows separately. No default policy or
+held-out answer-quality result is selected.
+
+## Twelve sufficient-context positives checked — 2026-11-26
+
+The owner authorized four PostgreSQL, four Atlas and four combined questions.
+Pre-call editorial review confirmed all twelve saved top-five contexts actually
+support their questions, alongside full annotated coverage. Cases: PG
+**P42/P93/P99/P100**, Atlas **P36/P46/P56/P107**, combined **P37/P48/P77/P122**.
+Source pins, selection and expected decisions were frozen before calls; no
+gold answers or editorial judgments entered Luna inputs.
+
+All twelve responses completed and assessed context as **sufficient**. Runtime
+allows **10/12**, recording two quote-validation errors: **P36** omits Markdown
+bold markers in two S1 quotes; **P122** capitalizes `this` as `This` in an S3
+quote. Both contexts are sufficient, but `whitespace_v1` correctly rejects
+these nonliteral quotes under its current contract. Do not report either as a
+model `insufficient` decision or silently turn it into a successful workflow pass.
+
+After inspecting P36's local formatting error, the seven remaining independent
+cases ran unchanged; P122 was last. Exactly twelve requests, no retries,
+provider errors, source/prompt/policy changes, final answers, DB access or
+reranking. Total **32.64 s**, mean **2.72 s**; **29,091 input / 1,734 output tokens**.
+Full [results and limits](EVIDENCE_CHECK_SAMPLE.md#sufficient-context-positives--2026-11-26).
+
+Offline audits verified input/source/code/report hashes, quote outcomes, group
+counts and usage sums. Application code is unchanged; unit tests were not
+repeated. Local selection, both run manifests and review are
+`outputs/validation/evidence-positives-preflight-20261126.json`,
+`evidence-positives-runs-20261126.json`, `evidence-positives-resume-runs-20261126.json`
+and `evidence-positives-20261126.json` in the same directory.
+At this stage the next action was the formatting-only quote repair; the later
+section above records its versioned offline verification. Enhanced answer
+generation remains pending.
+No default policy or broader accuracy result is selected.
+
+## Eight negative gate passes checked — 2026-11-26
+
+The owner authorized the next diagnostic. Preflight selected exactly the eight
+v1.8 unanswerable questions passed by maximum Qwen score >= 0.95: **P30, P39,
+P40, P79, P80, P126, P128, P129**. Source state, saved top-five context, Luna
+settings, `sufficiency_v1` and `whitespace_v1` were fixed before the calls.
+Gold labels selected the diagnostic subset but did not enter model inputs.
+
+All eight live responses returned **insufficient** and blocked generation;
+baseline/threshold permit all eight. No schema, quote or provider error occurred.
+Assistant editorial review confirms the missing observation/authority/measurement
+in each selected context. Five quotes used the existing whitespace tolerance.
+This demonstrates additional rejection on selected negatives, not overall
+accuracy or a final-answer improvement. Full [results and limits](EVIDENCE_CHECK_SAMPLE.md#gate-passing-hard-negatives--2026-11-26).
+
+Eight calls reported **15,815 input / 1,183 output tokens** and took **19.20 s**
+in total, mean **2.40 s** (1.79–3.52). No further API verification, final answer,
+new retrieval/reranking, DB access or migration occurred. Application code is
+unchanged; the prior 254 unit tests were not repeated. Independent input/source/
+prompt/code/report hashes, quote/schema checks and usage sums passed offline.
+
+Local evidence: `outputs/validation/evidence-hard-negatives-preflight-20261126.json`,
+`evidence-hard-negatives-runs-20261126.json` and `evidence-hard-negatives-20261126.json`
+in the same directory. The manifest contains every raw report path.
+The next proposed twelve-positive sample was subsequently authorized and
+completed above, with actual context sufficiency reviewed before the calls.
+Further paid calls require explicit opt-in.
+No default policy is chosen; Enhanced answers and tracing remain pending.
+
+## Luna sample completed and quote check repaired — 2026-11-26
+
+After the owner replaced the expired key, all three authorized live requests
+completed. Luna assessed **P07 sufficient, P05 sufficient, P19 insufficient**.
+It quoted the Atlas identities, explained conditional index use/plan inspection,
+and refused to transfer Atlas's five-second policy to Boreal. Full details and
+raw paths: [first sample review](EVIDENCE_CHECK_SAMPLE.md).
+
+The original P07 report passed validation. P05/P19 initially recorded operational
+errors because the model replaced source line breaks with spaces in quotes.
+The small `whitespace_v1` repair normalizes whitespace for comparison, retaining
+the same source membership, wording, numbers and punctuation checks. Source
+text and raw responses are preserved. All three unchanged responses passed an
+offline replay of the updated checker: P07/P05 allow, P19 block. No new paid
+call followed the repair. Prompt/model settings and benchmark inputs are unchanged.
+
+The three calls took 4.73 / 3.23 / 2.03 seconds and reported 5,968 input plus
+463 output tokens. No final answers, new retrieval/reranking, DB writes or
+migration occurred. The gate and checker give the same three allow/block
+decisions; this is implementation evidence, not comparative accuracy.
+
+**254 offline tests**, Ruff `F`, replay input/response/source/hash checks passed.
+Audit: `outputs/validation/evidence-sample-20261126.json`; original reports and
+earlier auth failure are preserved. At this stage the proposed next sample was
+the eight unanswerable gate passes; the later section above records its completion.
+Enhanced answer generation and checker/reranker tracing remain separate
+pending increments. The previous authentication block below is historical.
+
+## Luna sufficiency sample attempted — 2026-11-26
+
+The owner authorized the P07/P05/P19 live sample. P07's single sufficiency
+request failed with `AuthenticationError` in 0.83 seconds, before any model
+assessment or usage was returned. P05/P19 were not sent. The failure is an
+operational error, not an insufficient-evidence decision or a checker result.
+
+The command loaded the configured `.env` key correctly, with no shell override
+or surrounding whitespace. A separate read-only model-metadata request confirmed
+HTTP **401 / `expired_secret_key`**. No credentials were printed or saved.
+The owner was asked to replace `OPENAI_API_KEY` locally; no automatic retry,
+generation fallback, DB access or reranking occurred.
+
+Saved local evidence:
+
+- Failed P07: `outputs/evidence/evidence-sufficiency-20261126T190007781039Z.json`.
+- Sanitized diagnosis: `outputs/validation/luna-auth-check-20261126.json`.
+- Offline preparation: `outputs/validation/evidence-sample-preflight-20261126.json`.
+  This records assistant editorial expectations, exact source quotes and both
+  offline policies; it is explicitly not Luna output or a reference revision.
+
+P07's selected context names both requested identities. P05's S2 explains
+conditional B-tree skip scan and costs; S4 demonstrates EXPLAIN ANALYZE. The
+latter is an unannotated alternative-support candidate, so the saved annotated
+2/3 coverage must not automatically be interpreted as semantic insufficiency.
+References and benchmark scores are unchanged. P19 supplies only an Atlas
+policy; it cannot establish a Boreal limit. Baseline permits all three; the
+0.95 gate permits P07/P05 and blocks P19. These remain offline gate decisions.
+
+Source pins and editorial quotes passed read-only validation. Application code
+was unchanged during this failed attempt, so unit tests were not repeated.
+At that stopping point, replacing the key and retrying the sample was next.
+The later completed sample above resolves this historical block.
+
+## Evidence checks implemented — 2026-11-26
+
+The owner approved the comparison after the alternatives review. New
+[evidence.py](../src/rag_workflow_lab/evidence.py) and
+[sufficiency_v1](../src/rag_workflow_lab/prompts/sufficiency_v1.md) implement:
+
+- `baseline`: allow nonempty context without judging sufficiency.
+- `threshold`: allow the original top five when maximum Qwen score >= 0.95;
+  no individual chunk filtering.
+- `sufficiency`: one explicitly enabled Luna call on the whole context, with
+  structured status, exact source quotes and missing facts. Python validates
+  structure, source membership and literal quotes. Only `sufficient` permits
+  generation; `partial`, `insufficient` and invalid output block it. This does
+  not prove semantic entailment or eliminate checker mistakes.
+
+[Enhanced `prepare_context()`](../src/rag_workflow_lab/workflows/enhanced.py)
+wraps live reranked retrieval with an explicitly selected policy. Rejected
+context stays inspectable, while usable context is empty. Final Enhanced
+answers/tools and reranker/checker spans remain pending; Simple is unchanged.
+
+The locked [saved-ranking runner](../scripts/check_evidence.py) preserves
+identical top-five passages, source/data/code hashes, decisions and timing.
+Checker mode also records exact instructions/input/output/settings and usage.
+Gold answers and Qwen scores never enter its prompt. Operational errors stop
+the batch with a partial report and exit 2, distinct from normal blocked results.
+See [commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
+
+Offline replay: baseline allows 120/120; threshold allows 108/120, including all
+100 answerable questions and 8/20 unanswerable ones. These are gate decisions,
+not generated-answer accuracy. All 120 paired contexts and provenance hashes
+match; 97 passing questions retain at least one below-threshold chunk.
+Reports: `outputs/evidence/evidence-baseline-20261126T184857860062Z.json` and
+`outputs/evidence/evidence-threshold-20261126T184857860354Z.json`.
+
+**252 offline unit tests passed**, along with v1.8 reference checks, Ruff `F`,
+local Markdown links/anchors and `git diff --check`. The original Qwen report
+still matches its independent audit hash. The installed OpenAI 3.51.0 client also
+accepted the strict JSON request and parsed a mocked response with usage.
+No network/model inference, paid call, DB access or migration occurred in this
+increment. No live sufficiency assessment had run at this implementation stage.
+The later three-question sample above completes the initial live review;
+broader comparison, shared answer generation and tracing remain pending.
 
 ## Selected reranker — owner decision, 2026-11-25
 
@@ -77,8 +273,61 @@ All 151 shared-scope chunk files have a nonempty `heading_path`.
 Verification: **233 offline unit tests passed** (4 new), Ruff `F` checks and
 `git diff --check` passed. One new test confirms the live passages and ordering
 match the saved-candidate probe's `rerank()` for the same chunks. No model,
-DB, API or benchmark run occurred; the function has not yet run against the
-live DB/model, and no workflow calls it yet.
+DB, API or benchmark run occurred in that implementation increment. The later
+live check is recorded below; no answer workflow calls the function yet.
+
+## Live reranked retrieval verified — 2026-11-26
+
+Ran unchanged P05 once against the exact shared 151-chunk index with local
+Nomic (CPU) and selected Qwen4B (MPS/float16, batch one) in the same locked
+environment. `retrieve_reranked(..., limit=20)` retained the complete ranking
+for comparison; its first five are the initial context selection.
+
+All twenty RRF candidates/source fields and complete passages match the saved
+120-question run. Reranked order and scores match exactly (maximum difference
+**0.0**), as do all reference metrics. P05 required-claim coverage remains
+**2/3 at five, 3/3 at ten/twenty**; this confirms live-path parity, not a new
+quality improvement. The callback scored only raw question and whole passage.
+
+Model loads: Nomic **0.90 s**, Qwen **16.50 s**. Live retrieval + reranking:
+**33.66 s**, including **32.74 s** scoring. These are one-question observations,
+not a new average or end-to-end answer latency. PostgreSQL was healthy; the
+connection's `transaction_read_only` was verified `on`. No DB/trace writes,
+hosted call, new source/index or full benchmark run occurred.
+
+Report: `outputs/validation/live-reranked-P05-20261126T170717699333Z.json`.
+It preserves all matches, metrics, timing, baseline/code/lock hashes, package
+versions and the temporary verification source. The environment reused the
+unchanged `check_retrieval.py.lock`; no dependency/config change was needed.
+**233 offline unit tests passed** again; application code was unchanged during
+this live verification. Next: add Enhanced's shared answer-generation path,
+then reranker tracing separately; fixed tools and shared validation remain pending.
+
+## Reranker threshold review — 2026-11-26
+
+Reviewed primary CRAG/selective-QA/context-sufficiency sources and replayed saved
+scores, with no inference or DB/API access. The [review](RERANKER_THRESHOLD_REVIEW.md)
+distinguishes a question gate from a per-chunk filter. A maximum-score gate at
+0.95 passes 100/100 answerable questions but also 8/20 unanswerable questions.
+Separately filtering each chunk at 0.95 reduces full annotated support @5 from
+92/100 to 85/100. Score distributions overlap; no maximum-score threshold can
+perfectly separate all current positive/negative questions. These are exploratory
+development counts, not answer accuracy, a selected cutoff or a new runtime policy.
+Replay: `outputs/validation/qwen4b-threshold-review-20261126.json`.
+At this research stage, threshold choice and evidence-sufficiency handling
+remained open. The later implementation above adds explicit comparison modes,
+without choosing a winner. No ordinary tests were rerun for
+this research-only update; raw reports and application/config files are preserved.
+
+The subsequent [alternatives review](RERANKER_THRESHOLD_REVIEW.md#alternatives-review--2026-11-26)
+covers scope filters, calibrated gates, whole-context sufficiency, answer
+grounding and corrective retrieval, using primary papers and Azure/AWS/NeMo
+documentation. The proposed 0.95 question gate remains a simple comparison;
+a separately tested whole-context sufficiency check is the more directly
+targeted candidate, not a measured improvement here. The owner requested this
+research before implementation, then approved the three-mode comparison now
+implemented above. No threshold, verifier, dependency, prompt or experiment
+setting changed during the research-only stage.
 
 ## Full Qwen4B run verified — 2026-11-25
 
@@ -98,6 +347,17 @@ top-five scores: [Qwen comparison](QWEN_RERANKER_COMPARISON.md#full-120-question
 Raw report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
 audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
 Qwen4B is selected; full-set 0.6B testing is optional. Enhanced integration is next.
+
+## Target full-flow diagram — 2026-11-26
+
+Added a separate 16:9 [target full-flow image](presentations/2026-11-23/README.md#target-full-flow)
+(PNG/PDF/SVG + renderer) for slides: user question → router → Simple / Enhanced /
+Agentic → answer context → generation → validation → final answer, with Enhanced's
+dense/lexical top-20, RRF, Qwen3-Reranker-4B and top-five steps, the offline data
+layer and tracing. Built, planned and OPEN items are marked; it is a target design,
+not a result. The existing status pipeline is unchanged. Rendering, visual layout,
+SVG XML and the one-page PDF were checked; no application code, tests, model,
+DB or API work was involved.
 
 ## Supervisor diagram revision — 2026-11-25
 
@@ -1155,11 +1415,9 @@ Audit: `outputs/validation/qwen4b-batch4-20261125T184838008770Z.json`.
 
 ## Next small step
 
-**Proposed:** run `retrieve_reranked()` once live on one development question
-(for example P05) with the pinned Qwen4B profile, the shared 151-chunk index and
-the existing Nomic environment, and compare its RRF top 20 and reranked order with
-the saved full-run report. Then add shared Luna generation and a reranker span
-for Enhanced in separate increments. Full-set 0.6B and additional batching
+The first live P05 retrieval/reranking check passed with exact saved-order/score
+parity. Next add shared Luna generation for the Enhanced document path with
+offline tests, then a reranker span in a separate increment. Full-set 0.6B and additional batching
 comparisons are optional. Both profiles, candidate/evidence state and prior
 reports are preserved.
 
@@ -1198,7 +1456,7 @@ Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 ## Not yet completed
 
 - Broader paired evaluation and additional source-specific/abstention/changed-evidence cases.
-- A live check of `retrieve_reranked()`, the complete Enhanced workflow and its tool conditions.
+- Enhanced answer generation, reranker tracing, the complete workflow and its tool conditions.
 - Additional changed document states, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.
 - Verified P10–P18/P20 answers, a held-out test set, rubric/judges, metrics,

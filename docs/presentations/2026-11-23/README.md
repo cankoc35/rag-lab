@@ -4,6 +4,9 @@ The pipeline was updated on **25 November 2026**. The folder retains its origina
 preparation date. These artifacts describe implementation status; they do not
 change the experiment or finalize open design choices.
 
+- [Target full-flow PNG](full-flow.png) (3840 x 2160, 16:9 for slides),
+  [PDF](full-flow.pdf), [SVG](full-flow.svg) and [renderer](render_full_flow.py),
+  added 26 November: see [the target flow](#target-full-flow) below.
 - [Pipeline PNG](pipeline.png): high-resolution image for slides, 4200 x 3000.
 - [Pipeline PDF](pipeline.pdf): one-page vector diagram for zooming or printing.
 - [Pipeline SVG](pipeline.svg): editable vector image.
@@ -48,6 +51,31 @@ retrieval components inside Enhanced do not mean its answer workflow is built.
   answerable questions; 20 unanswerable cases are separate. These measure
   annotated retrieval evidence, not LLM answer accuracy. Unannotated passages
   remain unjudged; the held-out thesis protocol remains open.
+
+## Target full flow
+
+The full-flow image shows how the **finished** system is intended to answer one
+question: user question → workflow router → Simple, Enhanced or Agentic RAG →
+answer context → Luna answer generation → output validation → final answer.
+Enhanced is drawn in detail: dense and lexical top-20 retrieval, RRF fusion,
+Qwen3-Reranker-4B over the fused top 20, top five, and planned fixed DB-tool steps.
+Bottom strips show the offline data layer (document index, frozen sandbox DB,
+models) and tracing. Evaluation metrics are left to the detailed pipeline above.
+
+It is a target design, not a result. Solid green boxes are built and checked;
+dashed gray boxes are planned; **OPEN** marks undecided choices (router method,
+tool conditions, context budget, grounding/retry, sandbox fixtures). Connections
+from Enhanced and Agentic to the shared answer path are dashed because that wiring
+is not built yet. The 82 → 92 figure is development retrieval evidence, not
+answer accuracy.
+
+```bash
+python3 docs/presentations/2026-11-23/render_full_flow.py
+```
+
+This writes only `full-flow.svg`, `full-flow.png` and `full-flow.pdf`. The
+image was rendered and visually inspected; the SVG parsed as XML and the PDF has
+one page. No model, DB or API access was needed.
 
 ## Regenerate and verify
 

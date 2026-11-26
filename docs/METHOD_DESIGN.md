@@ -1,6 +1,6 @@
 # Method-level design — first draft
 
-**Status:** Working draft, updated 2026-11-25. The owner approved the initial
+**Status:** Working draft, updated 2026-11-26. The owner approved the initial
 Simple/Enhanced design below, PostgreSQL docs/synthetic-runbook pilot and
 prior-knowledge controls. Agentic details, the router and final thesis protocol
 remain open. The supervisor liked the
@@ -88,6 +88,32 @@ batch-one default remain; 0.6B testing is optional. Candidate counts, fusion
 parameters, final context limits and final generator
 settings remain open. Luna is the initial client; choose/version final settings
 on development data before final testing.
+
+### Evidence-policy development comparison — 2026-11-26
+
+The owner approved separate unfiltered, maximum-score 0.95 gate and
+whole-context sufficiency conditions after Qwen4B's initial top-five selection.
+The first two make no extra model call; the sufficiency condition uses one Luna
+check with `sufficiency_v1`, exact source quotes and missing-information fields.
+Only `sufficient` permits final generation; `partial`/`insufficient` block it.
+Invalid output or a provider failure is an operational error, not a successful
+abstention. Python verifies source labels and literal quotes, not entailment.
+
+Hold questions, source state and selected passages constant; do not combine
+the threshold and checker or expand context to ten in this comparison. These
+are development ablations, not new router targets. Checker overhead must be
+reported separately from the final answer call. Whether to share this policy
+across final study arms remains open. The context hook and saved-ranking runner
+are implemented. A [three-question live sample](EVIDENCE_CHECK_SAMPLE.md) is
+reviewed, with whitespace-tolerant quote validation replayed offline. A subsequent
+selected-negative sample blocks all eight unanswerable score-gate passes with
+valid live outputs. A twelve-positive sufficient-context sample returns twelve
+sufficient model decisions but ten runtime passes/two quote-format errors.
+The subsequent `source_span_v2` repair revalidates all 23 saved responses offline:
+those two errors resolve and all nine negatives remain blocked. The original
+live outcomes remain preserved. Broader checker quality and Enhanced answer
+generation remain pending.
+See [evaluation](EVALUATION_PLAN.md#evidence-policy-development-comparison--2026-11-26).
 
 Technical basis: pgvector documents combining dense retrieval with PostgreSQL
 full-text search and [rank fusion](https://github.com/pgvector/pgvector#hybrid-search).

@@ -23,7 +23,8 @@ one-page project briefing from 23 November.
 | --- | --- | --- |
 | Corpus | Fourteen expanded sources/151 chunks imported and embedded; earlier Atlas controls preserved | Sandbox fixtures |
 | Embeddings / DB | 18 snapshots, 175 chunks; four indexes/224 vectors, including the shared 151-vector index | Sandbox fixtures |
-| Retrieval | Dense/full-text/RRF and selected Qwen4B reranker checked on 120 development questions with v1.8 references; live `retrieve_reranked()` (RRF top 20 → reranker → top 5) offline-tested | Live reranked-retrieval check and the complete Enhanced workflow |
+| Retrieval | Dense/full-text/RRF and selected Qwen4B checked on 120 development questions; live `retrieve_reranked()` verified on P05 against the saved rankings/scores | Enhanced answer workflow and reranker tracing |
+| Evidence checks | Two quote-format errors repaired; offline replay permits 14 recorded positives and blocks 9 negatives, with literal source quotes | Enhanced answers/DB spans and broader evaluation |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
 | Generation | Simple/LLM-only pairs and Atlas P19 abstention verified; P08 follows a 5 → 8 second source change | Broader evaluation |
 | Evaluation | Version 1.8.0: same 100 answerable + 20 unanswerable; twelve annotation corrections and common offline rescoring | Further relevance review; held-out set and final protocol |
@@ -112,8 +113,26 @@ and reranking averages 43.69 seconds per question (batch one). **The owner
 selected Qwen3-Reranker-4B for the school project/demo**, accepting this wait
 for one or two demo questions. The earlier 10-second limit is withdrawn;
 latency remains a reported measurement. Full-set 0.6B testing is optional.
-The live RRF top-20 → Qwen4B → top-5 retrieval function is now added and
-offline-tested; a live check and the Enhanced answer workflow are next.
+The live RRF top-20 → Qwen4B → top-5 retrieval function passed its first real
+P05 check on 26 November: all twenty candidates, passages, reranked positions,
+scores and reference metrics match the saved run exactly. Nomic and Qwen loaded
+in one pinned environment; the DB connection was read-only.
+The subsequent [evidence checks](docs/COMMANDS.md#compare-evidence-policies-on-saved-rankings)
+add three independent modes on the same top five: unfiltered baseline, a
+maximum-score 0.95 question gate, and a Luna sufficiency check with source
+quotes. Only `sufficient` permits generation in the checker mode. The first
+[three-question Luna sample](docs/EVIDENCE_CHECK_SAMPLE.md) returns two sufficient
+and one insufficient decisions. A quote line-wrapping issue was fixed and the
+same responses revalidated offline. The subsequent eight-negative follow-up
+blocks every selected score-gate pass, with no validation errors. This is a
+selected development diagnostic. The subsequent twelve sufficient-context
+positives all receive `sufficient` from Luna; the original runtime allows ten,
+with two quote-format errors. The subsequent
+[source-span repair](docs/EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26)
+revalidates all 23 recorded responses offline, resolves those two errors and
+keeps all nine negative blocks. Raw model quotes remain unchanged; verified
+literal source quotes are recorded separately. Shared answer generation and
+reranker/checker tracing for Enhanced remain pending.
 Simple remains dense-only.
 A [Qwen4B batch-four command](docs/COMMANDS.md#run-qwen4b-with-batch-size-four)
 is also prepared; one P05 check preserved ranks but was slower than batch one.
