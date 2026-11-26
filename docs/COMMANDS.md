@@ -1,11 +1,12 @@
 # Terminal command reference
 
-Copyable commands for the current implementation, updated on 2026-11-26.
+Copyable commands for the current implementation, updated on 2026-11-27.
 Run them from the repository root. Initial dependency, database
 and model setup are covered in [README](../README.md),
 [PostgreSQL setup](POSTGRES_SETUP.md) and [embedding setup](EMBEDDING_SETUP.md).
 
 Jump to [ask the LLM directly](#ask-the-llm-directly), [Simple RAG](#simple-rag),
+[Enhanced RAG](#enhanced-rag),
 [changed evidence](#changed-evidence-control),
 [LLM-only](#llm-only-control), [retrieval](#retrieval-without-answer-generation),
 [evidence checks](#compare-evidence-policies-on-saved-rankings),
@@ -117,6 +118,63 @@ PYTHONPATH=src uv run --offline --locked --no-project --env-file .env --python 3
 Replace `--all` with `--question-id P07` for one Atlas question. The complete
 pinned dataset scope must match the index before model loading, trace writes
 or paid calls. Dataset path/hash and the scope-check code are recorded as provenance.
+
+## Enhanced RAG
+
+Requires applied `0002`, the existing expanded index, cached Nomic/Qwen4B and
+an API key. The runner reads [pilot.toml](../configs/pilot.toml) and
+[reranker.toml](../configs/reranker.toml); it downloads no model files.
+Set the shared index once, then run one question:
+
+```sh
+RAG_EXPANDED_INDEX_ID=nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1
+PYTHONPATH=src:. uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_enhanced_rag.py \
+  --index-id "$RAG_EXPANDED_INDEX_ID" --question-id P07 --call-api
+```
+
+Repeat `--question-id` for a small batch without reloading the models:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_enhanced_rag.py \
+  --index-id "$RAG_EXPANDED_INDEX_ID" \
+  --question-id P07 --question-id P30 --question-id P19 --call-api
+```
+
+| Option | Meaning |
+| --- | --- |
+| `--index-id ID` | Required; must match the dataset's complete pinned source/chunk/input scope. |
+| `--question-id ID` | Select an ID; repeat for a small batch in the stated order. Unknown/duplicate IDs fail before DB/model access. |
+| `--all` | Use every question in dataset order, instead of `--question-id`; the default dataset has 120 questions. |
+| `--dataset PATH` | Optional; defaults to expanded development v1.8. |
+| `--mode MODE` | Defaults to `threshold_sufficiency`; independent `baseline`, `threshold` and `sufficiency` controls remain available. |
+| `--call-api` | Required for execution; allows hosted requests and DB trace writes. |
+| `--help` | Print usage without DB, model or API access. |
+
+The default path is dense/full-text → RRF top 20 → Qwen4B top five → maximum
+score gate at 0.95 → Luna sufficiency/source-quote checks → `answer_v1`.
+A gate rejection makes zero hosted requests; a checker rejection makes one;
+accepted context followed by generation makes two. `--all` can therefore make
+up to **240 hosted requests**, plus local reranking. `--offline` blocks dependency
+downloads, not the API; all model loading uses cached files only.
+
+Nomic/Qwen, reader, writer and API client are reused for the batch. Progress
+goes to stderr, including model loading and each reranking candidate. Trace
+writes are always enabled for this runner. Normal abstentions continue; the
+first operational error stops the batch, preserving earlier question records
+and a sanitized failure record. An exception may have `trace_id=null`; inspect
+DB traces using the report's `run_id` and question ID.
+
+JSON goes to `outputs/answers/enhanced-<timestamp>.json`, with question outcomes,
+context/sources, checker/answer responses and usage, separate model-load times,
+dataset/index/source pins, model-file/config/code/lock hashes and package versions.
+The stdout summary separates `answered`, `abstained` and `error`; these describe
+execution, not correctness. The [trace map](TRACING_PLAN.md#enhanced-workflow--2026-11-26)
+explains DB stages, timings and usage. Fixed tools and final answer validation
+are separate work.
+
+The P07/P30/P19 batch completed on 26 November: one cited answer, one checker
+abstention and one gate abstention, with three hosted calls and exact trace
+read-back. See [STATUS](STATUS.md#enhanced-runner-and-live-check--2026-11-26).
 
 ## Changed-evidence control
 
@@ -330,12 +388,16 @@ This command makes no downloads, DB/API calls, new retrieval or generated answer
 
 The separate live `retrieve_reranked()` function passed a real read-only P05
 DB/model check on 26 November; see [STATUS](STATUS.md#live-reranked-retrieval-verified--2026-11-26).
-The command above still uses saved candidates. A live Enhanced answer runner
-has not been added yet.
+The command above still uses saved candidates. Enhanced's Python
+`answer_question()` connects accepted context to the shared answer prompt/client.
+The [Enhanced terminal runner](#enhanced-rag) loads live models and always records
+DB traces. In the Python API, pass a separate autocommit `writer` and the loaded
+scorer's `reranker_settings`; omitting the writer preserves untraced behavior.
+The saved-ranking commands below do not call this workflow.
 
 ### Compare evidence policies on saved rankings
 
-These independent modes reuse the completed Qwen4B report and exactly the same
+These modes reuse the completed Qwen4B report and exactly the same
 five whole chunks per question. They do not access the DB, load Nomic/Qwen,
 rerun retrieval/reranking, or generate final answers. Local ignored report and
 chunk files must already exist; a fresh clone does not contain them.
@@ -361,8 +423,37 @@ PYTHONPATH=src:. uv run --offline --locked --no-project --env-file .env --python
 
 Use P07 for a straightforward positive or P05 for multi-evidence inspection.
 Replace `--question-id ID` with `--all` only when intentionally allowing up to
-120 paid checker calls. The modes are separate; the checker does not first
-apply the score threshold. `uv --offline` does not block these API calls.
+120 paid checker calls in `sufficiency` mode. That mode checks every selected
+question without a score gate. `uv --offline` does not block API calls.
+
+The combined **`threshold_sufficiency`** mode first checks maximum Qwen score
+against 0.95. Below the cutoff it returns `score_reject` without calling Luna;
+a pass sends all five unchanged chunks to the existing sufficiency/quote checks.
+A gate pass alone never permits generation. Independent modes remain available.
+
+P19 is below the cutoff and can run fully offline without `.env`, an API key,
+`--call-api` or an SDK client:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --python 3.11 scripts/check_evidence.py \
+  --mode threshold_sufficiency --question-id P19
+```
+
+To allow a paid checker call for a passing question such as P07:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/check_evidence.py \
+  --mode threshold_sufficiency --question-id P07 --call-api
+```
+
+Before starting a batch, the runner checks whether any selected question passes
+the gate. If so, it requires `--call-api`, a key and generator settings. If all
+questions fail the gate, it creates no client, even when `--call-api` is present.
+Returned combined decisions record `gate` and `checker_called`; low scores keep
+`checker_called=false` and no model response. Provider failures remain operational
+errors and stop the batch. Use `--all` only when intentionally allowing checker
+calls for every passing question (108 potential calls in the saved 120-question
+set). The implemented path was verified offline; this increment made no paid calls.
 
 The checker receives only the raw question, source identifiers/headings and
 passage bodies, with `sufficiency_v1`; no scores or gold answers. It returns

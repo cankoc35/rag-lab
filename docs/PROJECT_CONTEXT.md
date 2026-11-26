@@ -1,6 +1,6 @@
 # Project context
 
-**Updated:** 2026-11-26. This file records purpose and lasting decisions.
+**Updated:** 2026-11-27. This file records purpose and lasting decisions.
 Use [STATUS](STATUS.md) for progress, [ROADMAP](ROADMAP.md) for sequence,
 [HANDOFF](HANDOFF.md) for code/artifacts and [history](STATUS_HISTORY.md) for
 dated implementation details. Repository: `/Users/cankoc/Desktop/rag-workflow-lab`.
@@ -52,6 +52,19 @@ This is not the MOTIF-RAG evaluation library.
   enabled API call, separate from the final answer. This approves the comparison,
   not a winning policy or final threshold. Simple remains unchanged. See
   [commands and scope](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
+- **2026-11-26, threshold follow-up:** Keep **0.95** for the planned question
+  gate before Luna sufficiency. The owner accepts rejecting a question whose
+  best Qwen score is below the cutoff, including 0.94. Use the maximum score
+  of the selected top five; a passing gate retains all five whole chunks.
+  The combined `threshold_sufficiency` mode is implemented and offline-tested;
+  rejected gates return before model/client use, and passes still require a
+  sufficient assessment with valid quotes. Enhanced now generates from accepted
+  context using the shared `answer_v1` and Luna settings. Optional DB tracing
+  covers retrieval/reranking, evidence checks and model calls. The live runner
+  now reuses models/resources and passed a selected P07/P30/P19 end-to-end
+  check; broader answer evaluation and shared output validation remain pending.
+  Preserve baseline, threshold-only and sufficiency-only as separate controls.
+  This is a development choice, not a frozen final thesis policy.
 
 The PostgreSQL expansion now has a separate
 [eight-source allowlist](../data/corpus/postgres_expanded_v1.json) and

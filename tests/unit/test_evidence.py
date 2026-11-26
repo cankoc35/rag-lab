@@ -63,7 +63,7 @@ class EvidenceTests(unittest.TestCase):
 
     def test_empty_context_blocks_all_modes_without_model_calls(self):
         self.matches.clear()
-        for mode in ("baseline", "threshold", "sufficiency"):
+        for mode in ("baseline", "threshold", "sufficiency", "threshold_sufficiency"):
             with self.subTest(mode=mode):
                 self.assertFalse(self.check(mode)["allowed"])
                 self.assertEqual(self.check(mode)["decision"], "no_evidence")
@@ -235,8 +235,80 @@ class EvidenceTests(unittest.TestCase):
             assess_evidence("Question", self.matches, mode="sufficiency")
         self.client.responses.create.assert_not_called()
 
+    def test_combined_rejects_below_threshold_without_client_or_generator(self):
+        self.matches[0]["reranker_score"] = .94
+        result = self.check("threshold_sufficiency")
+        self.assertFalse(result["allowed"])
+        self.assertEqual(result["decision"], "score_reject")
+        self.assertFalse(result["gate"]["allowed"])
+        self.assertFalse(result["checker_called"])
+        self.assertNotIn("response", result)
+        self.client.responses.create.assert_not_called()
+        self.assertEqual(assess_evidence("Question", self.matches, mode="threshold_sufficiency"), result)
+
+    def test_combined_boundary_calls_checker_once_with_all_five_whole_chunks(self):
+        self.matches = [{**match(.95 if i == 0 else .1), "chunk_id": f"chunk-{i}"} for i in range(5)]
+        original = deepcopy(self.matches)
+        result = self.check("threshold_sufficiency")
+        self.assertTrue(result["allowed"])
+        self.assertEqual(result["decision"], "sufficient")
+        self.assertEqual(result["gate"]["maximum_score"], .95)
+        self.assertTrue(result["gate"]["allowed"])
+        self.assertTrue(result["checker_called"])
+        self.client.responses.create.assert_called_once()
+        payload = json.loads(self.client.responses.create.call_args.kwargs["input"])
+        self.assertEqual([s["text"] for s in payload["sources"]], [m["text"] for m in original])
+        self.assertEqual(len(payload["sources"]), 5)
+        self.assertEqual(self.matches, original)
+
+    def test_combined_gate_pass_never_overrides_partial_or_insufficient_decision(self):
+        for status in ("partial", "insufficient"):
+            with self.subTest(status=status):
+                self.response.output_text = json.dumps(assessment(status))
+                result = self.check("threshold_sufficiency")
+                self.assertTrue(result["gate"]["allowed"])
+                self.assertTrue(result["checker_called"])
+                self.assertFalse(result["allowed"])
+                self.assertEqual(result["decision"], status)
+        self.assertEqual(self.client.responses.create.call_count, 2)
+
+    def test_combined_gate_pass_still_blocks_invalid_checker_output(self):
+        for output in ("not JSON", json.dumps({**assessment(), "evidence": [
+                {"source_label": "S1", "quote": "Canary limit is 8 seconds."}]})):
+            with self.subTest(output=output):
+                self.response.output_text = output
+                result = self.check("threshold_sufficiency")
+                self.assertTrue(result["gate"]["allowed"])
+                self.assertTrue(result["checker_called"])
+                self.assertFalse(result["allowed"])
+                self.assertEqual(result["decision"], "error")
+                self.assertEqual(result["response"]["answer"], output)
+
+    def test_combined_gate_pass_requires_client_before_any_model_call(self):
+        with self.assertRaises(ValueError):
+            assess_evidence("Question", self.matches, mode="threshold_sufficiency")
+        self.client.responses.create.assert_not_called()
+
+    def test_enhanced_combined_context_obeys_checker_result_after_passing_gate(self):
+        self.response.output_text = json.dumps(assessment("partial"))
+        with patch("rag_workflow_lab.workflows.enhanced.retrieve_reranked", return_value=self.matches):
+            result = prepare_context(None, None, "index", "Question", Mock(),
+                                     mode="threshold_sufficiency", client=self.client, generator=self.generator)
+        self.assertEqual(result["context"], [])
+        self.assertEqual(result["retrieved_chunks"], self.matches)
+        self.assertEqual(result["evidence_check"]["decision"], "partial")
+        self.client.responses.create.assert_called_once()
+
 
 class EnhancedContextTests(unittest.TestCase):
+    def test_combined_context_gate_skips_checker_without_api_resources(self):
+        matches = [match(.94)]
+        with patch("rag_workflow_lab.workflows.enhanced.retrieve_reranked", return_value=matches):
+            result = prepare_context(None, None, "index", "Question", Mock(), mode="threshold_sufficiency")
+        self.assertEqual(result["context"], [])
+        self.assertEqual(result["retrieved_chunks"], matches)
+        self.assertFalse(result["evidence_check"]["checker_called"])
+
     def test_rejected_context_is_empty_but_retrieved_chunks_remain_inspectable(self):
         matches = [match(.9)]
         with patch("rag_workflow_lab.workflows.enhanced.retrieve_reranked", return_value=matches) as retrieve:

@@ -86,6 +86,81 @@ class EvidenceRunnerTests(unittest.TestCase):
                 check_evidence.main(self.args("sufficiency") + ["--call-api"])
         load.assert_not_called()
 
+    def test_combined_all_gates_rejected_runs_without_key_or_sdk_client(self):
+        for row in self.report["questions"]:
+            row["ranking"][0]["reranker_score"] = .94
+        self.save_report()
+        factory = MagicMock()
+        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}), \
+                patch.dict("sys.modules", {"openai": SimpleNamespace(OpenAI=factory)}):
+            self.assertEqual(check_evidence.main(self.args("threshold_sufficiency")), 0)
+        report = self.output()
+        self.assertIsNone(report["checker_settings"])
+        self.assertEqual(len(report["questions"]), 2)
+        for row in report["questions"]:
+            self.assertFalse(row["evidence_check"]["checker_called"])
+            self.assertEqual(row["evidence_check"]["decision"], "score_reject")
+            self.assertEqual(len(row["context"]), 5)
+        factory.assert_not_called()
+
+    def test_combined_call_api_flag_still_skips_client_when_all_gates_reject(self):
+        for row in self.report["questions"]:
+            row["ranking"][0]["reranker_score"] = .94
+        self.save_report()
+        factory = MagicMock()
+        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}), \
+                patch.dict("sys.modules", {"openai": SimpleNamespace(OpenAI=factory)}):
+            self.assertEqual(check_evidence.main(self.args("threshold_sufficiency") + ["--call-api"]), 0)
+        factory.assert_not_called()
+
+    def test_combined_passing_gate_requires_opt_in_and_key_before_sdk_client(self):
+        factory = MagicMock()
+        with patch.dict("os.environ", {"OPENAI_API_KEY": ""}), \
+                patch.dict("sys.modules", {"openai": SimpleNamespace(OpenAI=factory)}):
+            for extra in ([], ["--call-api"]):
+                with self.subTest(extra=extra), self.assertRaises(SystemExit) as error:
+                    check_evidence.main(self.args("threshold_sufficiency") + extra)
+                self.assertEqual(error.exception.code, 2)
+        factory.assert_not_called()
+
+    def test_combined_mixed_batch_only_calls_checker_for_gate_pass(self):
+        self.report["questions"][0]["ranking"][0]["reranker_score"] = .94
+        self.save_report()
+        factory = MagicMock()
+        client = factory.return_value.__enter__.return_value
+        client.responses.create.return_value = SimpleNamespace(
+            id="response", model="gpt-6-luna", status="completed", usage=None, incomplete_details=None,
+            output_text=json.dumps({"status": "sufficient", "reason": "The passage supplies the fact.",
+                                    "evidence": [{"source_label": "S1", "quote": "Whole passage 0."}],
+                                    "missing_information": []}))
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "fixture-key"}), \
+                patch.dict("sys.modules", {"openai": SimpleNamespace(OpenAI=factory)}):
+            self.assertEqual(check_evidence.main(self.args("threshold_sufficiency") + ["--call-api"]), 0)
+        report = self.output()
+        self.assertFalse(report["questions"][0]["evidence_check"]["checker_called"])
+        self.assertTrue(report["questions"][1]["evidence_check"]["checker_called"])
+        self.assertTrue(report["questions"][1]["evidence_check"]["allowed"])
+        self.assertEqual(report["checker_settings"]["model_id"], "gpt-6-luna")
+        client.responses.create.assert_called_once()
+        self.assertEqual(json.loads(client.responses.create.call_args.kwargs["input"])["question"],
+                         "Another question?")
+        factory.assert_called_once_with(base_url="https://api.openai.com/v1", timeout=30, max_retries=0)
+
+    def test_combined_provider_error_blocks_and_stops_without_retry(self):
+        factory = MagicMock()
+        client = factory.return_value.__enter__.return_value
+        client.responses.create.side_effect = RuntimeError("fixture-secret")
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "fixture-key"}), \
+                patch.dict("sys.modules", {"openai": SimpleNamespace(OpenAI=factory)}):
+            self.assertEqual(check_evidence.main(self.args("threshold_sufficiency") + ["--call-api"]), 2)
+        report = self.output()
+        self.assertTrue(report["batch_stopped_on_error"])
+        self.assertEqual(len(report["questions"]), 1)
+        self.assertFalse(report["questions"][0]["evidence_check"]["allowed"])
+        self.assertEqual(report["questions"][0]["evidence_check"]["decision"], "error")
+        self.assertNotIn("fixture-secret", json.dumps(report))
+        client.responses.create.assert_called_once()
+
     def test_bad_report_pins_questions_sources_and_rankings_are_rejected(self):
         original = deepcopy(self.report)
         variants = []

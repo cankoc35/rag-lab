@@ -1,6 +1,6 @@
 # Evaluation protocol — first draft
 
-**Status:** Working draft, updated 2026-11-26. The owner approved the initial
+**Status:** Working draft, updated 2026-11-27. The owner approved the initial
 Simple/Enhanced design, prior-knowledge controls and PostgreSQL
 docs/synthetic-runbook pilot. Metrics, thresholds,
 final thesis sample sizes, and the complete final protocol remain open. This is a planning
@@ -60,7 +60,7 @@ Baseline/threshold are offline; sufficiency requires explicit `--call-api`.
 Begin live review with straightforward positives, multi-evidence positives and
 hard negatives. Compare wrong passes and unnecessary abstentions against manual
 evidence judgments; then assess final answers, partial answers and grounding
-when answer generation is wired. Record checker latency, calls/tokens and cost
+in a separate live generation check. Record checker latency, calls/tokens and cost
 in addition to answer costs. A checker pass does not establish answer accuracy.
 Do not mix a 5-to-10 expansion into this ablation. Freeze any chosen policy on
 development data before a separate held-out test. The
@@ -88,6 +88,40 @@ contains exact recovered source substrings. Limited formatting recovery must
 be unique and never proves semantic entailment. Preserve both original runtime
 failures and the [versioned replay](EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26).
 [Commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
+
+**Owner follow-up, 2026-11-26:** Keep 0.95 as a maximum-score question gate
+before Luna sufficiency, accepting rejection below it. The combined condition
+is now implemented as `threshold_sufficiency`; retain the three independent controls. Record gate
+rejections and skipped checker calls separately from checker decisions/errors.
+A passing gate keeps all five passages. The existing 120 saved rankings pass
+all 100 answerable questions and 8/20 negatives at 0.95 (108 potential checker
+calls), versus 100 and 13 at 0.90 (113 calls). These are score replays, not new
+generation results or a guarantee on future questions. Final thesis settings
+remain open.
+
+Implementation verification reuses all 23 saved responses offline. The new
+mode permits 14 positives and blocks 9 negatives, matching sufficiency-only;
+P19 is gate-rejected without a checker call and 22 recorded responses are
+reused. The real P19 CLI path also works without credentials/client creation.
+No new model responses, DB access or generated answers are involved. Runtime
+call-count/opt-in/error tests pass. Audit:
+`outputs/validation/evidence-combined-20261126.json`.
+
+The Enhanced answer function is now connected and offline-tested. It uses the
+unchanged Simple answer prompt/settings with all accepted chunks. Normal
+evidence rejection returns a fixed abstention; checker errors and incomplete
+answers are operational failures. Checker and answer responses/usage remain
+separate. `ok`/`outcome` describe execution, not correctness or grounding.
+Enhanced tracing now passes offline and session-local DB tests with stubbed
+retrieval/models; this is execution verification, not answer-quality evidence.
+Checker and answer usage belong to separate LLM spans; validation parent time
+includes the checker child and must not be added twice. The live runner's
+P07/P30/P19 check completes one cited answer, one checker abstention and one
+gate abstention, with three hosted calls and exact DB read-back. P07 matches
+both recorded names and the negatives do not invent missing facts. This is
+a selected execution/manual-review sample, not a paired accuracy comparison.
+Broader live answer comparison and final citation/grounding validation
+and the complete fixed-tool workflow remain pending.
 
 ## Comparisons
 

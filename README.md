@@ -23,11 +23,22 @@ one-page project briefing from 23 November.
 | --- | --- | --- |
 | Corpus | Fourteen expanded sources/151 chunks imported and embedded; earlier Atlas controls preserved | Sandbox fixtures |
 | Embeddings / DB | 18 snapshots, 175 chunks; four indexes/224 vectors, including the shared 151-vector index | Sandbox fixtures |
-| Retrieval | Dense/full-text/RRF and selected Qwen4B checked on 120 development questions; live `retrieve_reranked()` verified on P05 against the saved rankings/scores | Enhanced answer workflow and reranker tracing |
-| Evidence checks | Two quote-format errors repaired; offline replay permits 14 recorded positives and blocks 9 negatives, with literal source quotes | Enhanced answers/DB spans and broader evaluation |
-| Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
-| Generation | Simple/LLM-only pairs and Atlas P19 abstention verified; P08 follows a 5 → 8 second source change | Broader evaluation |
+| Retrieval | Dense/full-text/RRF and selected Qwen4B checked on 120 development questions; traced Enhanced runner checked end-to-end on P07/P30/P19 | Broader answer evaluation and fixed tools |
+| Evidence checks | Independent controls plus combined 0.95 gate → Luna; accepted context feeds Enhanced answer generation and tracing | Broader live evaluation |
+| Tracing | Applied `0002`; Simple/LLM-only plus Enhanced retrieval/reranking/evidence/LLM spans; three live Enhanced traces/12 spans verified | Tools and batch reporting |
+| Generation | Simple/LLM-only pairs verified; Enhanced P07 cites both correct names, P30/P19 abstain through checker/gate | Shared output validator and broader evaluation |
 | Evaluation | Version 1.8.0: same 100 answerable + 20 unanswerable; twelve annotation corrections and common offline rescoring | Further relevance review; held-out set and final protocol |
+
+The owner confirmed a **0.95 question gate before Luna sufficiency**, accepting
+rejection below the cutoff. The combined `threshold_sufficiency` mode is now
+implemented and offline-tested; [commands](docs/COMMANDS.md#compare-evidence-policies-on-saved-rankings)
+include the no-API gate-rejection path. Existing independent controls remain available.
+Enhanced's [answer function](src/rag_workflow_lab/workflows/enhanced.py) now
+returns a fixed abstention on evidence rejection and calls the answer model
+only for accepted context. The [terminal runner](#run-enhanced-rag) now loads
+models once and records all stages. Its P07/P30/P19 live check matches DB traces
+and preserves corpus fingerprints. See [status](docs/STATUS.md) and
+[tracing](docs/TRACING_PLAN.md#enhanced-workflow--2026-11-26).
 
 The first dense diagnostic found annotated evidence in the top five for five
 of six questions. P05 showed wording sensitivity; these are development
@@ -131,8 +142,11 @@ with two quote-format errors. The subsequent
 [source-span repair](docs/EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26)
 revalidates all 23 recorded responses offline, resolves those two errors and
 keeps all nine negative blocks. Raw model quotes remain unchanged; verified
-literal source quotes are recorded separately. Shared answer generation and
-reranker/checker tracing for Enhanced remain pending.
+literal source quotes are recorded separately. Enhanced now reuses the shared
+context builder, `answer_v1` and generation client. Enhanced tracing now records
+retrieval, reranking, evidence decisions and separate checker/answer calls.
+The live Enhanced runner now verifies that path on three selected questions;
+broader answer evaluation and fixed tools remain pending.
 Simple remains dense-only.
 A [Qwen4B batch-four command](docs/COMMANDS.md#run-qwen4b-with-batch-size-four)
 is also prepared; one P05 check preserved ranks but was slower than batch one.
@@ -365,6 +379,25 @@ settings, SDK version and elapsed time. Partial/empty replies return exit code
 2; provider errors print only their type. This tests connectivity, not RAG
 quality, and reads no corpus/dataset or DB. The first live call passed on
 2026-11-17; usage and the local report path are in [STATUS](docs/STATUS.md).
+
+## Run Enhanced RAG
+
+With the expanded index, cached Nomic/Qwen4B, applied `0002` and API key:
+
+```sh
+PYTHONPATH=src:. uv run --offline --locked --no-project --env-file .env --python 3.11 scripts/run_enhanced_rag.py \
+  --index-id nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1 \
+  --question-id P07 --call-api
+```
+
+The default is the combined 0.95 gate → Luna sufficiency → answer path on
+expanded development v1.8. Repeat `--question-id` for a small batch; `--all`
+selects all 120 questions and can make up to 240 hosted requests. Models load
+once and all stages are traced. Progress appears during loading/reranking;
+normal abstentions continue, while operational errors stop with a partial
+report under `outputs/answers/`. Dataset/index compatibility is checked before
+models or clients are loaded. See [options](docs/COMMANDS.md#enhanced-rag).
+The complete Enhanced fixed-tool workflow remains unfinished.
 
 ## Run Simple RAG
 

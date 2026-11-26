@@ -1,16 +1,18 @@
 """Opt-in tracing tests after migration 0002; writes use session-local tables."""
 
+import json
 import os
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from rag_workflow_lab.config import EmbeddingSettings, GeneratorSettings, load_database_settings
 from rag_workflow_lab.embeddings import MODEL_ID, MODEL_REVISION
 from rag_workflow_lab.tracing import finish_span, finish_trace, retrieve_with_trace, start_span, start_trace
 from rag_workflow_lab.workflows.simple import answer_question
 from rag_workflow_lab.workflows.llm_only import answer_question as answer_without_retrieval
+from rag_workflow_lab.workflows.enhanced import answer_question as answer_enhanced
 
 
 @unittest.skipUnless(os.environ.get("RAG_LAB_TEST_DB") == "1", "Set RAG_LAB_TEST_DB=1 for local DB tests.")
@@ -89,6 +91,69 @@ class TracingStoreTests(unittest.TestCase):
             finish_span(self.writer, span_id, outputs={"changed": True})
         with self.assertRaises(ValueError):
             finish_trace(self.writer, trace_id, answer="Changed answer")
+
+    def test_enhanced_round_trip_records_real_stages_and_distinguishes_rejection_from_errors(self):
+        embedder = SimpleNamespace(settings=EmbeddingSettings(MODEL_ID, MODEL_REVISION, Path("unused")))
+        reranker = dict(model_id="fixture", revision="pinned", device="cpu", dtype="float32",
+                        max_tokens=2048, instruction="Score the passage.")
+        matches = [{"chunk_id": f"chunk-{n}", "snapshot_id": "snapshot", "source_id": "policy",
+                    "title": "Fixture", "url": "https://example.org", "distance": .25,
+                    "token_count": 20, "text": f"Whole block {n}. The limit is 5 seconds.",
+                    "metadata": {"heading_path": ["Policy"]}, "rrf_score": .03,
+                    "dense_rank": n, "full_text_rank": n, "text_score": .1} for n in range(1, 7)]
+        for case in ("sufficient", "insufficient", "invalid", "incomplete_answer", "gate_reject"):
+            with self.subTest(case=case):
+                status = "insufficient" if case == "insufficient" else "sufficient"
+                assessment = {"status": status, "reason": "Fixture judgment.",
+                              "evidence": [{"source_label": "S1", "quote": "The limit is 5 seconds."}],
+                              "missing_information": ["Another fact is missing."] if status == "insufficient" else []}
+                checker = SimpleNamespace(id="check", model="fixture", status="completed", usage=None,
+                                           output_text="not JSON" if case == "invalid" else json.dumps(assessment),
+                                           incomplete_details=None)
+                usage = Mock()
+                usage.model_dump.return_value = {"input_tokens": 30, "output_tokens": 10}
+                answer = SimpleNamespace(id="answer", model="fixture", usage=usage, output_text="Answer [S1].",
+                                          status="incomplete" if case == "incomplete_answer" else "completed",
+                                          incomplete_details=None)
+                client = Mock()
+                client.responses.create.side_effect = [checker, answer]
+                with patch("rag_workflow_lab.tracing.retrieve_hybrid", return_value=matches):
+                    result = answer_enhanced(object(), embedder, client, GeneratorSettings("fixture"), "index",
+                                             "Raw question?", Mock(return_value=.94 if case == "gate_reject" else .99),
+                                             mode="threshold_sufficiency", writer=self.writer,
+                                             reranker_settings=reranker, run_id="batch", question_id="P01")
+                with self.writer.cursor() as cursor:
+                    cursor.execute("SELECT workflow, status, final_answer, configuration FROM traces WHERE trace_id=%s",
+                                   (result["trace_id"],))
+                    workflow, trace_status, final_answer, configuration = cursor.fetchone()
+                    cursor.execute("""SELECT span_id, parent_span_id, name, status, inputs, outputs, usage, cost,
+                                             finished_at >= started_at FROM spans WHERE trace_id=%s ORDER BY started_at""",
+                                   (result["trace_id"],))
+                    spans = {row[2]: row for row in cursor.fetchall()}
+                self.assertEqual((workflow, trace_status), ("enhanced", "ok" if result["ok"] else "error"))
+                self.assertEqual(final_answer, result["answer"])
+                self.assertEqual(configuration["reranker"]["revision"], "pinned")
+                self.assertEqual(len(spans["hybrid_retrieval"][5]["chunks"]), 6)
+                self.assertEqual(len(spans["rerank"][5]["ranking"]), 6)
+                self.assertTrue(all(row[8] and row[7] is None for row in spans.values()))
+                if case == "gate_reject":
+                    self.assertEqual(len(spans), 3)
+                    self.assertFalse(spans["evidence_check"][5]["checker_called"])
+                    client.responses.create.assert_not_called()
+                    continue
+                check = spans["sufficiency_check"]
+                self.assertEqual(check[1], spans["evidence_check"][0])
+                self.assertEqual(check[5]["answer"], checker.output_text)
+                self.assertEqual(len(json.loads(check[4]["prompt"])["sources"]), 5)
+                if case in ("sufficient", "incomplete_answer"):
+                    self.assertEqual(len(spans), 5)
+                    self.assertEqual(spans["answer"][6], usage.model_dump.return_value)
+                    self.assertEqual(spans["answer"][3], "error" if case == "incomplete_answer" else "ok")
+                    self.assertEqual(client.responses.create.call_count, 2)
+                else:
+                    self.assertEqual(len(spans), 4)
+                    self.assertEqual(spans["evidence_check"][3], "error" if case == "invalid" else "ok")
+                    client.responses.create.assert_called_once()
 
     def test_llm_only_persists_one_llm_span_with_no_source_context(self):
         for status in ("completed", "incomplete"):

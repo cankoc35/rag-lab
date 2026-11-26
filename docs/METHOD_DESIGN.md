@@ -1,6 +1,6 @@
 # Method-level design — first draft
 
-**Status:** Working draft, updated 2026-11-26. The owner approved the initial
+**Status:** Working draft, updated 2026-11-27. The owner approved the initial
 Simple/Enhanced design below, PostgreSQL docs/synthetic-runbook pilot and
 prior-knowledge controls. Agentic details, the router and final thesis protocol
 remain open. The supervisor liked the
@@ -99,9 +99,9 @@ Only `sufficient` permits final generation; `partial`/`insufficient` block it.
 Invalid output or a provider failure is an operational error, not a successful
 abstention. Python verifies source labels and literal quotes, not entailment.
 
-Hold questions, source state and selected passages constant; do not combine
-the threshold and checker or expand context to ten in this comparison. These
-are development ablations, not new router targets. Checker overhead must be
+Hold questions, source state and selected passages constant; keep the threshold
+and checker separate in this original comparison and do not expand context to
+ten. These are development ablations, not new router targets. Checker overhead must be
 reported separately from the final answer call. Whether to share this policy
 across final study arms remains open. The context hook and saved-ranking runner
 are implemented. A [three-question live sample](EVIDENCE_CHECK_SAMPLE.md) is
@@ -111,9 +111,23 @@ valid live outputs. A twelve-positive sufficient-context sample returns twelve
 sufficient model decisions but ten runtime passes/two quote-format errors.
 The subsequent `source_span_v2` repair revalidates all 23 saved responses offline:
 those two errors resolve and all nine negatives remain blocked. The original
-live outcomes remain preserved. Broader checker quality and Enhanced answer
-generation remain pending.
+live outcomes remain preserved. Enhanced accepted-context answer generation is
+now implemented and offline-tested; broader checker/answer quality remains unmeasured.
 See [evaluation](EVALUATION_PLAN.md#evidence-policy-development-comparison--2026-11-26).
+
+**Owner follow-up, 2026-11-26:** Keep 0.95 for an additional combined question
+gate → Luna condition, accepting rejection below the cutoff (including 0.94).
+Gate failure skips the checker; a pass retains all five chunks and still needs
+a sufficient assessment with valid quotes. `threshold_sufficiency` is now
+implemented and offline-tested, preserving the original independent conditions
+and reports. This is a development choice. Enhanced's answer function now reuses
+Simple's `answer_v1`, context builder and generation client/settings. Rejection
+returns a fixed abstention; invalid checker output is an operational error.
+Optional DB tracing now separates retrieval, reranking, evidence decisions and
+checker/answer calls; offline and temporary-table DB tests pass. A live runner
+now completes P07/P30/P19 with two checker calls and one final answer, verified
+against DB records. This is a selected execution diagnostic; broader answer
+evaluation, shared output validation and fixed tools remain pending.
 
 Technical basis: pgvector documents combining dense retrieval with PostgreSQL
 full-text search and [rank fusion](https://github.com/pgvector/pgvector#hybrid-search).

@@ -79,9 +79,14 @@ def retrieve_reranked(connection, embedder: NomicEmbedder, index_id: str, questi
     if not 1 <= limit <= RERANK_CANDIDATES:
         raise ValueError(f"Result limit must be between 1 and {RERANK_CANDIDATES}.")
     candidates = retrieve_hybrid(connection, embedder, index_id, question, limit=RERANK_CANDIDATES)
+    return rerank_candidates(question, candidates, score_passage)[:limit]
+
+
+def rerank_candidates(question: str, candidates: list[dict], score_passage) -> list[dict]:
+    """Score whole passages and retain all results so tracing can inspect the ranking."""
     ranked = []
     for rank, match in enumerate(candidates, 1):
         passage = " > ".join(match["metadata"]["heading_path"]) + "\n\n" + match["text"]
         ranked.append({**match, "rrf_rank": rank, "reranker_score": score_passage(question, passage)})
     ranked.sort(key=lambda item: (-item["reranker_score"], item["rrf_rank"]))
-    return ranked[:limit]
+    return ranked

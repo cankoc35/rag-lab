@@ -1,4 +1,4 @@
-"""Compare an unfiltered baseline, a question-score gate and context sufficiency."""
+"""Evidence policies: baseline, score gate, sufficiency and gate-then-sufficiency."""
 
 from hashlib import sha256
 from importlib.resources import files
@@ -7,9 +7,10 @@ import math
 import re
 
 from rag_workflow_lab.llm import generate_text
+from rag_workflow_lab.tracing import generate_with_trace
 
 
-MODES = ("baseline", "threshold", "sufficiency")
+MODES = ("baseline", "threshold", "sufficiency", "threshold_sufficiency")
 THRESHOLD = 0.95
 PROMPT_VERSION = "sufficiency_v1"
 QUOTE_CHECK_VERSION = "source_span_v2"
@@ -86,8 +87,8 @@ def validate_assessment(data: dict, sources: list[dict]) -> list[dict]:
 
 
 def assess_evidence(question: str, matches: list[dict], *, mode: str,
-                    client=None, generator=None) -> dict:
-    """Assess already selected chunks; only sufficiency makes one model call.
+                    client=None, generator=None, writer=None, trace_id=None, parent_span_id=None) -> dict:
+    """Assess selected chunks; combined mode gates before its one checker call.
 
     A threshold pass is not a sufficiency judgment. Partial, insufficient or
     invalid model output never permits answer generation. No source is filtered.
@@ -95,18 +96,25 @@ def assess_evidence(question: str, matches: list[dict], *, mode: str,
     if mode not in MODES:
         raise ValueError(f"Evidence mode must be one of {MODES}.")
     result = {"mode": mode, "allowed": False, "decision": "no_evidence"}
+    if mode == "threshold_sufficiency":
+        result["checker_called"] = False
     if not matches:
         return result
     if mode == "baseline":
         return {**result, "allowed": True, "decision": "unchecked"}
-    if mode == "threshold":
+    if mode in ("threshold", "threshold_sufficiency"):
         scores = [match["reranker_score"] for match in matches]
         if any(not math.isfinite(value) or not 0 <= value <= 1 for value in scores):
             raise ValueError("Threshold mode requires finite scores between zero and one.")
         maximum = max(scores)
         allowed = maximum >= THRESHOLD
-        return {**result, "allowed": allowed, "decision": "score_pass" if allowed else "score_reject",
+        gate = {"allowed": allowed, "decision": "score_pass" if allowed else "score_reject",
                 "threshold": THRESHOLD, "maximum_score": maximum}
+        if mode == "threshold":
+            return {**result, **gate}
+        result["gate"] = gate
+        if not allowed:
+            return {**result, "decision": "score_reject"}
     if client is None or generator is None:
         raise ValueError("Sufficiency mode requires a caller-owned client and generator settings.")
 
@@ -116,9 +124,15 @@ def assess_evidence(question: str, matches: list[dict], *, mode: str,
         for rank, match in enumerate(matches, 1)]
     instructions = files("rag_workflow_lab").joinpath(f"prompts/{PROMPT_VERSION}.md").read_text(encoding="utf-8")
     prompt = json.dumps({"question": question, "sources": sources}, ensure_ascii=False, indent=2)
-    response = generate_text(client, generator, instructions=instructions, prompt=prompt,
-                             text_format={"type": "json_schema", "name": PROMPT_VERSION,
-                                          "strict": True, "schema": SCHEMA})
+    if mode == "threshold_sufficiency":
+        result["checker_called"] = True
+    request = {"instructions": instructions, "prompt": prompt,
+               "text_format": {"type": "json_schema", "name": PROMPT_VERSION, "strict": True, "schema": SCHEMA}}
+    if writer is None:
+        response = generate_text(client, generator, **request)
+    else:
+        response = generate_with_trace(writer, trace_id, "sufficiency_check", client, generator,
+                                       parent_span_id=parent_span_id, **request)
     result.update(decision="error", prompt_version=PROMPT_VERSION, quote_validation=QUOTE_CHECK_VERSION,
                   instructions_sha256=sha256(instructions.encode()).hexdigest(),
                   instructions=instructions, prompt=prompt, response=response)

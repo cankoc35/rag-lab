@@ -1,11 +1,15 @@
-"""Small raw-SQL trace/span writers and an explicit traced retrieval wrapper."""
+"""Raw-SQL trace writers and explicit retrieval/reranking/model-call wrappers."""
 
 from hashlib import sha256
+from dataclasses import asdict
 import json
 from uuid import uuid4
 
 from rag_workflow_lab.embeddings import QUERY_PREFIX
-from rag_workflow_lab.retrieval import retrieve
+from rag_workflow_lab.llm import generate_text
+from rag_workflow_lab.retrieval import (
+    HYBRID_CANDIDATES, RERANK_CANDIDATES, RRF_K, rerank_candidates, retrieve, retrieve_hybrid,
+)
 
 
 def _json(value):
@@ -58,6 +62,66 @@ def finish_span(connection, span_id: str, *, outputs=None, usage=None, cost=None
               _json(cost), _json(error), span_id))
         if cursor.rowcount != 1:
             raise ValueError("Span is missing or already finished.")
+
+
+def generate_with_trace(writer, trace_id, name, client, generator, *, instructions, prompt,
+                        text_format=None, parent_span_id=None) -> dict:
+    """Persist the exact request before calling the model; retain partial output/usage."""
+    inputs = {"instructions": instructions, "prompt": prompt, "generator": asdict(generator),
+              "instructions_sha256": sha256(instructions.encode()).hexdigest(),
+              "service_tier": "default", "store": False}
+    if text_format is not None:
+        inputs["text_format"] = text_format
+    span_id = start_span(writer, trace_id, "llm", name, inputs, parent_span_id=parent_span_id)
+    try:
+        result = generate_text(client, generator, instructions=instructions, prompt=prompt, text_format=text_format)
+    except Exception as exc:
+        finish_span(writer, span_id, error={"type": type(exc).__name__, "message": "Model request failed."})
+        raise
+    ok = result["status"] == "completed" and bool(result["answer"].strip())
+    error = None if ok else {"type": "IncompleteResponse", "message": "No completed, nonempty response was returned."}
+    finish_span(writer, span_id, outputs={key: value for key, value in result.items() if key != "usage"},
+                usage=result["usage"], error=error)
+    return result
+
+
+def retrieve_reranked_with_trace(connection, writer, embedder, index_id, question, score_passage,
+                                *, trace_id, reranker_settings) -> list[dict]:
+    """Record fused candidates and the full reranked order under the workflow's trace."""
+    if writer is connection or not writer.autocommit:
+        raise ValueError("Tracing requires a separate autocommit writer connection.")
+    span_id = start_span(writer, trace_id, "retrieval", "hybrid_retrieval", {
+        "question": question, "index_id": index_id, "candidates_per_method": HYBRID_CANDIDATES,
+        "rrf_k": RRF_K, "limit": RERANK_CANDIDATES,
+        "query_input_sha256": sha256((QUERY_PREFIX + question).encode()).hexdigest(),
+    })
+    try:
+        candidates = retrieve_hybrid(connection, embedder, index_id, question, limit=RERANK_CANDIDATES)
+    except Exception as exc:
+        finish_span(writer, span_id, error={"type": type(exc).__name__, "message": "Hybrid retrieval failed."})
+        raise
+    # Explicit fields exclude gold annotations or arbitrary caller metadata.
+    chunks = [{**{key: match[key] for key in (
+        "chunk_id", "snapshot_id", "source_id", "title", "url", "token_count", "text",
+        "distance", "text_score", "dense_rank", "full_text_rank", "rrf_score",
+    )}, "metadata": {"heading_path": match["metadata"]["heading_path"]}} for match in candidates]
+    finish_span(writer, span_id, outputs={"chunks": chunks})
+    span_id = start_span(writer, trace_id, "reranking", "rerank", {
+        "question": question, "candidates": chunks, "reranker": reranker_settings,
+        "passage_format": "heading_path joined by ' > ', then two newlines, then whole text",
+        "limit": 5,
+    })
+    try:
+        ranked = rerank_candidates(question, candidates, score_passage)
+    except Exception as exc:
+        finish_span(writer, span_id, error={"type": type(exc).__name__, "message": "Reranking failed."})
+        raise
+    finish_span(writer, span_id, outputs={
+        "ranking": [{"chunk_id": match["chunk_id"], "rrf_rank": match["rrf_rank"],
+                     "reranker_score": match["reranker_score"]} for match in ranked],
+        "selected_chunk_ids": [match["chunk_id"] for match in ranked[:5]],
+    })
+    return ranked[:5]
 
 
 def retrieve_with_trace(connection, writer, embedder, index_id: str, question: str, limit: int = 5,

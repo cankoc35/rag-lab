@@ -1,20 +1,20 @@
-# PostgreSQL tracing — retrieval and Simple answers
+# PostgreSQL tracing
 
-**Updated:** 2026-11-17. **Status:** The owner explicitly authorized applying
-migration `0002` and testing one question, superseding the earlier review hold.
-Database and repository revisions are `0002`. `traces` and `spans` exist;
-one retrieval-only P04 trace and a later Simple P04 trace with retrieval/LLM
-spans are independently verified. MLflow is not used. Tool instrumentation
-remains future work.
+**Updated:** 2026-11-27. Migration `0002` provides the existing `traces` and
+`spans` tables. Retrieval-only, Simple and LLM-only tracing have historical live
+checks. Enhanced tracing now passes offline, session-local PostgreSQL tests and
+a three-question live runner/read-back check. No new migration is required. MLflow
+is not used; tool/router instrumentation remains future work.
 
 ## Implementation files
 
 - [0002_create_tracing_tables.py](../migrations/versions/0002_create_tracing_tables.py): raw-SQL upgrade/downgrade.
-- [tracing.py](../src/rag_workflow_lab/tracing.py): four writer functions and traced retrieval.
+- [tracing.py](../src/rag_workflow_lab/tracing.py): four writers and explicit retrieval/reranking/LLM wrappers.
+- [enhanced.py](../src/rag_workflow_lab/workflows/enhanced.py): optionally owns one Enhanced question trace, including evidence decisions.
 - [check_retrieval.py](../scripts/check_retrieval.py): optional `--trace` integration.
 - [simple.py](../src/rag_workflow_lab/workflows/simple.py): owns the question trace through retrieval and one LLM call.
 - [run_simple_rag.py](../scripts/run_simple_rag.py): opt-in single/batch answers, per-question traces linked by a shared run ID.
-- [Unit tests](../tests/unit/test_tracing.py) and [post-migration DB tests](../tests/integration/test_tracing_store.py).
+- [Writer tests](../tests/unit/test_tracing.py), [Enhanced tests](../tests/unit/test_enhanced_tracing.py) and [post-migration DB tests](../tests/integration/test_tracing_store.py).
 
 Offline SQL previews are saved locally as
 `outputs/validation/tracing-schema-0002/upgrade.sql` and `downgrade.sql`.
@@ -85,7 +85,8 @@ to totals. No tool spans are claimed.
 `--method dense` remains the default and supports `--trace`. The newer
 `--method full-text` and `--method hybrid` diagnostics are read-only/untraced; combining either with
 `--trace` is rejected before service access. Instrumentation for the eventual
-Enhanced workflow is separate work.
+Enhanced workflow has its own tracing path described below; these diagnostic
+CLI restrictions are unchanged.
 
 The existing command without `--trace` still uses read-only SQL and writes only
 its JSON report. No trace connection or DB records are created. JSON has
@@ -98,7 +99,64 @@ the same batch `run_id` in JSON and PostgreSQL. Retrieval stays read-only;
 the overall report has `read_only: false`, `retrieval_read_only: true` and
 `tracing_enabled: true`. Cutoff coverage/gold comparisons remain outside tracing.
 
-## Verification and remaining work
+## Enhanced workflow — 2026-11-26
+
+`enhanced.answer_question(..., mode=..., writer=..., reranker_settings=...,
+run_id=..., question_id=..., configuration=...)` owns one `enhanced` trace.
+The writer must be separate from retrieval and use autocommit. Omitting it
+preserves the existing untraced Python API. Tracing requires the caller-loaded
+scorer's `model_id`, `revision`, `device`, `dtype`, `max_tokens` and `instruction`;
+identity is not inferred from an opaque callback. The caller supplies safe
+dataset/code provenance through `configuration`. Model loading stays outside
+the workflow, so these span durations exclude model startup.
+
+| Span name | Kind | Recorded operation |
+| --- | --- | --- |
+| `hybrid_retrieval` | `retrieval` | Question/index, embedding-input hash, RRF settings and ordered fused top-20 candidates with full text, headings and component scores/ranks |
+| `rerank` | `reranking` | Exact candidate passages/settings, complete ranking/scores and selected top-five IDs; uses the same scoring function as untraced retrieval |
+| `evidence_check` | `validation` | Mode/threshold, selected IDs, gate/checker decision, raw assessment and verified quotes; owns the optional checker child |
+| `sufficiency_check` | `llm` | Child of `evidence_check`; exact checker instructions/JSON input/schema/settings, raw response and provider usage |
+| `answer` | `llm` | Exact `answer_v1` instructions/JSON input with S1–S5, settings, raw response and provider usage |
+
+In combined mode a gate rejection creates three spans and makes no hosted call.
+Checker rejection creates four spans and one hosted call. Acceptance followed
+by answer generation creates five spans and two hosted calls. Empty context
+also skips the checker/answer. Independent controls keep their prior behavior.
+No LLM span is created for a skipped call. Normal evidence rejection completes
+the root as `ok` with the fixed abstention; this measures execution, not quality.
+
+Malformed checker output marks `evidence_check` and the root `error`; a completed
+provider response may still have an `ok` LLM child. Incomplete model output or a
+provider exception marks the active LLM span and root `error`. Error messages
+are sanitized; no retries are added. Each LLM input span is persisted before
+the paid request. Logging failures abort rather than returning success and may
+leave a partial `running` record if the writer becomes unavailable.
+
+Usage belongs to the two LLM spans separately. Validation outputs preserve the
+assessment/response for inspection, but have no additional usage charge. Unknown
+usage/cost remain SQL NULL. Span timestamps provide separate retrieval, reranking,
+checker and answer durations; parent validation duration includes its LLM child
+and should not be added to that child when calculating total latency.
+
+Verification: **290 offline unit tests** and **7 tracing DB tests** passed.
+The new DB case covers acceptance, checker rejection, invalid checker JSON,
+incomplete answers and gate rejection using session-local table clones and
+stubbed retrieval/model calls. No public trace rows, corpus changes, migration,
+Qwen inference or hosted requests were needed for those tests.
+
+The subsequent [live runner](../scripts/run_enhanced_rag.py) always enables
+tracing and completed P07/P30/P19 in one batch: five/four/three spans and
+two/one/zero hosted calls respectively. A fresh DB read-back matches exact
+requests, raw responses, usage, source quotes and parent links. All twelve spans
+and three traces are `ok`; two traces represent normal abstention. Corpus
+fingerprints are unchanged. Public totals are 27 traces/49 spans as of this
+26 November check. Raw run `enhanced-20261126T205344979041Z` is under
+`outputs/answers/`; audit and verification source are
+`outputs/validation/enhanced-live-20261126.json` and
+`outputs/validation/verify-enhanced-live-20261126.py`. Full answer accuracy and
+final citation/grounding validation are separate work. [Commands](COMMANDS.md#enhanced-rag).
+
+## Historical verification
 
 - During preparation, 114 offline unit tests passed, including lifecycle, safe payloads, NULL usage,
   writer separation, logging failure and checker trace-link checks.

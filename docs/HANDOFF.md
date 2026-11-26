@@ -1,6 +1,6 @@
 # Session handoff
 
-**Updated:** 2026-11-26. Use [STATUS](STATUS.md) for the current boundary and
+**Updated:** 2026-11-27. Use [STATUS](STATUS.md) for the current boundary and
 [STATUS_HISTORY](STATUS_HISTORY.md) for dated evidence. Scaffolds are not features.
 
 ## Read first
@@ -13,6 +13,7 @@ before experiment changes and LITERATURE_GAPS before novelty claims.
 ## Resume snapshot — 2026-11-26
 
 This is the current stopping point for a new assistant, including Claude.
+Refreshed on 27 November after the 26 November live Enhanced runner check.
 The longer preparation records below are historical; use this snapshot and
 the current owner decisions in PROJECT_CONTEXT when their older next-step
 wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same rules.
@@ -21,7 +22,7 @@ wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same ru
 
 - **Working:** versioned ingestion/chunking, local Nomic embeddings, raw-SQL
   PostgreSQL/pgvector storage, dense/full-text/RRF retrieval, Simple RAG and
-  LLM-only runners, retrieval/LLM tracing, six retrieval metrics at 5/10/20.
+  LLM-only runners, optional Enhanced answer tracing, six retrieval metrics at 5/10/20.
 - **Current data:** 14 expanded sources, 151 shared-index chunks; dataset
   [v1.8](../data/evaluation/dev/expanded_questions_v1_8.json) has 100 answerable
   questions (50 PostgreSQL, 30 Atlas, 20 combined) and 20 unanswerable. Earlier
@@ -42,8 +43,9 @@ wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same ru
   `retrieve_hybrid(..., limit=20)`, scores `" > ".join(metadata["heading_path"]) + "\n\n" + text`
   for each candidate and returns the top `limit` (1–20) with `rrf_rank` and
   `reranker_score`. One real P05 check matches all saved candidate/passage/source
-  fields, reranked positions, scores and metrics exactly. Enhanced's new context
-  hook calls it; final answer generation is pending. Report:
+  fields, reranked positions, scores and metrics exactly. Enhanced's context
+  hook and answer function call it; the later three-question live runner check
+  is described below. Report:
   `outputs/validation/live-reranked-P05-20261126T170717699333Z.json`.
 - **Evidence policies (added 2026-11-26):** independent `baseline`, `threshold`
   (maximum Qwen score >= 0.95, keep all five) and `sufficiency` modes in
@@ -69,20 +71,93 @@ wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same ru
   [Enhanced `prepare_context()`](../src/rag_workflow_lab/workflows/enhanced.py)
   combines reranked retrieval and an explicitly selected policy; blocked usable
   context is empty, with original matches retained for inspection.
-- **Not built:** the Enhanced answer workflow, a runner that loads Qwen for live
-  retrieval, DB tools and frozen fixtures, Agentic graph, router,
-  reranker/tool/router spans and shared output validator. Simple has
+- **Latest owner decision:** keep the 0.95 question gate before Luna and accept
+  rejection at 0.94. `threshold_sufficiency` is now implemented: gate on the
+  top-five maximum, skip the checker below cutoff, retain all five on a pass
+  and still require valid sufficient evidence. Independent controls are preserved.
+- **Enhanced answer function (added 2026-11-26):** `answer_question()` calls
+  `prepare_context()` and generates only from accepted context, using the shared
+  `build_answer_input()`, `answer_v1` and Luna settings/client. Evidence rejection
+  returns a fixed English abstention; invalid checker output returns an error
+  with no answer, and provider exceptions propagate without retry. The result
+  retains full retrieved chunks, source labels and separate checker/generation
+  prompts, responses and usage. `outcome` is `answered`, `abstained` or `error`;
+  `ok` describes execution, not answer quality. All 280 offline tests and Ruff
+  `F` pass. No live model/DB/API calls ran for this increment.
+- **Enhanced tracing (added 2026-11-26):** pass `writer` and the caller-loaded
+  scorer's `reranker_settings` to `answer_question()`. A separate autocommit
+  writer records one `enhanced` trace with hybrid retrieval, reranking, evidence
+  validation and separate checker/answer LLM spans. The checker is a child of
+  validation and is absent on gate rejection. Exact requests are saved before
+  hosted calls; full candidates/ranking, decisions, raw responses and separate
+  usage are retained. Errors are sanitized and logging failures abort. No new
+  schema is needed. **290 offline tests and 7 tracing DB tests passed** using
+  session-local tables and stubbed retrieval/models; no public trace writes,
+  local model inference or API calls ran. [Trace map](TRACING_PLAN.md#enhanced-workflow--2026-11-26).
+- **Enhanced runner (added 2026-11-26):**
+  [run_enhanced_rag.py](../scripts/run_enhanced_rag.py), matching lock and
+  [runner tests](../tests/unit/test_enhanced_runner.py). Defaults to expanded
+  v1.8 and `threshold_sufficiency`; requires index ID, explicit question selection
+  and `--call-api`. Repeat `--question-id` for a small batch or choose `--all`.
+  Validates exact scope before models/clients, loads Nomic/Qwen once, reuses
+  resources, traces every question and preserves partial reports on errors.
+  The lock shares Simple's dependency resolution. **304 offline tests pass.**
+- **Live runner check:** `enhanced-20261126T205344979041Z` processes P07/P30/P19
+  with three hosted requests: P07 gives both correct names with S1, P30 is
+  checker-insufficient and P19 is gate-rejected without Luna. Three `ok` traces
+  and twelve `ok` spans match exact prompts/responses/usage, quote attribution,
+  source IDs and code/dataset hashes in a fresh read-back. Corpus fingerprints
+  are unchanged; DB totals are 27 traces/49 spans. Question times are
+  32.82/31.46/63.87 s; model loads are separate. This is a selected execution
+  check, not general answer accuracy. Raw report:
+  `outputs/answers/enhanced-20261126T205344979041Z.json`;
+  audit/source: `outputs/validation/enhanced-live-20261126.json` and
+  `outputs/validation/verify-enhanced-live-20261126.py`.
+- **Not built:** DB tools and frozen fixtures, Agentic graph, router,
+  tool/router spans and shared output validator. Simple has
   completion/nonempty checks; citation validation is planned, grounding/retry
   policy remains open. LangGraph is selected but uninstalled.
 
 ### Next small increment
 
-All three samples and the quote repair are complete; do not repeat paid calls
-to resume. Next add Enhanced's **shared answer-generation path**, honoring the
-explicit evidence mode from `prepare_context()`. Reuse Luna settings and
-`answer_v1`; keep resources caller-owned and test offline before an explicitly
-enabled live run. Do not choose a default policy or claim broad quality from
-the selected development samples. Add tracing in a separate increment.
+The samples, quote repair, combined gate/checker and accepted-context answer
+function, tracing and live runner/check are complete. Do not repeat paid calls
+or the 120-question Qwen benchmark to resume. Next add the planned **shared
+final-answer citation-label validation**. Semantic grounding/retry policy and
+fixed Enhanced tool conditions remain separate work. Keep resources caller-owned.
+The chosen development cutoff does not freeze a final thesis policy.
+
+`answer_question(connection, embedder, client, generator, index_id, question,
+score_passage, *, mode, writer=None, reranker_settings=None, run_id=None,
+question_id=None, configuration=None)` is a Python API, not a CLI. In combined mode it makes
+zero hosted calls on gate rejection, one checker call on evidence rejection,
+and two calls on sufficient evidence. `generation=None` means no answer call.
+Otherwise `generation` holds prompt/version/hash/settings and the raw response
+including usage. Invalid checker output and incomplete/empty answers have
+`outcome="error"`; normal evidence abstention has `ok=true`. Completion/nonempty
+checks do not validate final citations, grounding or answer accuracy.
+
+Use [the terminal runner](COMMANDS.md#enhanced-rag) to load real models and call
+this Python API with tracing. Its summary separates `answered`, `abstained`
+and `error`; operational failures stop the batch while normal abstentions
+continue. Reports are under `outputs/answers/`; if an exception has no returned
+trace ID, locate DB rows using the recorded run/question IDs. No retry is added.
+
+When tracing, `reranker_settings` must describe the scorer actually loaded:
+`model_id`, `revision`, `device`, `dtype`, `max_tokens`, `instruction`. The workflow
+records sequential batch size one; it does not load or infer a model. Supply
+safe dataset/code provenance through `configuration`. Without a writer the
+previous untraced behavior and return fields are preserved. With a writer the
+result additionally contains `trace_id`. No writer/client/connection is closed
+or committed by the workflow. Normal rejection finishes as `ok`; malformed or
+incomplete output finishes as `error`. Cost stays NULL unless separately known.
+
+`threshold_sufficiency` is available in `assess_evidence()`, `prepare_context()`
+and `check_evidence.py --mode`. It retains a nested `gate` decision and
+`checker_called` on returned combined results. An all-rejected selection runs
+without API credentials or client creation. If any gate passes, the runner
+requires key/settings and `--call-api` before starting. Provider failures stop
+as operational errors; no retry is added. See [commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
 
 `source_span_v2` first matches literal/whitespace text, then narrowly recovers
 bold markers and model-initial capitalization. Recovery must be unique, retains
@@ -100,8 +175,11 @@ offline replay of the same responses, not three new live calls. P05's S4
 EXPLAIN ANALYZE passage is unannotated alternative support; its saved 2/3
 coverage does not alone establish semantic insufficiency. No references changed.
 
-Integration note: `build_answer_input()` currently copies `distance` into source records; preserve
-compatibility and decide how to retain RRF/reranker metadata when wiring Enhanced.
+Integration note: `build_answer_input()` is reused unchanged. Live SQL results
+include `title`; fused full-text-only matches have `distance=None`. The source
+labels preserve IDs and distance, while `retrieved_chunks` keeps RRF/reranker
+metadata outside the answer prompt. Saved probe/evidence contexts omit `title`;
+do not pass them directly to the answer builder without restoring source metadata.
 
 The first live P05 check is complete; do not repeat it just to resume. Nomic
 CPU and Qwen MPS/float16 loaded successfully in one environment using the
@@ -131,7 +209,8 @@ of the three independent modes. The [extended review](RERANKER_THRESHOLD_REVIEW.
 distinguishes scope filtering, context sufficiency, post-answer grounding and
 corrective retrieval. Only the evidence comparison is added: no fallback,
 automatic context expansion, new model or shared output validator. The checker
-is opt-in and fallible. Enhanced answer generation remains pending.
+is opt-in and fallible. Enhanced answer generation and optional tracing are
+connected in Python; live verification and the complete fixed-tool workflow remain pending.
 
 ### Focused code and evidence map
 
@@ -142,8 +221,10 @@ is opt-in and fallible. Enhanced answer generation remains pending.
 | [store.py](../src/rag_workflow_lab/store.py), [llm.py](../src/rag_workflow_lab/llm.py) | SQL results already include chunk text/metadata; existing cited context construction |
 | [reranker_smoke.py](../scripts/reranker_smoke.py) | Native `pair_tokens`, `score`, `score_batch`; no silent truncation |
 | [reranker_probe.py](../scripts/reranker_probe.py) | Saved-candidate selection, whole-passage assembly, ranking and provenance |
-| [simple.py](../src/rag_workflow_lab/workflows/simple.py), [tracing.py](../src/rag_workflow_lab/tracing.py) | Existing workflow and trace ownership to reuse later |
-| [enhanced.py](../src/rag_workflow_lab/workflows/enhanced.py) | `prepare_context()` = live reranking + explicit evidence policy; no final answer/tools yet |
+| [tracing.py](../src/rag_workflow_lab/tracing.py), [test_enhanced_tracing.py](../tests/unit/test_enhanced_tracing.py) | Raw-SQL writers, `retrieve_reranked_with_trace()` and `generate_with_trace()`; stage/lifecycle, safe errors and logging-failure checks |
+| [simple.py](../src/rag_workflow_lab/workflows/simple.py) | Existing Simple trace ownership, unchanged |
+| [enhanced.py](../src/rag_workflow_lab/workflows/enhanced.py), [test_enhanced.py](../tests/unit/test_enhanced.py) | `prepare_context()` plus accepted-context `answer_question()`; optional root tracing; fixed tools pending |
+| [run_enhanced_rag.py](../scripts/run_enhanced_rag.py), its lock and [runner tests](../tests/unit/test_enhanced_runner.py) | Live question selection/scope checks, cached model loading, native scoring progress, traced answers and partial error reports |
 | [evidence.py](../src/rag_workflow_lab/evidence.py), [sufficiency_v1.md](../src/rag_workflow_lab/prompts/sufficiency_v1.md) | Three independent policies, strict checker output and literal quote checks |
 | [check_evidence.py](../scripts/check_evidence.py), its lock, [test_evidence.py](../tests/unit/test_evidence.py), [runner tests](../tests/unit/test_evidence_runner.py) | Saved top-five replay, paid opt-in, provenance and offline failure/decision coverage |
 | [test_reranker_smoke.py](../tests/unit/test_reranker_smoke.py), [test_reranker_probe.py](../tests/unit/test_reranker_probe.py) | Existing offline scoring/candidate tests |
@@ -184,6 +265,10 @@ Saved local evidence, all present at handoff:
   Reuses all 23 original responses, records old/new decisions and hashes, and
   verifies all 61 recovered quotes against their cited source bodies. No paid
   calls; 261 unit tests passed. No source/prompt/model-setting change.
+- Combined-mode audit: `outputs/validation/evidence-combined-20261126.json`;
+  real offline CLI P19: `outputs/evidence/evidence-threshold_sufficiency-20261126T201540745593Z.json`.
+  23 records: 14 allow/9 block, P19 skipped, 22 saved checker responses reused.
+  273 tests and Ruff passed; no new API/DB calls or final-answer generation.
 - Shared index ID and earlier control indexes: STATUS's index list above its
   selected-reranker section. Do not substitute an Atlas-only index.
 - Supervisor diagram: [presentation folder](presentations/2026-11-23/README.md),
@@ -192,9 +277,9 @@ Saved local evidence, all present at handoff:
 ### Local state and verification boundary
 
 Checkout checked on 26 November: `main`, HEAD
-`3d6075c5426cadda47e910808ead244b6fda8a9d` (`Update Qwen4B integration and documentation`).
-The earlier reranked-retrieval code and handoff changes are now committed;
-this live-check session leaves README/COMMANDS/HANDOFF/ROADMAP/STATUS edits.
+`ccc403b` (`Implement evidence sufficiency assessment module with validation and testing`).
+The worktree was clean before recording the latest 0.95 decision; this session
+changes documentation only. The combined mode remains unimplemented.
 Inspect `git status` and `git diff`; preserve existing work. Model files under `data/local/` and run reports under
 `outputs/` are local/ignored artifacts, not guaranteed by a fresh clone.
 
@@ -603,8 +688,9 @@ and matching provenance; no model/DB/API call ran during verification.
 Read [the full-set results](QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run).
 Report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
 audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
-The live document retrieval path is now verified on P05. **Next:** add shared
-answer generation, then reranker spans in a separate increment. Do not rerun 4B
+The live document retrieval path is verified on P05 and the Enhanced answer
+function, tracing and live runner/check now pass. **Next:** add shared
+final-answer citation validation. Do not rerun 4B
 unnecessarily; the supervisor diagram now
 includes the verified result and owner decision.
 

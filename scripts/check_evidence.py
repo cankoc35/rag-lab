@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["openai==3.51.0"]
 # ///
-"""Compare evidence policies on saved Qwen rankings; only sufficiency calls an API."""
+"""Compare saved-ranking evidence policies; checker calls require explicit opt-in."""
 
 import argparse
 from contextlib import ExitStack
@@ -72,20 +72,28 @@ def main(argv=None) -> int:
     selection = parser.add_mutually_exclusive_group(required=True)
     selection.add_argument("--question-id", help="One development question, for example P19.")
     selection.add_argument("--all", action="store_true", help="Check all questions in the dataset.")
-    parser.add_argument("--call-api", action="store_true", help="Allow one paid sufficiency request per question.")
+    parser.add_argument("--call-api", action="store_true", help="Allow one paid checker request per question.")
     args = parser.parse_args(argv)
     if args.mode == "sufficiency" and not args.call_api:
         parser.error("Sufficiency mode requires --call-api; baseline/threshold are offline.")
-    if args.mode != "sufficiency" and args.call_api:
-        parser.error("--call-api is only used with sufficiency mode.")
-    if args.call_api and not os.environ.get("OPENAI_API_KEY", "").strip():
+    if args.mode not in ("sufficiency", "threshold_sufficiency") and args.call_api:
+        parser.error("--call-api is only used with checker modes.")
+    if args.mode == "sufficiency" and not os.environ.get("OPENAI_API_KEY", "").strip():
         parser.error("Set OPENAI_API_KEY or load .env with uv --env-file.")
     try:
         dataset_check, source, contexts = load_contexts(args.dataset, args.report, args.question_id)
         generator = load_settings(ROOT / "configs/pilot.toml").generator
     except (OSError, ValueError, KeyError) as exc:
         parser.exit(2, f"Evidence inputs failed: {type(exc).__name__}. Check the dataset/report pins.\n")
-    if args.mode == "sufficiency" and generator is None:
+    checker_needed = args.mode == "sufficiency" or (
+        args.mode == "threshold_sufficiency" and any(
+            assess_evidence(q["question"], matches, mode="threshold")["allowed"]
+            for q, matches in contexts))
+    if checker_needed and not args.call_api:
+        parser.error("A selected question needs the checker; pass --call-api to allow paid requests.")
+    if checker_needed and not os.environ.get("OPENAI_API_KEY", "").strip():
+        parser.error("Set OPENAI_API_KEY or load .env with uv --env-file.")
+    if checker_needed and generator is None:
         parser.error("Pilot configuration requires generator settings.")
 
     created = datetime.now(timezone.utc)
@@ -93,7 +101,7 @@ def main(argv=None) -> int:
     records = []
     with ExitStack() as stack:
         client = None
-        if args.call_api:
+        if checker_needed:
             from openai import OpenAI
             client = stack.enter_context(OpenAI(base_url="https://api.openai.com/v1", timeout=30, max_retries=0))
         for question, matches in contexts:
@@ -115,7 +123,7 @@ def main(argv=None) -> int:
         "created_at": created.isoformat(), "mode": args.mode, "dataset": dataset_check,
         "source_report": {"path": str(args.report.resolve()), "sha256": sha256(args.report.read_bytes()).hexdigest()},
         "index": source["index"], "reranker_settings": source["settings"], "context_limit": 5,
-        "checker_settings": asdict(generator) if args.call_api else None,
+        "checker_settings": asdict(generator) if checker_needed else None,
         "scope": "Development evidence decisions, not final answers or an answer-accuracy grade.",
         "database_access": False, "retrieval_rerun": False, "reranker_inference": False,
         "answer_generation": False, "batch_stopped_on_error": failed,

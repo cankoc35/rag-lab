@@ -6,7 +6,7 @@ change the experiment or finalize open design choices.
 
 - [Target full-flow PNG](full-flow.png) (3840 x 2160, 16:9 for slides),
   [PDF](full-flow.pdf), [SVG](full-flow.svg) and [renderer](render_full_flow.py),
-  added 26 November: see [the target flow](#target-full-flow) below.
+  added 26 November, updated 27 November: see [the target flow](#target-full-flow) below.
 - [Pipeline PNG](pipeline.png): high-resolution image for slides, 4200 x 3000.
 - [Pipeline PDF](pipeline.pdf): one-page vector diagram for zooming or printing.
 - [Pipeline SVG](pipeline.svg): editable vector image.
@@ -58,16 +58,21 @@ The full-flow image shows how the **finished** system is intended to answer one
 question: user question → workflow router → Simple, Enhanced or Agentic RAG →
 answer context → Luna answer generation → output validation → final answer.
 Enhanced is drawn in detail: dense and lexical top-20 retrieval, RRF fusion,
-Qwen3-Reranker-4B over the fused top 20, top five, and planned fixed DB-tool steps.
+Qwen3-Reranker-4B over the fused top 20, top five, an evidence check and planned
+fixed DB-tool steps. The evidence check (`threshold_sufficiency`) first requires a
+best Qwen score of at least 0.95 and then a Luna `sufficiency_v1` verdict of
+`sufficient` with Python-verified source quotes. Otherwise Enhanced returns a
+fixed "insufficient evidence" answer without an answer call.
 Bottom strips show the offline data layer (document index, frozen sandbox DB,
 models) and tracing. Evaluation metrics are left to the detailed pipeline above.
 
 It is a target design, not a result. Solid green boxes are built and checked;
 dashed gray boxes are planned; **OPEN** marks undecided choices (router method,
-tool conditions, context budget, grounding/retry, sandbox fixtures). Connections
-from Enhanced and Agentic to the shared answer path are dashed because that wiring
-is not built yet. The 82 → 92 figure is development retrieval evidence, not
-answer accuracy.
+tool conditions and order, context budget, grounding/retry, sandbox fixtures).
+Enhanced's evidence check and answer connections are built and offline-tested,
+but no live end-to-end Enhanced answer has run yet; Agentic's connection is dashed.
+The 82 → 92 figure is development retrieval evidence, not answer accuracy, and
+0.95 is a development cutoff, not a final thesis policy.
 
 ```bash
 python3 docs/presentations/2026-11-23/render_full_flow.py

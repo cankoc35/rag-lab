@@ -1,6 +1,6 @@
 # Current status
 
-**Last updated:** 2026-11-26. This is the current implementation boundary.
+**Last updated:** 2026-11-27. This is the current implementation boundary.
 Detailed dated records are in [STATUS_HISTORY.md](STATUS_HISTORY.md);
 plans are in [ROADMAP](ROADMAP.md), decisions in [PROJECT_CONTEXT](PROJECT_CONTEXT.md),
 and code/artifact paths in [HANDOFF](HANDOFF.md).
@@ -22,15 +22,15 @@ links and `git diff --check` passed; application tests were not repeated.
 | Parsing | Selected expansion scope: eight PostgreSQL + six Atlas sources, 638 blocks; four original HTML outputs reused |
 | Chunking | Expanded scope: 552 content blocks → 151 saved chunks (113 PostgreSQL/38 Atlas); target 512 / ceiling 1024; maximum 822; original 49 unchanged |
 | Embedding | Pinned local Nomic; normalized 768-dimensional vectors; shared fourteen-snapshot index has 151 vectors |
-| Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (read-only verification 2026-11-25) |
+| Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 27 traces/49 spans (read-only verification 2026-11-26); corpus fingerprints unchanged |
 | Retrieval | Dense, English OR full-text and equal-weight RRF (`k=60`, 20 candidates/method); live `retrieve_reranked()` verified on P05 with exact saved-order/score parity; Simple remains dense with `limit=5` |
-| Reranker runtime | Selected Qwen4B: 120 questions/2,400 pairs verified, batch one, 43.69 s/question; full support @5 improves 82/100 to 92/100. Latency accepted; live retrieval function added, Enhanced answer workflow pending |
-| Evidence checks | `source_span_v2` resolves two quote-format failures; 23-response offline replay permits 14 positives/blocks 9 negatives with no validation errors |
+| Reranker runtime | Selected Qwen4B: 120 questions/2,400 pairs verified, batch one, 43.69 s/question; full support @5 improves 82/100 to 92/100. Latency accepted; Enhanced live runner checked on P07/P30/P19 |
+| Evidence checks | Four modes including `threshold_sufficiency`; below-0.95 gates skip Luna; offline combined replay permits 14 positives/blocks 9 negatives and skips P19's checker |
 | Diagnostics | Schema 4 / `annotated-evidence-v2`: all six quality metrics at 5/10/20, answerable-only means, separate negatives and manual-review candidates; elapsed time retained |
 | Expanded comparison | Same saved dense/full-text/RRF rankings rescored with v1.8 references; full support @5: 83/65/82 of 100; @20: 88/95/100. Original v1.7 scores preserved; relevance review is not exhaustive |
-| Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
-| Generator | Luna client, source-linked context, `answer_v1` and Simple workflow; one live P04 answer verified |
-| Answer runners | Simple/LLM-only support `--dataset`, one/all selection, shared resources/run ID and per-question records; Simple requires exact index scope |
+| Tracing | Retrieval-only, Simple/LLM-only and optional Enhanced tracing; three live Enhanced traces/12 spans independently read back |
+| Generator | Luna client, source-linked context and `answer_v1`; Enhanced P07 answer matches both names with S1, P30/P19 abstain through checker/gate |
+| Answer runners | Simple/LLM-only plus Enhanced; Enhanced supports repeatable IDs/all, one model load, exact index scope, separate outcomes and partial reports on errors |
 | Live Simple batch | P01–P06 completed; editorial review: P01/P02/P04/P06 meet recorded requirements, P03/P05 partial |
 | LLM-only control | Live PostgreSQL and Atlas pairs completed; raw-question-only inputs verified, with one LLM span per question |
 | Questions | Expanded dev version 1.8.0 refines twelve annotations; same 120 raw questions, groups, source pins and twenty negative records; all prior versions preserved |
@@ -45,6 +45,141 @@ Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 - Expanded shared scope, 151 vectors: `nomic-b2793fdf4ef7869c0589851fb5ee19da961118e251066311e0219f79d534c3d1`.
 
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
+
+## Enhanced runner and live check — 2026-11-26
+
+[run_enhanced_rag.py](../scripts/run_enhanced_rag.py) now loads cached Nomic and
+native Qwen4B once, validates dataset/index scope before loading models or API
+clients, reuses resources and always records traces. Its default policy is
+`threshold_sufficiency`. Repeat `--question-id` for a small batch or explicitly
+choose `--all`; hosted calls/trace writes require `--call-api`. Progress includes
+each reranking candidate. Normal abstentions continue; operational errors stop
+with prior results and a sanitized failure record preserved. The separate lock
+reuses Simple's exact dependency resolution. [Commands](COMMANDS.md#enhanced-rag).
+
+**304 offline tests passed**, including fourteen runner tests, plus Ruff `F`,
+locked CLI help and the no-opt-in rejection path. One live three-question batch
+then processed 60 candidate pairs and made three hosted requests:
+
+| Question | Maximum Qwen score | Evidence decision | Hosted calls | Result | Question time |
+| --- | --- | --- | --- | --- | --- |
+| P07 | 0.999793 | sufficient | 2 | Correct `atlas_telemetry` / `atlas_app`, citing S1 | 32.82 s |
+| P30 | 0.974043 | insufficient | 1 | No observed backup-run result; fixed abstention | 31.46 s |
+| P19 | 0.906653 | score_reject | 0 | Gate skips Luna; fixed abstention | 63.87 s |
+
+Batch question time was 128.14 s, excluding separate Nomic/Qwen load times
+36.70/13.72 s. The three calls reported 5,522 input and 255 output tokens;
+cost remains unknown in DB. A fresh read-only audit verified three `ok` traces
+and twelve completed spans, exact prompts/responses/usage, source quotes,
+parent links, selected IDs, code/dataset pins and unchanged corpus fingerprints.
+Public totals are now 27 traces/49 spans. The P07 facts and conservative
+negative outcomes were reviewed after generation; this selected sample is not
+a general accuracy or latency result. No settings/references/migration changed.
+
+Run: `enhanced-20261126T205344979041Z`; raw report:
+`outputs/answers/enhanced-20261126T205344979041Z.json`.
+Read-back audit: `outputs/validation/enhanced-live-20261126.json`;
+verification source: `outputs/validation/verify-enhanced-live-20261126.py`.
+
+**Next:** add the planned shared final-answer citation-label validation.
+Semantic grounding/retry policy, fixed tools and the complete Enhanced workflow
+remain open work; keep this run and previous baselines intact.
+
+## Enhanced tracing connected — 2026-11-26
+
+The [Enhanced answer function](../src/rag_workflow_lab/workflows/enhanced.py)
+now optionally owns one trace using a separate autocommit writer. It records
+hybrid retrieval, reranking, evidence validation and separate checker/answer
+LLM spans. The checker is a child of evidence validation and is absent when
+skipped. Inputs include full candidate passages, source/rank/score metadata,
+model settings and exact prompts; outputs retain decisions, raw responses,
+verified quotes and separate provider usage. Unknown usage/cost stay NULL.
+See the [trace map](TRACING_PLAN.md#enhanced-workflow--2026-11-26).
+
+Normal gate/checker rejection is a completed `ok` trace with an abstention.
+Malformed output, incomplete answers and provider errors are operational
+failures. Logging is required before each hosted request; logging failures
+abort. Untraced calls, Simple behavior and the selected retrieval policy are
+preserved. The shared reranking loop was extracted without changing scoring.
+
+**290 offline unit tests and 7 PostgreSQL tracing tests passed**, plus Ruff `F`.
+The new DB round trip covers five branches with real JSONB writes, timestamps
+and parent links in session-local table clones. No public trace/corpus rows,
+new migration, local model inference or paid API call were needed.
+
+The subsequent runner/live-check increment above is complete. Shared output
+validation, fixed tools and the complete Enhanced workflow remain pending.
+
+## Enhanced answer generation connected — 2026-11-26
+
+[Enhanced `answer_question()`](../src/rag_workflow_lab/workflows/enhanced.py)
+now calls `prepare_context()` and honors its decision. Normal evidence rejection
+returns a fixed English abstention without an answer call. Invalid checker output
+returns an error with no answer; provider exceptions propagate without retry.
+Accepted context uses the same `build_answer_input()`, `answer_v1`, Luna settings
+and `generate_text()` as Simple. All five chunks retain their order and full text.
+
+The result keeps retrieved chunks/RRF/reranker metadata, evidence decisions,
+source labels, prompt/settings/hash and the separate checker/answer responses
+and usage. `outcome` is `answered`, `abstained` or `error`; `ok` indicates
+operational completion, not answer accuracy. Final generation checks only
+completion/nonempty text; final citation/grounding validation remains pending.
+
+**280 offline unit tests passed**, including seven new Enhanced tests, plus
+Ruff `F`. Tests verify zero calls below 0.95, one checker call on rejection and
+two calls on sufficient evidence, independent controls, source preservation,
+malformed checker output, incomplete answers and provider failures. No paid API,
+DB, local model inference or migration ran. Simple behavior and prompts are unchanged.
+
+The subsequent tracing and runner/live-check increments above are complete.
+Fixed tools and the complete Enhanced workflow remain unfinished.
+
+## Combined gate → checker implemented — 2026-11-26
+
+`threshold_sufficiency` now composes the two checks in
+[evidence.py](../src/rag_workflow_lab/evidence.py). A maximum below **0.95** returns
+`score_reject` before model/client access. Passing keeps every selected chunk,
+then requires `sufficient` plus valid source quotes. Partial, insufficient or
+invalid checker output still blocks context. Independent controls are unchanged;
+Enhanced `prepare_context()` accepts the new mode without another adapter.
+
+The [saved-ranking runner](../scripts/check_evidence.py) exposes the mode. If all
+selected gates reject, it requires no API key/flag and creates no SDK client.
+If any pass, explicit `--call-api`, a key and generator settings are required
+before processing. Gate decisions and skipped checks remain separate from
+checker decisions/errors. [Commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
+
+**273 offline unit tests passed**, plus Ruff `F` and the locked CLI help/check.
+Tests cover below-threshold zero calls, the exact 0.95 boundary, retention of
+all five chunks, checker rejection/malformed output, provider failure without
+retry, mixed batches and paid opt-in. A real offline P19 CLI run rejected at
+0.906653, with `checker_called=false` and no checker settings/client.
+
+All 23 recorded cases were replayed with model calls substituted by saved
+responses: **14 allowed / 9 blocked**, matching sufficiency-only. P19's check
+is skipped; the other **22 responses** are reused unchanged. A separate
+gate-only replay on all 120 confirms 12 rejections/108 potential checker calls;
+no checker results are invented for untested questions. There were **zero new
+API calls**, no DB access, new retrieval/reranking, migration or final answers.
+
+Audit: `outputs/validation/evidence-combined-20261126.json`; offline CLI report:
+`outputs/evidence/evidence-threshold_sufficiency-20261126T201540745593Z.json`.
+The next increment at that point was shared final-answer generation, now
+implemented above. Tracing follows separately. Final thesis policy/evaluation remains open.
+
+## Threshold decision and next increment — 2026-11-26
+
+The owner confirmed **0.95** for the planned threshold → Luna sufficiency
+sequence and explicitly accepts rejecting a question at 0.94. Compare the
+maximum Qwen score of the top five with the cutoff. Below it, stop without
+calling Luna; at or above it, send all five unchanged chunks to the checker,
+then validate its source quotes. Preserve the three independent control modes.
+
+At that decision point the constant was already 0.95 and the combined mode was
+pending. The implementation above completes its branch and offline call-count
+checks. Enhanced final-answer generation follows afterward. This decision did
+not change earlier reports or freeze the thesis protocol; its original record
+was documentation-only, before the implementation checks above.
 
 ## Quote alignment repaired offline — 2026-11-26
 
@@ -70,9 +205,9 @@ quote changes, wrong sources, ambiguous recovery, prefix removal and SQL
 value/identifier casing. Audit/code/input hashes and full replay are saved in
 `outputs/validation/evidence-quote-replay-20261126.json`.
 See [repair details](EVIDENCE_CHECK_SAMPLE.md#offline-quote-alignment-repair--2026-11-26).
-Next: wire Enhanced's shared answer-generation path using an explicitly
-selected evidence mode; tracing follows separately. No default policy or
-held-out answer-quality result is selected.
+The subsequent threshold decision above adds the combined mode before wiring
+Enhanced's shared answer-generation path; tracing follows separately. No final
+thesis policy or held-out answer-quality result is selected.
 
 ## Twelve sufficient-context positives checked — 2026-11-26
 
@@ -347,6 +482,17 @@ top-five scores: [Qwen comparison](QWEN_RERANKER_COMPARISON.md#full-120-question
 Raw report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
 audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
 Qwen4B is selected; full-set 0.6B testing is optional. Enhanced integration is next.
+
+## Target full-flow diagram updated — 2026-11-27
+
+The [target full-flow image](presentations/2026-11-23/README.md#target-full-flow)
+now matches the current Enhanced code. Top five → evidence check (0.95 Qwen
+gate, then Luna `sufficiency_v1` with verified quotes) → answer context, or a
+fixed abstention with no answer call. Enhanced connections are solid but labelled
+offline-tested: no live end-to-end Enhanced answer has run. Tracing lists
+reranking/evidence-check spans as built. Luna is shown for both checks and
+answers. Fixed DB-tool order relative to the check is marked open. Render, SVG
+XML, one-page PDF and 3840 x 2160 PNG were checked; the status `pipeline.png` is unchanged.
 
 ## Target full-flow diagram — 2026-11-26
 
@@ -1415,11 +1561,10 @@ Audit: `outputs/validation/qwen4b-batch4-20261125T184838008770Z.json`.
 
 ## Next small step
 
-The first live P05 retrieval/reranking check passed with exact saved-order/score
-parity. Next add shared Luna generation for the Enhanced document path with
-offline tests, then a reranker span in a separate increment. Full-set 0.6B and additional batching
-comparisons are optional. Both profiles, candidate/evidence state and prior
-reports are preserved.
+The Enhanced answer function, optional DB tracing and live runner are implemented
+and checked on P07/P30/P19. Next add shared output validation. Full-set 0.6B and
+additional batching comparisons are optional. Both
+profiles, candidate/evidence state and prior reports are preserved.
 
 The probe runner now accepts `--all` for the configured 120 questions, or
 repeatable `--question-id` for a subset. The all-question selection was checked
@@ -1434,7 +1579,7 @@ immutable; final scoring, held-out allocation and thesis settings remain open.
 
 Dense, full-text, RRF and full-set Qwen4B diagnostics are complete. Reranker
 workflow integration remains component work. Simple remains dense-only;
-the Enhanced answer workflow and fixed tools follow separately. Final thesis
+shared output validation and Enhanced fixed tools follow separately. Final thesis
 budgets remain open. Preserve both Atlas states, their results and P09's
 explicit-role omission; no prompt was tuned to these results.
 Keep all six public questions and both
@@ -1456,7 +1601,7 @@ Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 ## Not yet completed
 
 - Broader paired evaluation and additional source-specific/abstention/changed-evidence cases.
-- Enhanced answer generation, reranker tracing, the complete workflow and its tool conditions.
+- Shared final-answer validation, broader Enhanced answer evaluation and fixed tool conditions.
 - Additional changed document states, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.
 - Verified P10–P18/P20 answers, a held-out test set, rubric/judges, metrics,

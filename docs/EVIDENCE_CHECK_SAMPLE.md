@@ -159,6 +159,26 @@ live result. No API call, model inference, DB access or reranking occurred.
 sources, ambiguous recovery, word-prefix removal and case changes inside SQL
 values/quoted identifiers. Prompt/schema/model settings remain unchanged.
 
+## Combined gate and checker — 2026-11-26
+
+The owner kept 0.95 and authorized the combined `threshold_sufficiency` mode.
+It gates the top-five maximum first, returns `score_reject` without using Luna
+below cutoff, and otherwise checks all five whole chunks. A gate pass still
+requires a sufficient assessment and valid source quotes. The three independent
+controls remain available; the new mode is wired into Enhanced context preparation
+and the saved-ranking CLI. It does not generate final answers yet.
+
+An offline replay of all 23 existing cases gives 14 allows and 9 blocks, exactly
+matching sufficiency-only. P19's checker is skipped; 22 saved responses are
+substituted for model calls. Its real CLI path also runs without `.env`, key,
+opt-in or SDK client. No hosted call was made. Separately, gate-only replay of
+all 120 saved rankings identifies 12 skipped checks and 108 potential calls;
+it supplies no new checker judgments for untested questions.
+
+273 offline tests passed, covering the exact threshold boundary, zero calls on
+rejection, whole-context retention, checker failures, mixed batches and opt-in.
+See [commands](COMMANDS.md#compare-evidence-policies-on-saved-rankings).
+
 ## Interpretation and next step
 
 The initial three decisions equal the score gate's. The follow-up demonstrates
@@ -188,6 +208,8 @@ reranker/checker DB spans follow separately. No default policy is selected.
   `outputs/validation/evidence-positives-resume-runs-20261126.json`.
 - Paired positive review/audit: `outputs/validation/evidence-positives-20261126.json`.
 - Versioned offline repair/replay: `outputs/validation/evidence-quote-replay-20261126.json`.
+- Combined replay/audit: `outputs/validation/evidence-combined-20261126.json`.
+- Offline gate-rejection CLI: `outputs/evidence/evidence-threshold_sufficiency-20261126T201540745593Z.json`.
 
 These are ignored local artifacts, not guaranteed by a fresh clone. The review
 preserves raw report hashes, original/replay code hashes, source checks,

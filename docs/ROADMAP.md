@@ -7,7 +7,7 @@ The owner rejected MLflow on 2026-11-16. Project-owned PostgreSQL tracing is
 the new direction. Its [code and migration](TRACING_PLAN.md) were subsequently
 applied on the owner's instruction and verified with one real P04 query.
 
-**Current position, 2026-11-26:** the 120-question Qwen4B evaluation is verified
+**Current position, 2026-11-27:** the 120-question Qwen4B evaluation is verified
 and the owner selected 4B with its latency accepted. The live RRF top-20 →
 Qwen4B → initial top-5 path passed a real P05 check with exact saved-order/score
 parity. Three explicit evidence policies and an Enhanced context hook are now
@@ -16,8 +16,12 @@ line-wrapping repair is verified by offline replay. The eight negative score-gat
 passes are also checked: all blocked, without errors. Twelve sufficient-context
 positives originally had ten runtime passes and two quote-format errors.
 `source_span_v2` now resolves those failures in a 23-response offline replay,
-preserving all negative blocks. Next shared generation, tracing and fixed tools
-in separate increments.
+preserving all negative blocks. The owner now confirms a 0.95 question gate
+before Luna, accepting rejection below it. The combined mode is now implemented
+and offline-tested. Enhanced accepted-context generation now also passes offline
+tests. Optional Enhanced tracing also passes temporary-table DB checks;
+the live runner now also passes a P07/P30/P19 end-to-end check. Shared output
+validation and fixed tools follow separately.
 Read the latest [handoff snapshot](HANDOFF.md#resume-snapshot--2026-11-26)
 before the dated records.
 
@@ -128,7 +132,9 @@ end-to-end CLI and its question/step records can be inspected in PostgreSQL.
   Keep corpus/chunks, embedding and generator settings, answer prompt and maximum
   context token budget comparable with Simple. Measure component ablations on
   development data. Qwen3-Reranker-4B is selected for this project/demo; its live
-  retrieval path and explicit evidence-policy context hook are implemented. The owner
+  retrieval path, explicit evidence policies, accepted-context answer function
+  and optional DB tracing are implemented. A live runner now passes three selected
+  end-to-end cases; broader answer evaluation remains pending. The owner
   accepts its observed latency; no under-10-second gate or mandatory 0.6B
   comparison remains. Numeric budgets and final thesis settings are still open.
 - Define bounded Enhanced tool steps in Python with explicit conditions/order;
@@ -187,6 +193,14 @@ margin before final testing. Adaptive routing itself is not claimed as novel.
 
 ## Immediate next step
 
+The combined 0.95 gate → Luna mode and Enhanced accepted-context answer function
+are implemented and offline-tested. Independent controls remain available;
+blocked context never invokes the answer model. Enhanced DB tracing now also
+passes offline and session-local DB checks. The live terminal runner and a
+P07/P30/P19 check are complete with exact DB read-back and unchanged corpus.
+Next add shared final-answer citation-label validation. Grounding/retry policy
+and fixed tool behavior remain separate work.
+
 The authorized P07/P05/P19 Luna sample is complete after replacing the expired
 key. All three original responses pass the updated quote check offline; see
 [results](EVIDENCE_CHECK_SAMPLE.md). The checker and 0.95 gate make the same
@@ -194,8 +208,9 @@ three decisions. The subsequent eight gate-passing unanswerable questions are
 now complete: all blocked by the checker. The twelve-positive sample is also
 complete: all model-sufficient, originally ten runtime passes/two quote errors.
 The subsequent `source_span_v2` offline repair resolves both and preserves nine
-negative blocks across all 23 saved responses. Next add Enhanced final-answer generation and
-tracing separately. The following paragraphs retain the earlier development
+negative blocks across all 23 saved responses. After the combined gate/checker
+increment, shared final-answer generation and optional tracing are also implemented.
+A subsequent three-question live check is complete. The following paragraphs retain the earlier development
 sequence; [HANDOFF](HANDOFF.md#next-small-increment) is the current resume point.
 
 The connectivity smoke and one Simple P04 answer passed on 2026-11-17.
@@ -291,13 +306,14 @@ The subsequent 120-question 4B run is verified: full support @5 rises from
 **Qwen3-Reranker-4B**, accepts this wait for a short school-project demo and
 withdraws the 10-second requirement. Full 0.6B/batching comparisons are optional.
 The RRF top-20 → Qwen4B → initial top-5 retrieval path is now live-verified;
-explicit baseline/threshold/sufficiency modes and a context hook are added.
-Next review the checker, then add shared answer generation and reranker/checker
-spans separately. Keep candidates/references fixed and preserve all baseline reports.
+explicit evidence modes and accepted-context answer generation are implemented.
+Optional Enhanced tracing and the live runner are also tested. Next add shared
+output validation. Keep candidates/references
+fixed and preserve all baseline reports.
 See [results](QWEN_RERANKER_COMPARISON.md) and [setup](QWEN_RERANKER_SETUP.md).
 Final candidate/context limits remain open.
-Simple remains dense-only; Enhanced answer generation and fixed tools are
-separate work. Final thesis settings are not frozen.
+Simple remains dense-only; broader Enhanced answer evaluation and fixed tools
+remain separate work. Final thesis settings are not frozen.
 
 Preserve the P01–P06 questions and five-result baseline. Build Simple before
 hybrid/RRF/reranking and fixed tools; Agentic details come later. Use
