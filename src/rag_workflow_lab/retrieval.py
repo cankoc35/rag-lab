@@ -1,4 +1,6 @@
-"""Index-scoped dense retrieval and equal-weight dense/full-text rank fusion."""
+"""Index-scoped dense retrieval, equal-weight dense/full-text rank fusion and reranking."""
+
+from collections.abc import Callable
 
 from rag_workflow_lab.embeddings import (
     ADAPTER_VERSION, DOCUMENT_PREFIX, NORMALIZATION, QUERY_PREFIX, NomicEmbedder,
@@ -8,6 +10,7 @@ from rag_workflow_lab.store import get_embedding_index, search_chunks, search_ch
 
 RRF_K = 60
 HYBRID_CANDIDATES = 20
+RERANK_CANDIDATES = 20
 
 
 def retrieve(connection, embedder: NomicEmbedder, index_id: str, question: str, limit: int = 5) -> list[dict]:
@@ -61,3 +64,24 @@ def retrieve_hybrid(connection, embedder: NomicEmbedder, index_id: str, question
     dense = retrieve(connection, embedder, index_id, question, limit=HYBRID_CANDIDATES)
     full_text = search_chunks_full_text(connection, index_id, question, limit=HYBRID_CANDIDATES)
     return reciprocal_rank_fusion(dense, full_text)[:limit]
+
+
+def retrieve_reranked(connection, embedder: NomicEmbedder, index_id: str, question: str,
+                      score_passage: Callable[[str, str], float], limit: int = 5) -> list[dict]:
+    """Rerank the fused top 20 with a caller-loaded scorer and return the best `limit`.
+
+    `score_passage(question, passage)` should wrap the pinned native Qwen scorer
+    in scripts/reranker_smoke.py. Each passage is the stored heading path plus the
+    whole chunk text, as in the saved-candidate probe: no embedding prefix, gold
+    data or truncation. Results keep source fields, `rrf_rank` and `reranker_score`;
+    equal scores keep RRF order.
+    """
+    if not 1 <= limit <= RERANK_CANDIDATES:
+        raise ValueError(f"Result limit must be between 1 and {RERANK_CANDIDATES}.")
+    candidates = retrieve_hybrid(connection, embedder, index_id, question, limit=RERANK_CANDIDATES)
+    ranked = []
+    for rank, match in enumerate(candidates, 1):
+        passage = " > ".join(match["metadata"]["heading_path"]) + "\n\n" + match["text"]
+        ranked.append({**match, "rrf_rank": rank, "reranker_score": score_passage(question, passage)})
+    ranked.sort(key=lambda item: (-item["reranker_score"], item["rrf_rank"]))
+    return ranked[:limit]

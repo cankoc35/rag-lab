@@ -10,6 +10,120 @@ Verify `/Users/cankoc/Desktop/rag-workflow-lab`, then read [AGENTS](../AGENTS.md
 and [ROADMAP](ROADMAP.md), in that order. Read METHOD_DESIGN/EVALUATION_PLAN
 before experiment changes and LITERATURE_GAPS before novelty claims.
 
+## Resume snapshot — 2026-11-25
+
+This is the current stopping point for a new assistant, including Claude.
+The longer preparation records below are historical; use this snapshot and
+the current owner decisions in PROJECT_CONTEXT when their older next-step
+wording differs. [CLAUDE.md](../CLAUDE.md) is a short entry point to the same rules.
+
+### Current implementation boundary
+
+- **Working:** versioned ingestion/chunking, local Nomic embeddings, raw-SQL
+  PostgreSQL/pgvector storage, dense/full-text/RRF retrieval, Simple RAG and
+  LLM-only runners, retrieval/LLM tracing, six retrieval metrics at 5/10/20.
+- **Current data:** 14 expanded sources, 151 shared-index chunks; dataset
+  [v1.8](../data/evaluation/dev/expanded_questions_v1_8.json) has 100 answerable
+  questions (50 PostgreSQL, 30 Atlas, 20 combined) and 20 unanswerable. Earlier
+  Atlas states/indexes are controls and must remain separate.
+- **Selected reranker:** `Qwen/Qwen3-Reranker-4B`, revision
+  `22e683669bc0f0bd69640a1354a6d0aebcfeede5`, local MPS/float16, batch-one default,
+  [pinned config](../configs/reranker.toml). The owner accepts the wait for a
+  one- or two-question school-project demo. The earlier 10-second limit is
+  withdrawn; full-set 0.6B/batching experiments are optional. Keep reporting time.
+- **Verified 4B result:** all 120 questions/2,400 saved RRF candidate pairs
+  completed. Full annotated support @5 improves **82/100 → 92/100**, @10
+  **93/100 → 100/100**. Mean reranking **43.69 s/question**, scoring total
+  **87 min 23 s**. These are retrieval-support metrics, not Luna answer accuracy;
+  the twenty negatives are outside positive means. See [results](QWEN_RERANKER_COMPARISON.md).
+- **Live reranked retrieval (added 2026-11-25, offline-tested only):**
+  `retrieve_reranked(connection, embedder, index_id, question, score_passage, limit=5)`
+  in [retrieval.py](../src/rag_workflow_lab/retrieval.py) calls
+  `retrieve_hybrid(..., limit=20)`, scores `" > ".join(metadata["heading_path"]) + "\n\n" + text`
+  for each candidate and returns the top `limit` (1–20) with `rrf_rank` and
+  `reranker_score`. It has not run against the live DB/model; no workflow calls it.
+- **Not built:** the Enhanced answer workflow, a runner that loads Qwen for live
+  retrieval, DB tools and frozen fixtures, Agentic graph, router,
+  reranker/tool/router spans and shared output validator. Simple has
+  completion/nonempty checks; citation validation is planned, grounding/retry
+  policy remains open. LangGraph is selected but uninstalled.
+
+### Next small increment
+
+**Proposed:** run the live reranked path once on one development question
+(for example P05) and compare its RRF top 20 and reranked order with the saved
+full-run report `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`.
+Expect identical candidates; small float16 score differences are possible.
+The caller loads the pinned Qwen model/tokenizer once (as in
+[reranker_probe.py](../scripts/reranker_probe.py)) and passes the unchanged
+native scorer:
+
+```python
+from scripts.reranker_smoke import score
+from rag_workflow_lab.retrieval import retrieve_reranked
+
+matches = retrieve_reranked(connection, embedder, index_id, question,
+                            lambda q, passage: score(model, tokenizer, q, passage, settings))
+```
+
+`settings` is the `[reranker]` table of [configs/reranker.toml](../configs/reranker.toml).
+The Nomic retrieval lock (`check_retrieval.py.lock`) pins the same torch
+`2.10.0`, transformers `5.5.0` and tokenizers `0.22.2` as the reranker lock;
+whether one environment can load both models has not been checked. Recheck DB
+service state first. After that, add shared Luna generation and a reranker span
+for Enhanced in separate increments. `build_answer_input()` currently copies
+`distance` into sources; decide then whether Enhanced sources also record
+`rrf_rank`/`reranker_score`. Final context token budget is still open; the
+initial five-chunk target does not freeze the thesis protocol.
+
+Do not call the complete Enhanced workflow finished before its fixed tool
+behavior is implemented. Simple stays dense-only. Do not repeat the 87-minute
+benchmark or run paid calls just to resume.
+
+### Focused code and evidence map
+
+| File | Why read it next |
+| --- | --- |
+| [retrieval.py](../src/rag_workflow_lab/retrieval.py) | Live dense/full-text/RRF and `retrieve_reranked()` (fused top 20 → caller scorer → top `limit`) |
+| [test_hybrid_retrieval.py](../tests/unit/test_hybrid_retrieval.py) | RRF tests and reranked-path tests, including passage/order parity with the probe |
+| [store.py](../src/rag_workflow_lab/store.py), [llm.py](../src/rag_workflow_lab/llm.py) | SQL results already include chunk text/metadata; existing cited context construction |
+| [reranker_smoke.py](../scripts/reranker_smoke.py) | Native `pair_tokens`, `score`, `score_batch`; no silent truncation |
+| [reranker_probe.py](../scripts/reranker_probe.py) | Saved-candidate selection, whole-passage assembly, ranking and provenance |
+| [simple.py](../src/rag_workflow_lab/workflows/simple.py), [tracing.py](../src/rag_workflow_lab/tracing.py) | Existing workflow and trace ownership to reuse later |
+| [enhanced.py](../src/rag_workflow_lab/workflows/enhanced.py) | Still only a scaffold; no callable Enhanced workflow |
+| [test_reranker_smoke.py](../tests/unit/test_reranker_smoke.py), [test_reranker_probe.py](../tests/unit/test_reranker_probe.py) | Existing offline scoring/candidate tests |
+
+Saved local evidence, all present at handoff:
+
+- Raw 4B run: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`.
+- Independent audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
+- RRF input: `outputs/retrieval/hybrid-20261125T133826756751Z.json`.
+- Shared index ID and earlier control indexes: STATUS's index list above its
+  selected-reranker section. Do not substitute an Atlas-only index.
+- Supervisor diagram: [presentation folder](presentations/2026-11-23/README.md),
+  updated with selected 4B/full-run results; the older speaking notes are dated.
+
+### Local state and verification boundary
+
+Handoff checkout: `main`, HEAD `11dad36b47dbe225357d37d6596cc012cdf1530e`, with
+existing uncommitted documentation/presentation edits, `CLAUDE.md` and the
+uncommitted reranked-retrieval code/tests/docs above. Inspect `git status` and
+`git diff`; preserve them. Model files under `data/local/` and run reports under
+`outputs/` are local/ignored artifacts, not guaranteed by a fresh clone.
+
+This handoff refresh confirmed the pinned 4B model directory and both safetensors
+shards exist. The saved full-run SHA-256 matches its audit; recorded runtime-code
+hashes match the current files. No weights were reloaded, inference rerun or live
+DB/API state checked. Earlier unit-test counts and service checks below are dated
+evidence, not newly executed checks. Use [COMMANDS](COMMANDS.md) for existing
+offline test/reference commands; verify services before later DB work. No new
+Alembic migration is implied by a reranker adapter.
+
+The reranked-retrieval increment (2026-11-25) passed 233 offline unit tests,
+Ruff `F` checks and `git diff --check`. `reranker_smoke.py`, `reranker_probe.py`
+and `check_retrieval.py` are unchanged, so the saved reports' code hashes still
+match. No model, DB or API access occurred in that increment.
+
 ## Goal and established decisions
 
 Build a PostgreSQL documentation/sandbox assistant for an Agentic RAG thesis.
@@ -19,6 +133,7 @@ the exact research question and final protocol remain open.
 - English repository; Turkish chat. Small, testable steps and simple code.
 - Docker PostgreSQL + pgvector; Psycopg raw SQL without ORM; Alembic migrations.
 - Local Nomic for embeddings, Luna Responses API for the first generator.
+- Selected Qwen3-Reranker-4B, pinned local MPS/float16, batch-one default; latency accepted for the project/demo.
 - Project-owned PostgreSQL tracing; MLflow rejected. LangGraph selected but uninstalled.
 - Public docs + synthetic runbooks/frozen DB state; LLM-only, changed-evidence
   and insufficient-evidence controls. Keep development and held-out data separate.
@@ -31,10 +146,10 @@ follow fixed Python conditions. Share corpus/chunks, embedding and generator
 settings, answer prompt and maximum context budget. Both cite evidence/may
 abstain. Agentic tool access should be comparable; its dynamic control details
 are deferred. Dense-only → hybrid-only → hybrid + reranking are development
-ablations. Exact tools, reranker and final budgets remain open. See
+ablations. Qwen3-Reranker-4B is selected; exact tools and final budgets remain open. See
 [METHOD_DESIGN](METHOD_DESIGN.md#approved-initial-simple-and-enhanced-design).
 
-## Actual stopping point
+## Earlier preparation and development records
 
 The owner approved 100 answerable questions (50 PostgreSQL-only, 30 Atlas-only,
 20 combined) plus 20 unanswerable and broader topics. The
@@ -297,6 +412,7 @@ The HTML-only manifest and existing source artifacts are unchanged.
 | [index_corpus.py](../scripts/index_corpus.py) | Embed stored chunks; repeatable source or exact snapshot selection, one index transaction, flushed progress |
 | [check_retrieval.py](../scripts/check_retrieval.py) | Exact scope; all six quality metrics at 5/10/20, ranks, positive means and separate negative/manual-review records; schema 4, dense tracing only |
 | [reranker_probe.py](../scripts/reranker_probe.py) | Explicit question/all selection and 4B/0.6B profiles, saved RRF top-20 reranking, per-pair progress/timing and existing metrics; no DB/API |
+| [reranker_smoke.py](../scripts/reranker_smoke.py) | Native yes/no pair scoring, token checks and explicit preparation/runtime smoke modes; separate pinned uv environment |
 | [check_document_questions.py](../scripts/check_document_questions.py) | Offline pinned-reference checks; single or multiple source manifests, exact evidence and negative-case scope |
 | [llm_smoke.py](../scripts/llm_smoke.py) | Explicit `--call-api`; one fixed English test, no corpus/DB access |
 | [run_simple_rag.py](../scripts/run_simple_rag.py) | `--dataset`, exact pinned index scope, explicit `--call-api` and one/all selection; shared resources/run ID, per-question records |
@@ -383,31 +499,35 @@ and matching provenance; no model/DB/API call ran during verification.
 Read [the full-set results](QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run).
 Report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
 audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
-Next: matched 120-question 0.6B comparison; do not rerun 4B unnecessarily. The
-earlier supervisor diagram still describes the pre-review state.
+**Next:** integrate RRF top-20 → selected Qwen4B → initial top-5 into Enhanced's
+document retrieval path. Shared answer generation and reranker spans follow in
+separate increments. Do not rerun 4B unnecessarily; the supervisor diagram now
+includes the verified result and owner decision.
 
-**Latest owner constraint:** top-20 reranking must take less than 10 seconds per
-question, preferably much less. Qwen4B's 24–32-second probe is too slow for the
-interactive path. Read [the latency shortlist](RERANKER_LATENCY_REVIEW.md) first.
-The owner chose Qwen0.6B for the next trial. It is now pinned/downloaded under
+**Current owner decision:** keep **Qwen3-Reranker-4B** for the school project and
+a one- or two-question demo. The owner accepts the measured 43.69-second mean;
+the earlier under-10-second gate is withdrawn. Timing remains recorded, not a
+model-selection blocker. Full-set 0.6B and batching studies are optional.
+
+Earlier, the owner chose Qwen0.6B for a trial. It is pinned/downloaded under
 `configs/reranker_qwen06b.toml`; the native smoke and 2,400 input checks passed.
 The paired four-question test averages 5.95 s for 0.6B versus a fresh 27.90 s for
 4B, both MPS/float16/batch one. P05 top-five support is 0/3 versus 2/3; P07/P27
 stay 2/2 and 3/3. All 227 offline tests and independent metric/input checks passed.
 Read [the paired comparison](QWEN_RERANKER_COMPARISON.md) for limits/artifacts.
-The owner's latest request was a batch-four 4B command. It is now prepared:
+A batch-four 4B command is also prepared:
 `--batch-size 4`, with schema-2 batch metadata and correct left-padding/masks.
 All 229 offline tests passed. A native P05 check preserved the full ranking but
 took 46.36 seconds versus batch one's 30.85; it does not show a speedup. Report:
 `outputs/reranking/qwen4b-probe-20261125T184838008770Z.json`; verification:
 `outputs/validation/qwen4b-batch4-20261125T184838008770Z.json`.
-Next run the [same four-question batch test](COMMANDS.md#run-qwen4b-with-batch-size-four).
-The 120-question 0.6B comparison is still pending. Scripts default to 4B/batch
-one; neither model is integrated into the answer workflow. Preserve both
+The [batch test](COMMANDS.md#run-qwen4b-with-batch-size-four) and full-set 0.6B
+comparison remain optional. Scripts already default to selected 4B/batch one;
+neither model is integrated into the answer workflow. Preserve both
 profiles and all prior results. Ettin remains an untested alternative.
 
 Read the [Qwen4B research review](QWEN_RERANKER_REVIEW.md). Qwen3-Reranker-4B
-is now prepared as the initial quality candidate: [setup](QWEN_RERANKER_SETUP.md),
+is the selected project reranker: [setup](QWEN_RERANKER_SETUP.md),
 `configs/reranker.toml`, `scripts/reranker_smoke.py` and its separate uv lock.
 Pinned tokenizer/config assets are local; all 2,400 saved RRF input pairs fit
 without truncation (max 821 / limit 2,048). The pinned pretrained weights are now
@@ -429,9 +549,9 @@ No new retrieval, DB access, hosted call or answer generation ran. No prior
 code/config/lock, dataset or baseline report changed. The small targeted sample
 does not establish general quality. The runner now supports `--all` (120 questions,
 2,400 pairs, selection checked offline); `--question-id` remains available for
-subsets. This selector change ran no model inference. After a smaller model
-meets the latency requirement, complete its RRF top-20 → rerank → top-5 comparison on version 1.8.0
-against unchanged dense/RRF top-5 baselines. Preserve both annotation versions,
+subsets. This selector change ran no model inference. The full 4B comparison
+is now verified above; a smaller-model comparison is not a prerequisite for
+Enhanced integration. Preserve both annotation versions,
 raw reports and rescores. Relevance review remains non-exhaustive; final
 held-out/scoring decisions remain open. No live service was checked during
 offline rescoring; recheck service state before any later DB work.
@@ -545,8 +665,8 @@ statuses, tracing coverage and six retrieval metrics. It separates offline
 evaluation from the live response. Router method remains open; Enhanced and
 Agentic workflow composition and DB tools are not built. Shared validation is
 partial: Simple's completion/nonempty checks exist; citation checks are planned
-and grounding/failure/retry policy is open. The 4B full run is owner-reported,
-not a reviewed full-set result. The [renderer](presentations/2026-11-23/render_pipeline.py)
+and grounding/failure/retry policy is open. The verified 4B full run and the
+owner's model selection are now shown. The [renderer](presentations/2026-11-23/render_pipeline.py)
 regenerates all three exports. PDF visual/text checks and local links passed;
 no model/DB/API work or experiment change ran for this revision. The briefing
 PDF/Markdown remain the earlier 23-November snapshot, explicitly dated in the

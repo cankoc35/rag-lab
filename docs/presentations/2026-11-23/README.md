@@ -26,8 +26,12 @@ retrieval components inside Enhanced do not mean its answer workflow is built.
   router selects one workflow; rules, classifier or LLM remain open. Simple uses
   dense top-five retrieval. Enhanced shows dense/full-text top-20, RRF fusion,
   the first 20 candidates, Qwen3 reranking and proposed answer-context selection.
-  Qwen3-Reranker-4B and 0.6B have local probes; final model, context budget and
-  complete workflow integration remain open. Shared DB tools and Agentic control
+  Qwen3-Reranker-4B is selected after its verified 120-question run: top-five
+  full claim support rises from 82/100 to 92/100. The owner accepts the
+  43.69-second mean for the school project/demo and withdraws the earlier
+  10-second gate. Batch one remains the default; full-set 0.6B testing is
+  optional. Context budget and complete workflow integration remain open.
+  Shared DB tools and Agentic control
   are not built. Luna generation is implemented for Simple; a shared output
   validator is partial: completion/nonempty checks exist, citation checks are
   planned, and grounding/retry policy remains open.
@@ -35,9 +39,9 @@ retrieval components inside Enhanced do not mean its answer workflow is built.
   operations. Simple retrieval and LLM calls record prompt, chunks/ranks, answer,
   usage and timing in PostgreSQL. Router, reranker, DB-tool and validator spans
   are not built. Reranker probes currently save separate JSON reports. Small
-  timing comparisons are labeled as development evidence. The owner reported
-  starting the 120-question 4B run; no completed full-set report was reviewed
-  for this revision.
+  timing comparisons are labeled as development evidence. The completed
+  120-question 4B report is verified and summarized; reranker integration is
+  still partial and no new model/DB/API work ran to update the diagram.
 - **D. Offline evaluation:** separate from returning a user response. The six
   implemented summaries at 5/10/20 are annotated-chunk Recall, required-claim
   coverage, all-claims-supported rate, Precision, MRR and nDCG. Means cover 100

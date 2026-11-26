@@ -117,10 +117,10 @@
 <text x="1221" y="795" font-family="Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#526977">Fixed probe candidates</text>
 <text x="1221" y="819" font-family="Helvetica,Arial,sans-serif" font-size="17" font-weight="400" fill="#526977">No gold-based selection</text>
 <rect x="1460" y="695" width="350" height="150" rx="12" fill="#FFF3E4" stroke="#AC5A10" stroke-width="2"/>
-<text x="1476" y="724" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="700" fill="#173342">Qwen3 reranker</text>
-<text x="1476" y="751" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">PARTIAL | local probes done</text>
-<text x="1476" y="775" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">4B / 0.6B relevance scoring</text>
-<text x="1476" y="799" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">Final model / batch: OPEN</text>
+<text x="1476" y="724" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="700" fill="#173342">Qwen4B reranker</text>
+<text x="1476" y="751" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">SELECTED | local scorer: DONE</text>
+<text x="1476" y="775" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">120 questions / 2,400 pairs</text>
+<text x="1476" y="799" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">MPS / float16; batch size 1</text>
 <text x="1476" y="823" font-family="Helvetica,Arial,sans-serif" font-size="19" font-weight="400" fill="#526977">Live workflow wiring not built</text>
 <rect x="1850" y="715" width="290" height="126" rx="12" fill="#EFF5FC" stroke="#385E8B" stroke-width="2"/>
 <text x="1866" y="744" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="700" fill="#173342">Answer context [OPEN]</text>
@@ -186,15 +186,15 @@
 <text x="82" y="1337" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Recorded: prompt, chunk ranks/IDs, answer, tokens, timings/errors.</text>
 <text x="82" y="1363" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Cost remains NULL when unknown; tool calls are not fabricated.</text>
 <text x="82" y="1389" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">NOT BUILT: reranker, router, DB-tool and validator spans.</text>
-<rect x="1150" y="1210" width="1590" height="220" rx="16" fill="#FFF3E4" stroke="#AC5A10" stroke-width="2"/>
-<text x="1172" y="1246" font-family="Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#173342">Reranking study - local development evidence</text>
-<rect x="2624" y="1223" width="94" height="30" rx="7" fill="#AC5A10" stroke="#AC5A10" stroke-width="2"/>
-<text x="2636" y="1244" font-family="Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="white">PARTIAL</text>
-<text x="1172" y="1285" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">RRF top-20 -&gt; score every pair -&gt; measure prefixes at 5 / 10 / 20; full ranks are saved.</text>
-<text x="1172" y="1311" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Four-question batch-one probes: Qwen4B 27.90 s/question; Qwen0.6B 5.95 s/question.</text>
-<text x="1172" y="1337" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Batch four: one P05 check took 46.36 s versus 30.85 s at batch one; no speed gain shown.</text>
-<text x="1172" y="1363" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">120-question 4B run: user-reported in progress; completed full-set results not reviewed.</text>
-<text x="1172" y="1389" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Final model/context budget: OPEN. Reranker benchmarks write JSON; tracing integration pending.</text>
+<rect x="1150" y="1210" width="1590" height="220" rx="16" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>
+<text x="1172" y="1246" font-family="Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#173342">Reranking study - full 120-question run verified</text>
+<rect x="2654" y="1223" width="64" height="30" rx="7" fill="#087F6F" stroke="#087F6F" stroke-width="2"/>
+<text x="2666" y="1244" font-family="Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="white">DONE</text>
+<text x="1172" y="1285" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Qwen4B selected for the project/demo; 120 questions, 2,400 pairs; batch size one.</text>
+<text x="1172" y="1311" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Full required-claim support @5: RRF 82/100 -&gt; reranked 92/100; @10: 93/100 -&gt; 100/100.</text>
+<text x="1172" y="1337" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Mean 43.69 s/question; scoring 87 min 23 s. Owner accepts the wait; no latency gate.</text>
+<text x="1172" y="1363" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">0.6B four-question probe retained; full-set comparison optional. No answer-quality claim.</text>
+<text x="1172" y="1389" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="400" fill="#526977">Next: Enhanced integration. Live reranker spans not built; benchmark JSON reports are saved.</text>
 <text x="60" y="1480" font-family="Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#173342">D. OFFLINE DEVELOPMENT EVALUATION - SEPARATE FROM THE USER RESPONSE PATH</text>
 <text x="60" y="1514" font-family="Helvetica,Arial,sans-serif" font-size="23" font-weight="400" fill="#526977">Six retrieval-quality metrics at k = 5, 10, 20 | Means: 100 answerable questions | 20 unanswerable cases reported separately</text>
 <rect x="60" y="1540" width="640" height="58" rx="10" fill="#EAF6F1" stroke="#087F6F" stroke-width="2"/>

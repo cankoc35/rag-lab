@@ -1,15 +1,15 @@
 # Qwen3-Reranker-4B review
 
-**Reviewed:** 2026-11-25. Research and a proposed comparison, not an installed
-model or a final reranker decision. No model weights were downloaded or executed.
+**Original review:** 2026-11-25, before model preparation and inference.
 
-Follow-up: the owner requested [Qwen4B preparation](QWEN_RERANKER_SETUP.md).
-Its pinned weights and separate native-Transformers environment are now local;
-the runtime smoke and four-question probe passed. Measured top-20 latency is
-24–32 seconds, exceeding the owner's new 10-second budget. The
-[latency review](RERANKER_LATENCY_REVIEW.md) motivated smaller candidates. The
-owner chose Qwen0.6B; its [paired probe](QWEN_RERANKER_COMPARISON.md) is complete.
-The evidence below remains the earlier quality-oriented comparison.
+**Current decision:** the owner selects **Qwen3-Reranker-4B** for the school
+project/demo, accepting the measured wait and withdrawing the earlier
+10-second gate. Pinned weights/runtime are local and the complete 120-question
+run is verified: full support @5 improves 82/100 → 92/100 at 43.69 s/question.
+See [setup](QWEN_RERANKER_SETUP.md) and [local results](QWEN_RERANKER_COMPARISON.md).
+The [latency review](RERANKER_LATENCY_REVIEW.md) and smaller-model probes remain
+historical comparisons; a full 0.6B run is optional. The published evidence
+below is unchanged. Enhanced workflow integration is next.
 
 Qwen3-Reranker-4B is a strong quality-oriented candidate. The earlier ModernBERT
 recommendation prioritized a small, English-focused model. Published evidence
@@ -82,7 +82,10 @@ files advertise a newer Sentence Transformers integration. Verify adapter
 compatibility or use the official Transformers scoring path in a separate
 reranker environment. Preserve existing embedding locks/index identity.
 
-## Proposed next experiment
+## Earlier proposed experiment
+
+The native 4B preparation and full-set comparison are now complete; the owner
+selected 4B. This original proposal is retained for context, not as the next task.
 
 1. Check the model's tokenizer and exact scoring template; pin model/runtime,
    precision and token handling. Never silently truncate SQL or policy evidence.
@@ -95,6 +98,6 @@ reranker environment. Preserve existing embedding locks/index identity.
 4. Report full required-evidence support, ranking metrics and latency. Keep
    negatives separate; no numeric reranker score alone certifies answerability.
 
-No final winner is selected from the external benchmarks. Reranking only
+External benchmarks alone did not select the project model. Reranking only
 reorders available candidates; it cannot repair an absent candidate or guarantee
 that five independently high-scoring chunks jointly cover every required fact.

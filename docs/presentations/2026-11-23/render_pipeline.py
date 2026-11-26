@@ -125,7 +125,7 @@ node(650, 695, 245, 70, "Dense top-20", ["DONE | Nomic + cosine"], size=18)
 node(650, 780, 245, 70, "Lexical top-20", ["DONE | English full-text"], size=18)
 node(935, 715, 230, 126, "RRF [DONE]", ["k=60; equal weights", "Merge + chunk-ID dedup", "At most 40 unique hits"], size=18)
 node(1205, 715, 215, 126, "Keep 20 [DONE]", ["From RRF ranking", "Fixed probe candidates", "No gold-based selection"], size=17)
-node(1460, 695, 350, 150, "Qwen3 reranker", ["PARTIAL | local probes done", "4B / 0.6B relevance scoring", "Final model / batch: OPEN", "Live workflow wiring not built"], "PARTIAL", size=19)
+node(1460, 695, 350, 150, "Qwen4B reranker", ["SELECTED | local scorer: DONE", "120 questions / 2,400 pairs", "MPS / float16; batch size 1", "Live workflow wiring not built"], "PARTIAL", size=19)
 node(1850, 715, 290, 126, "Answer context [OPEN]", ["Initial target: top 5", "Compare cutoffs 5 / 10 / 20", "Final token budget: OPEN"], "OPEN", size=19)
 
 rect(620, 890, 1550, 62, "#F0F4F8", GRAY, 12)
@@ -159,13 +159,13 @@ lines(82, 1285, [
     "Recorded: prompt, chunk ranks/IDs, answer, tokens, timings/errors.",
     "Cost remains NULL when unknown; tool calls are not fabricated.",
     "NOT BUILT: reranker, router, DB-tool and validator spans."], size=21)
-panel(1150, 1210, 1590, 220, "Reranking study - local development evidence", "PARTIAL")
+panel(1150, 1210, 1590, 220, "Reranking study - full 120-question run verified", "DONE")
 lines(1172, 1285, [
-    "RRF top-20 -> score every pair -> measure prefixes at 5 / 10 / 20; full ranks are saved.",
-    "Four-question batch-one probes: Qwen4B 27.90 s/question; Qwen0.6B 5.95 s/question.",
-    "Batch four: one P05 check took 46.36 s versus 30.85 s at batch one; no speed gain shown.",
-    "120-question 4B run: user-reported in progress; completed full-set results not reviewed.",
-    "Final model/context budget: OPEN. Reranker benchmarks write JSON; tracing integration pending."], size=21)
+    "Qwen4B selected for the project/demo; 120 questions, 2,400 pairs; batch size one.",
+    "Full required-claim support @5: RRF 82/100 -> reranked 92/100; @10: 93/100 -> 100/100.",
+    "Mean 43.69 s/question; scoring 87 min 23 s. Owner accepts the wait; no latency gate.",
+    "0.6B four-question probe retained; full-set comparison optional. No answer-quality claim.",
+    "Next: Enhanced integration. Live reranker spans not built; benchmark JSON reports are saved."], size=21)
 
 text(60, 1480, "D. OFFLINE DEVELOPMENT EVALUATION - SEPARATE FROM THE USER RESPONSE PATH", 28, INK, True)
 text(60, 1514, "Six retrieval-quality metrics at k = 5, 10, 20 | Means: 100 answerable questions | 20 unanswerable cases reported separately", 23, MUTED)

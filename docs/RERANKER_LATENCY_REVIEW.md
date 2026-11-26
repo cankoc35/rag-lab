@@ -1,17 +1,24 @@
-# Reranker latency requirement and smaller candidates
+# Earlier reranker latency requirement and smaller candidates
 
 **Reviewed:** 2026-11-25. Research only; no new model was downloaded or selected.
 
-**Follow-up:** the owner chose Qwen0.6B for a trial. It is now downloaded and
+**Current decision:** the owner now selects **Qwen3-Reranker-4B** for the school
+project/demo and accepts its measured 43.69-second mean. The earlier 10-second
+requirement below is **superseded**. Latency remains recorded; full-set 0.6B
+testing and the Ettin proposal are optional, not prerequisites for Enhanced
+integration. See [current results](QWEN_RERANKER_COMPARISON.md).
+
+**Earlier follow-up:** the owner chose Qwen0.6B for a trial. It is downloaded and
 tested: mean 5.95 seconds per question versus a fresh 27.90-second 4B run, with
 P05 top-five support loss. See [paired results](QWEN_RERANKER_COMPARISON.md).
-The Ettin proposal below remains unimplemented; full 0.6B evaluation is next.
+The Ettin proposal below remains unimplemented; full 0.6B evaluation has not run.
 
-## Requirement
+## Superseded requirement
 
-The owner requires per-question reranking to stay below 10 seconds and prefers
-substantially less. This concerns the complete top-20 reranking stage, not one
-question/chunk pair. Qwen4B's measured 23.62–31.82 seconds misses that requirement.
+The owner initially required per-question reranking to stay below 10 seconds
+and preferred substantially less. That concerned the complete top-20 reranking
+stage, not one question/chunk pair. Qwen4B's measured 23.62–31.82 seconds missed
+that earlier requirement.
 A 2–3-second target is a proposal, not a measured result or a finalized thesis rule.
 
 ## Shortlist
@@ -44,8 +51,9 @@ candidate lists, with full headings/text and version-1.8 references. Verify all
 inputs with its tokenizer. Compare CPU/MPS and small batches while retaining
 all candidates; keep model load and first inference separate from warm latency.
 Report median, p95 and maximum question latency along with existing quality
-metrics. Check that every measured question meets the 10-second budget; a fast
-average alone is insufficient. This does not guarantee future request latency.
+metrics. The earlier proposal checked every question against a 10-second
+budget, which is no longer a project requirement. A fast average alone does
+not guarantee future request latency.
 
 The released model has a modular encoder/classification head. Verify its exact
 head and library compatibility in a separate locked environment; it is not a

@@ -4,6 +4,11 @@
 `22e683669bc0f0bd69640a1354a6d0aebcfeede5`.
 Settings are in [reranker.toml](../configs/reranker.toml), separate from Nomic.
 
+**Current decision:** Qwen4B is selected for the school project/demo after the
+verified 120-question run. The owner accepts the observed 43.69-second mean
+and withdraws the earlier 10-second gate. Keep the existing batch-one default;
+the next step is Enhanced integration. Full-set 0.6B testing is optional.
+
 Follow-up: the separate [Qwen0.6B profile](../configs/reranker_qwen06b.toml) is
 also prepared and locally tested. See the [paired comparison](QWEN_RERANKER_COMPARISON.md).
 Scripts accept `--config`; the commands below retain the original 4B default.
@@ -109,11 +114,9 @@ checked: `outputs/validation/qwen4b-probe-20261125T181229740228Z.json`.
 verified the scoring API and oversized-input rejection without pretrained weights.
 All 194 protected prior code/config/data/model-metadata/report files were unchanged.
 
-The pretrained smoke and four-question real-candidate probe have passed. The
-owner now requires reranking below 10 seconds per question; Qwen4B misses this
-budget. The owner selected Qwen0.6B for the next trial; its paired probe is now
-complete at 5.95 seconds per question with a P05 support loss. Next run its
-120-question comparison using [the explicit profile](COMMANDS.md#run-the-qwen06b-profile).
-Candidate selection,
-labels and baseline reports must remain fixed. See the
+The pretrained smoke, four-question probes and full 120-question 4B run have
+passed. Qwen4B is selected; integrate RRF top-20 → 4B → initial top-5 into
+Enhanced's document retrieval path next. The optional 0.6B profile and its
+paired results remain available. Candidate selection, labels and baseline
+reports must remain fixed. See [local results](QWEN_RERANKER_COMPARISON.md) and the
 [model review](QWEN_RERANKER_REVIEW.md) for external evidence and limitations.

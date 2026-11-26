@@ -1,6 +1,6 @@
 # Method-level design — first draft
 
-**Status:** Working draft, updated 2026-11-17. The owner approved the initial
+**Status:** Working draft, updated 2026-11-25. The owner approved the initial
 Simple/Enhanced design below, PostgreSQL docs/synthetic-runbook pilot and
 prior-knowledge controls. Agentic details, the router and final thesis protocol
 remain open. The supervisor liked the
@@ -47,7 +47,7 @@ flowchart LR
 | Workflow | Initial behavior | Decision status |
 | --- | --- | --- |
 | Simple | One dense retrieval pass, then answer or abstain. No hybrid search, reranking or sandbox tools in the initial baseline. | Implemented; live P01–P06 completed on 2026-11-17. Editorial review found four answers meeting recorded requirements and P03/P05 partial; broader controls remain. |
-| Enhanced | Dense + PostgreSQL full-text retrieval, RRF merge/deduplication, reranking, then answer. Relevant tool steps follow predefined Python conditions/order. | Initial design approved, 2026-11-13; models, budgets and exact tool conditions remain open. |
+| Enhanced | Dense + PostgreSQL full-text retrieval, RRF merge/deduplication, Qwen3-Reranker-4B, then answer. Relevant tool steps follow predefined Python conditions/order. | Initial design approved, 2026-11-13; Qwen4B selected 2026-11-25; workflow integration, budgets and exact tool conditions remain open. |
 | Agentic | Shared relevant tool access; the model chooses actions from observations within limits. | General direction retained; detailed design deferred until that stage. |
 | Router | Chooses a workflow using permitted input signals. | Proposed; designed after fixed workflows and Agentic. |
 
@@ -80,8 +80,12 @@ Further additions can be considered explicitly later.
 
 During development, measure dense-only, hybrid-only and hybrid-plus-reranking
 conditions in sequence to distinguish component contributions. These are
-development ablations, not additional primary RAG workflows. Reranker model,
-candidate counts, fusion parameters, final context limits and final generator
+development ablations, not additional primary RAG workflows. The owner selected
+Qwen3-Reranker-4B on 2026-11-25 after the 120-question development run, accepting
+its observed latency for the school project/demo. The earlier 10-second gate
+is withdrawn; timing is still measured. The existing pinned local profile and
+batch-one default remain; 0.6B testing is optional. Candidate counts, fusion
+parameters, final context limits and final generator
 settings remain open. Luna is the initial client; choose/version final settings
 on development data before final testing.
 
@@ -172,7 +176,7 @@ with a document/query smoke check. This does not finalize the study's generator,
 judges or model-quality comparisons.
 
 PostgreSQL documentation version/coverage, sandbox fixtures and tool contracts,
-Enhanced tool conditions/budgets and reranker choice, detailed Agentic design,
+Enhanced tool conditions/budgets and reranker integration, detailed Agentic design,
 router implementation, generator/judge models, final question counts,
 quality margin, metric definitions, and the supervisor's preferred diagram
 format. The 20-question pilot draft does not fix the final sample size.

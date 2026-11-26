@@ -106,6 +106,8 @@ update, API call or trace write was needed. The original dense retrieval
 function body is unchanged. Validation:
 `outputs/validation/rrf-retrieval-20261123.json`.
 
-See [COMMANDS](COMMANDS.md#hybrid-rrf-only) for copyable runs. Next proposal:
-choose/pin a reranker and its candidate/context limits, then evaluate it on
-the same development data while keeping the unreranked baselines.
+See [COMMANDS](COMMANDS.md#hybrid-rrf-only) for copyable runs. Qwen3-Reranker-4B
+is now selected and its 120-question comparison is verified; see
+[results](QWEN_RERANKER_COMPARISON.md). Next integrate RRF top-20 → Qwen4B →
+initial top-5 into Enhanced's document retrieval path. Keep unreranked baselines
+unchanged; final candidate/context budgets remain open.

@@ -7,6 +7,12 @@ The owner rejected MLflow on 2026-11-16. Project-owned PostgreSQL tracing is
 the new direction. Its [code and migration](TRACING_PLAN.md) were subsequently
 applied on the owner's instruction and verified with one real P04 query.
 
+**Current position, 2026-11-25:** the 120-question Qwen4B evaluation is verified
+and the owner selected 4B with its latency accepted. The live RRF top-20 →
+Qwen4B → initial top-5 retrieval function is added and offline-tested; next is
+one live check, then shared generation, reranker tracing and fixed tools separately. Read the latest
+[handoff snapshot](HANDOFF.md#resume-snapshot--2026-11-25) before the dated records.
+
 The working study compares three RAG workflows and an adaptive router. The
 owner approved a PostgreSQL docs + synthetic-runbook pilot with frozen sandbox
 DB state and prior-knowledge controls. All corpus documents, questions/datasets,
@@ -113,7 +119,10 @@ end-to-end CLI and its question/step records can be inspected in PostgreSQL.
   retrieval, RRF merge/deduplication and reranking, then one shared answer call.
   Keep corpus/chunks, embedding and generator settings, answer prompt and maximum
   context token budget comparable with Simple. Measure component ablations on
-  development data; model choices and numeric budgets are still open.
+  development data. Qwen3-Reranker-4B is selected for this project/demo; integrate
+  it next using the existing pinned profile and batch-one default. The owner
+  accepts its observed latency; no under-10-second gate or mandatory 0.6B
+  comparison remains. Numeric budgets and final thesis settings are still open.
 - Define bounded Enhanced tool steps in Python with explicit conditions/order;
   native LLM function calling is not required. Preserve the approved synthetic
   runbook/frozen-DB-state scope and comparable relevant tool access for the
@@ -254,17 +263,19 @@ The owner requested Qwen4B preparation: a pinned config, separate locked
 environment and tokenizer fit check are now complete. All 2,400 saved RRF pairs
 fit; pinned weights are now local and the MPS/float16 two-passage smoke passed.
 A four-question/80-pair real-candidate probe completed in 110.40 seconds of
-scoring. The owner now requires reranking below 10 seconds per question and
-chose Qwen0.6B for a paired trial. Its pinned profile and
+scoring. The earlier latency requirement led to a Qwen0.6B paired trial. Its pinned profile and
 runtime are ready: mean 5.95 seconds versus 27.90 for a fresh 4B run, with P05
 support loss. The owner then requested a batch-four 4B command; it is prepared
 and one P05 correctness check passed, but was slower (46.36 versus 30.85 seconds).
-Next collect the same four-question batching comparison; the 120-question 0.6B
-comparison remains pending. Keep candidates/references fixed. No final production model is selected. See the
-[paired results](QWEN_RERANKER_COMPARISON.md) and
-[Qwen setup](QWEN_RERANKER_SETUP.md). Final reranker selection, candidate/context
-limits and full integration remain component work, with comparison against the
-three retrieval baselines.
+The subsequent 120-question 4B run is verified: full support @5 rises from
+82/100 to 92/100, averaging 43.69 seconds per question. The owner now selects
+**Qwen3-Reranker-4B**, accepts this wait for a short school-project demo and
+withdraws the 10-second requirement. Full 0.6B/batching comparisons are optional.
+Next integrate RRF top-20 → Qwen4B → initial top-5 into the Enhanced document
+retrieval path, then add shared answer generation and reranker spans in separate
+increments. Keep candidates/references fixed and preserve all baseline reports.
+See [results](QWEN_RERANKER_COMPARISON.md) and [setup](QWEN_RERANKER_SETUP.md).
+Final candidate/context limits remain open.
 Simple remains dense-only; Enhanced answer generation and fixed tools are
 separate work. Final thesis settings are not frozen.
 

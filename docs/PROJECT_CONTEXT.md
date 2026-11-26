@@ -35,11 +35,14 @@ This is not the MOTIF-RAG evaluation library.
   and access policies. The [allocation plan](RETRIEVAL_DATASET_PLAN.md) is
   complete; all 120 development records are now prepared. The final held-out
   set, scoring protocol and thesis sample size remain open.
-- **2026-11-25:** Per-question reranking must stay below 10 seconds, preferably
-  substantially less. Qwen4B's measured 24–32 seconds is too slow for the intended
-  interactive path. The owner subsequently requested preparing Qwen3-Reranker-0.6B
-  and comparing it with 4B on quality and time. Ettin 68M remains an alternative
-  proposal; no final production reranker is selected. See [latency review](RERANKER_LATENCY_REVIEW.md).
+- **2026-11-25, current decision:** Select **Qwen3-Reranker-4B** for the school
+  project and a one- or two-question demo. The owner accepts its measured
+  43.69-second mean reranking time after the verified 120-question run. This
+  supersedes the earlier under-10-second requirement; latency remains recorded
+  rather than gating model selection. Keep the existing pinned MPS/float16
+  profile and batch-one default. Full-set 0.6B testing is optional, not a
+  prerequisite for Enhanced integration. Preserve earlier smaller-model/batching
+  results; the final thesis protocol remains open. See [results](QWEN_RERANKER_COMPARISON.md).
 
 The PostgreSQL expansion now has a separate
 [eight-source allowlist](../data/corpus/postgres_expanded_v1.json) and
@@ -214,7 +217,7 @@ and [evaluation](EVALUATION_PLAN.md); neither is a finalized protocol.
 | Embeddings | Local `nomic-ai/nomic-embed-text-v1.5`, pinned revision, CPU float32, 768 dimensions |
 | Chunking | Whole blocks within sections; target 512 / ceiling 1024 tokens including context; no overlap or silent truncation |
 | Generator | Initial `gpt-6-luna` via OpenAI Responses API; reasoning `none`, maximum 1000 output tokens; SDK `3.51.0` |
-| Reranker candidates | Owner requested 4B and then 0.6B Qwen3 trials; separate pinned local MPS/float16 profiles and paired four-question checks verified; full comparison and workflow integration pending |
+| Reranker | Selected `Qwen/Qwen3-Reranker-4B`, pinned local MPS/float16, batch-one default; 120-question run verified, workflow integration pending; 0.6B optional |
 | Tracing | Project-owned `traces` / `spans` through raw SQL; separate writer for retrieval and LLM records |
 | Agent orchestration | LangGraph selected, not installed |
 
@@ -253,7 +256,7 @@ the exact capacity above that threshold is unspecified. Local generator
 comparison may follow later without confounding workflow comparisons.
 
 **Still open:** Full corpus coverage, broader answer/control checks, additional changed source states, DB fixtures and tool
-contracts, reranker, candidate/context/fusion budgets, Enhanced tool conditions,
+contracts, candidate/context/fusion budgets, Enhanced tool conditions,
 Agentic/router design, final model count, rubric/judges, metrics, quality margin,
 held-out set and sample size. No comparative or held-out thesis result exists.
 

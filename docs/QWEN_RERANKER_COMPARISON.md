@@ -2,7 +2,9 @@
 
 **Measured:** 2026-11-25. The paired 0.6B/4B probe below covers four selected
 questions. A subsequent full 120-question **4B-only** run is verified in the
-final section; the full 0.6B comparison remains pending.
+final section. **Current owner decision:** continue with Qwen3-Reranker-4B
+for the school project/demo. The observed wait is accepted; the earlier
+10-second gate is withdrawn. Full-set 0.6B testing is optional.
 
 The owner requested Qwen3-Reranker-0.6B after the 4B probe exceeded the
 10-second per-question reranking budget. Its separate
@@ -75,11 +77,11 @@ and cannot be compared across models as confidence in a correct answer.
 - Fresh 4B probe: `outputs/reranking/qwen4b-probe-20261125T183231798011Z.json`.
 - Verified paired comparison: `outputs/reranking/qwen06b-vs-4b-20261125T183231798011Z.json`.
 
-The 0.6B model meets the observed latency budget with a quality loss on the
-difficult P05 case. Broader quality remains open. Next run the 120-question
-0.6B comparison using [the explicit profile command](COMMANDS.md#run-the-qwen06b-profile).
-Batching toward 2–3 seconds is a separate proposed optimization. No default
-model or Simple/Enhanced answer workflow was changed by this probe.
+The 0.6B model met the earlier latency budget with a quality loss on the
+difficult P05 case. Its broader quality remains unmeasured. A full-set
+[0.6B comparison](COMMANDS.md#run-the-qwen06b-profile) is optional after the
+owner selected 4B. No default or answer workflow changed during this paired
+probe; preserve its results as historical development evidence.
 
 ## Batch-four follow-up
 
@@ -139,10 +141,13 @@ non-exhaustive; these are development results, not a held-out comparison.
 - p95: **58.91 seconds** (nearest-rank definition); range **26.23–63.32 seconds**.
 
 These timings include first inference and exclude retrieval/generation. The
-full run exceeds the owner's under-10-second interactive reranking constraint.
-The four-question 0.6B probe is not a matched full-set comparison. Next run that
-profile on the same 120 saved candidate lists, then compare quality and latency
-before selecting a model or integrating Enhanced. No default model changed.
+owner accepts the measured wait for a school project and a one- or two-question
+demo, selects **Qwen3-Reranker-4B** and withdraws the earlier under-10-second
+requirement. Continue recording timing; no new latency cutoff is imposed.
+The four-question 0.6B probe is not a matched full-set comparison, and a full
+0.6B run is optional. Next integrate selected 4B into Enhanced's document
+retrieval path. Existing pinned settings and the batch-one default already
+match the choice; live answer-workflow integration is still pending.
 
 Raw report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`
 (SHA-256 `f43ef09c008a7fefe88d39201c0f0accdab6958200b6d623a466940ee7560a4e`).

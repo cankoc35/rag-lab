@@ -93,7 +93,7 @@ held-out thesis evaluation. Unannotated candidates still remain unjudged.
 - P81 still needs a complete startup-cost explanation; the LIMIT example supports only its second requirement.
 - P98 insert-only/visibility passages were not accepted as universal substitutes for static-table and wraparound requirements.
 - P64/P122 share equivalent isolation evidence; P81/P119 share equivalent cost evidence. All methods use the same labels.
-- Final rubric, held-out allocation, reranker and candidate/context budgets remain open.
+- Final rubric, held-out allocation and candidate/context budgets remain open. Qwen4B was subsequently selected; see [current context](PROJECT_CONTEXT.md).
 
 ## Reproduce and inspect
 

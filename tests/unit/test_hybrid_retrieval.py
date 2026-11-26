@@ -1,10 +1,13 @@
 """Equal-weight RRF and bounded orchestration checks without models or a database."""
 
+from contextlib import redirect_stdout
 from copy import deepcopy
+import io
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
-from rag_workflow_lab.retrieval import reciprocal_rank_fusion, retrieve_hybrid
+from rag_workflow_lab.retrieval import reciprocal_rank_fusion, retrieve_hybrid, retrieve_reranked
+from scripts.reranker_probe import rerank as probe_rerank
 
 
 class RankFusionTests(unittest.TestCase):
@@ -78,6 +81,62 @@ class HybridRetrievalTests(unittest.TestCase):
                 retrieve_hybrid(self.connection, self.embedder, "index", "Question?", limit=limit)
         self.dense.assert_not_called()
         self.text.assert_not_called()
+
+
+class RerankedRetrievalTests(unittest.TestCase):
+    def setUp(self):
+        self.connection, self.embedder = Mock(), Mock()
+        self.candidates = [
+            {"chunk_id": "A", "source_id": "docs", "text": "Complete SQL;", "rrf_score": .03,
+             "metadata": {"heading_path": ["SQL", "EXPLAIN"]}},
+            {"chunk_id": "B", "source_id": "policy", "text": "Whole backup policy.", "rrf_score": .02,
+             "metadata": {"heading_path": ["Backup"]}},
+            {"chunk_id": "C", "source_id": "docs", "text": "Partial index rule.", "rrf_score": .01,
+             "metadata": {"heading_path": ["Indexes"]}},
+        ]
+        self.hybrid = self.enterContext(patch("rag_workflow_lab.retrieval.retrieve_hybrid",
+                                              return_value=self.candidates))
+
+    def test_twenty_candidates_are_requested_and_whole_passages_are_scored(self):
+        original = deepcopy(self.candidates)
+        scorer = Mock(side_effect=[.1, .9, .5])
+        result = retrieve_reranked(self.connection, self.embedder, "index", "Raw question?", scorer, limit=2)
+        self.hybrid.assert_called_once_with(self.connection, self.embedder, "index", "Raw question?", limit=20)
+        self.assertEqual(scorer.call_args_list, [
+            call("Raw question?", "SQL > EXPLAIN\n\nComplete SQL;"),
+            call("Raw question?", "Backup\n\nWhole backup policy."),
+            call("Raw question?", "Indexes\n\nPartial index rule."),
+        ])
+        self.assertEqual([(m["chunk_id"], m["rrf_rank"], m["reranker_score"]) for m in result],
+                         [("B", 2, .9), ("C", 3, .5)])
+        self.assertEqual({k: result[0][k] for k in original[1]}, original[1])
+        self.assertEqual(self.candidates, original)
+        self.connection.commit.assert_not_called()
+
+    def test_equal_scores_keep_rrf_order(self):
+        result = retrieve_reranked(self.connection, self.embedder, "index", "Question?", Mock(return_value=.5))
+        self.assertEqual([m["chunk_id"] for m in result], ["A", "B", "C"])
+
+    def test_live_passages_and_order_match_the_saved_candidate_probe(self):
+        scores = {"SQL > EXPLAIN\n\nComplete SQL;": .2, "Backup\n\nWhole backup policy.": .7,
+                  "Indexes\n\nPartial index rule.": .7}
+        live = retrieve_reranked(self.connection, self.embedder, "index", "Question?",
+                                 lambda question, passage: scores[passage], limit=3)
+        chunks = {m["chunk_id"]: {"heading_path": m["metadata"]["heading_path"], "text": m["text"]}
+                  for m in self.candidates}
+        with patch("scripts.reranker_probe.score", side_effect=lambda m, t, q, document, s: scores[document]), \
+                redirect_stdout(io.StringIO()):
+            saved = probe_rerank("Question?", self.candidates, chunks, None, None, {})
+        self.assertEqual([(m["chunk_id"], m["rrf_rank"], m["reranker_score"]) for m in live],
+                         [(m["chunk_id"], m["rrf_rank"], m["reranker_score"]) for m in saved])
+
+    def test_limits_outside_the_candidate_set_fail_before_search(self):
+        scorer = Mock()
+        for limit in (0, 21):
+            with self.subTest(limit=limit), self.assertRaisesRegex(ValueError, "limit"):
+                retrieve_reranked(self.connection, self.embedder, "index", "Question?", scorer, limit=limit)
+        self.hybrid.assert_not_called()
+        scorer.assert_not_called()
 
 
 if __name__ == "__main__":

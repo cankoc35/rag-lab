@@ -5,6 +5,14 @@ Detailed dated records are in [STATUS_HISTORY.md](STATUS_HISTORY.md);
 plans are in [ROADMAP](ROADMAP.md), decisions in [PROJECT_CONTEXT](PROJECT_CONTEXT.md),
 and code/artifact paths in [HANDOFF](HANDOFF.md).
 
+**Assistant handoff refreshed, 2026-11-25:** [CLAUDE.md](../CLAUDE.md) points to
+the repository rules; [HANDOFF's resume snapshot](HANDOFF.md#resume-snapshot--2026-11-25)
+records the selected 4B model, completed run, exact evidence/code paths, local
+artifact caveats and next live-retrieval increment. Its report/runtime-code hash
+checks passed without inference, DB/API access or a repeated benchmark. No
+application code or experiment setting changed for this handoff. Documentation
+links and `git diff --check` passed; application tests were not repeated.
+
 ## Implemented
 
 | Area | Current state |
@@ -15,8 +23,8 @@ and code/artifact paths in [HANDOFF](HANDOFF.md).
 | Chunking | Expanded scope: 552 content blocks → 151 saved chunks (113 PostgreSQL/38 Atlas); target 512 / ceiling 1024; maximum 822; original 49 unchanged |
 | Embedding | Pinned local Nomic; normalized 768-dimensional vectors; shared fourteen-snapshot index has 151 vectors |
 | Database | Applied Alembic `0002`; 18 snapshots, 175 chunks, four indexes/224 vectors, 24 traces/37 spans (read-only verification 2026-11-25) |
-| Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); Simple remains dense with `limit=5` |
-| Reranker runtime | Qwen4B completed 120 questions/2,400 pairs, batch one: 43.69 s/question; full support @5 improves RRF's 82/100 to 92/100. Full 0.6B comparison and workflow integration pending |
+| Retrieval | Dense, English OR full-text and equal-weight RRF fusion (`k=60`, 20 candidates/method); live `retrieve_reranked()` scores the fused top 20 and returns the top five (offline-tested, not yet run live); Simple remains dense with `limit=5` |
+| Reranker runtime | Selected Qwen4B: 120 questions/2,400 pairs verified, batch one, 43.69 s/question; full support @5 improves 82/100 to 92/100. Latency accepted; live retrieval function added, Enhanced answer workflow pending |
 | Diagnostics | Schema 4 / `annotated-evidence-v2`: all six quality metrics at 5/10/20, answerable-only means, separate negatives and manual-review candidates; elapsed time retained |
 | Expanded comparison | Same saved dense/full-text/RRF rankings rescored with v1.8 references; full support @5: 83/65/82 of 100; @20: 88/95/100. Original v1.7 scores preserved; relevance review is not exhaustive |
 | Tracing | Retrieval-only diagnostics plus workflow-owned retrieval/LLM spans; exact prompt/output/usage |
@@ -37,6 +45,41 @@ Nomic revision: `e9b6763023c676ca8431644204f50c2b100d9aab`, CPU float32,
 
 Keep pinned questions/snapshots/chunks/index unchanged when comparing workflows.
 
+## Selected reranker — owner decision, 2026-11-25
+
+Use **Qwen3-Reranker-4B** for the school project and a one- or two-question demo.
+The owner accepts its measured runtime and withdraws the earlier under-10-second
+requirement. Keep recording latency and quality; full 0.6B testing and further
+batch-size experiments are optional. The pinned 4B config and batch-one default
+already match this choice; no runtime/configuration change is needed.
+
+The live RRF top-20 → Qwen4B → initial top-5 retrieval function is now added;
+see the next section. Shared generation and reranker tracing follow in separate
+increments; tools and the complete Enhanced workflow are still pending.
+Core design/status/setup documents and the supervisor SVG/PNG/PDF now reflect
+the choice and verified full run. Documentation links, SVG/PDF text and visual
+layout were checked; no application tests, inference or DB/API calls ran.
+
+## Live reranked retrieval function — 2026-11-25
+
+`retrieve_reranked()` in [retrieval.py](../src/rag_workflow_lab/retrieval.py)
+explicitly requests `retrieve_hybrid(..., limit=20)`, builds each passage from
+the SQL match's stored `metadata.heading_path` and whole `text` (heading path
+joined by ` > `, a blank line, then the chunk body), scores it with a
+caller-supplied `score_passage(question, passage)` and returns the top `limit`
+(default 5, allowed 1–20). Each result keeps the RRF match fields plus `rrf_rank`
+and `reranker_score`; equal scores keep RRF order. No Nomic prefix, gold data or
+truncation enters scoring. The caller loads Qwen once and wraps the unchanged
+native `score()` from [reranker_smoke.py](../scripts/reranker_smoke.py), so the
+`src` package needs no torch import and the saved-report code hashes still match.
+All 151 shared-scope chunk files have a nonempty `heading_path`.
+
+Verification: **233 offline unit tests passed** (4 new), Ruff `F` checks and
+`git diff --check` passed. One new test confirms the live passages and ordering
+match the saved-candidate probe's `rerank()` for the same chunks. No model,
+DB, API or benchmark run occurred; the function has not yet run against the
+live DB/model, and no workflow calls it yet.
+
 ## Full Qwen4B run verified — 2026-11-25
 
 The owner's saved run is complete: **120 unique questions, 2,400 scored pairs**,
@@ -48,14 +91,13 @@ was needed for this verification.
 
 Full annotated support @5 rises **82/100 → 92/100**, and @10 **93/100 → 100/100**;
 @20 stays 100/100. Mean reranking is **43.69 s/question**, scoring total
-**87 min 23 s**, plus a 6.58-second load. This improves evidence ranking but
-exceeds the owner's 10-second latency constraint. Twenty negatives are outside
+**87 min 23 s**, plus a 6.58-second load. This improves evidence ranking; the owner
+now accepts this wait for the project/demo. Twenty negatives are outside
 positive means; no generated answers were evaluated. Details and all six
 top-five scores: [Qwen comparison](QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run).
 Raw report: `outputs/reranking/qwen4b-probe-20261125T202218873027Z.json`;
 audit: `outputs/validation/qwen4b-full-20261125T202218873027Z.json`.
-Next: matched full-set 0.6B comparison before model selection/integration.
-The earlier presentation diagram predates this completed-report review.
+Qwen4B is selected; full-set 0.6B testing is optional. Enhanced integration is next.
 
 ## Supervisor diagram revision — 2026-11-25
 
@@ -67,9 +109,8 @@ and validation statuses. Tracing coverage and all six retrieval metrics at
 5/10/20 are explained separately from the live response path. The earlier
 23-November speaking notes remain unchanged and are marked as historical.
 
-The owner reported starting a 120-question 4B run; no completed full-set result
-was reviewed for this diagram. Next: review that report when available before
-choosing a reranker or integrating Enhanced. PDF rendering, visual review,
+The diagram now includes the verified 120-question 4B result and the owner's
+selection, with live workflow integration still marked partial. PDF rendering, visual review,
 required labels, text bounds and local links were checked. No application code,
 model inference, API/DB access, benchmark input or report changed; application
 tests were not repeated for this presentation-only update.
@@ -1062,10 +1103,11 @@ recall/claim coverage at twenty. Results and limits are in
 Report: `outputs/reranking/qwen4b-probe-20261125T181229740228Z.json`.
 Audit: `outputs/validation/qwen4b-probe-20261125T181229740228Z.json`.
 
-## Reranker latency requirement — 2026-11-25
+## Earlier reranker latency requirement — 2026-11-25, superseded
 
-The owner requires reranking below 10 seconds per question, preferably much less.
-The measured Qwen4B top-20 latency misses this requirement. The
+The owner initially required reranking below 10 seconds per question, preferably
+much less. This requirement was later withdrawn when 4B was selected above.
+The measured Qwen4B top-20 latency missed that earlier requirement. The
 [source-backed shortlist](RERANKER_LATENCY_REVIEW.md) proposes Ettin 68M as the
 first smaller-model probe, with Ettin 150M/GTE ModernBERT/Qwen 0.6B alternatives.
 At that research step no smaller model was installed or locally verified.
@@ -1113,25 +1155,27 @@ Audit: `outputs/validation/qwen4b-batch4-20261125T184838008770Z.json`.
 
 ## Next small step
 
-Use [the batch-four command](COMMANDS.md#run-qwen4b-with-batch-size-four) for the
-same four questions and compare observed latency/ranks with batch one; do not
-assume a speedup. The complete 120-question 0.6B quality comparison remains
-pending. Both profiles, candidate/evidence state and prior reports are preserved.
+**Proposed:** run `retrieve_reranked()` once live on one development question
+(for example P05) with the pinned Qwen4B profile, the shared 151-chunk index and
+the existing Nomic environment, and compare its RRF top 20 and reranked order with
+the saved full-run report. Then add shared Luna generation and a reranker span
+for Enhanced in separate increments. Full-set 0.6B and additional batching
+comparisons are optional. Both profiles, candidate/evidence state and prior
+reports are preserved.
 
 The probe runner now accepts `--all` for the configured 120 questions, or
 repeatable `--question-id` for a subset. The all-question selection was checked
 offline (120 questions/2,400 pairs); that command-preparation step did not start model inference.
 See [the command](COMMANDS.md#probe-qwen4b-on-saved-rrf-candidates).
 
-The earlier full-Qwen comparison remains available as a quality reference:
-120-question RRF top-20 → Qwen rerank → top-5 against
-dense/RRF top-5 using the same version-1.8 references. The small probe suggests
-about 55 minutes for 2,400 pairs by linear projection; full-run latency, peak
-memory and comparative quality remain unverified. Keep
-baselines immutable. Final scoring, held-out allocation and thesis settings remain open.
+The full 120-question Qwen4B comparison is now verified above: RRF top-20 →
+rerank → top-5, using the same version-1.8 references and unchanged dense/RRF
+baselines. Actual scoring took 87 min 23 s; the earlier small-probe projection
+is superseded by this observation. Peak memory was not measured. Keep baselines
+immutable; final scoring, held-out allocation and thesis settings remain open.
 
-Dense, full-text and initial RRF diagnostics are complete. Full reranker
-comparison and workflow integration remain component work. Simple remains dense-only;
+Dense, full-text, RRF and full-set Qwen4B diagnostics are complete. Reranker
+workflow integration remains component work. Simple remains dense-only;
 the Enhanced answer workflow and fixed tools follow separately. Final thesis
 budgets remain open. Preserve both Atlas states, their results and P09's
 explicit-role omission; no prompt was tuned to these results.
@@ -1154,7 +1198,7 @@ Build Simple before Enhanced's hybrid/RRF/reranking and fixed tools.
 ## Not yet completed
 
 - Broader paired evaluation and additional source-specific/abstention/changed-evidence cases.
-- Full reranker comparison/integration, the complete Enhanced workflow and its tool conditions.
+- A live check of `retrieve_reranked()`, the complete Enhanced workflow and its tool conditions.
 - Additional changed document states, frozen DB fixtures and validated tools.
 - Agentic workflow, LangGraph installation and adaptive router.
 - Verified P10–P18/P20 answers, a held-out test set, rubric/judges, metrics,

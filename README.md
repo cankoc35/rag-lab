@@ -8,6 +8,8 @@ Repository content is English; conversation with the owner may be Turkish.
 For a new session, follow [AGENTS.md](AGENTS.md), then read
 [context](docs/PROJECT_CONTEXT.md), [status](docs/STATUS.md),
 [roadmap](docs/ROADMAP.md) and [handoff](docs/HANDOFF.md).
+For Claude, start with [CLAUDE.md](CLAUDE.md); the handoff's **Resume snapshot**
+summarizes the latest stopping point before its historical records.
 
 For copyable terminal commands and their options, see the
 [command reference](docs/COMMANDS.md).
@@ -21,7 +23,7 @@ one-page project briefing from 23 November.
 | --- | --- | --- |
 | Corpus | Fourteen expanded sources/151 chunks imported and embedded; earlier Atlas controls preserved | Sandbox fixtures |
 | Embeddings / DB | 18 snapshots, 175 chunks; four indexes/224 vectors, including the shared 151-vector index | Sandbox fixtures |
-| Retrieval | Dense/full-text/RRF and Qwen4B reranking checked on 120 development questions with v1.8 references | Full 0.6B comparison and the complete Enhanced workflow |
+| Retrieval | Dense/full-text/RRF and selected Qwen4B reranker checked on 120 development questions with v1.8 references; live `retrieve_reranked()` (RRF top 20 → reranker → top 5) offline-tested | Live reranked-retrieval check and the complete Enhanced workflow |
 | Tracing | Applied `0002`; retrieval and LLM spans under one Simple trace | Tool instrumentation and batch reporting |
 | Generation | Simple/LLM-only pairs and Atlas P19 abstention verified; P08 follows a 5 → 8 second source change | Broader evaluation |
 | Evaluation | Version 1.8.0: same 100 answerable + 20 unanswerable; twelve annotation corrections and common offline rescoring | Further relevance review; held-out set and final protocol |
@@ -94,21 +96,25 @@ Those original results are preserved. The
 annotation corrections with identical raw questions/corpus. Rescoring the same
 rankings gives full support at five of 83/65/82 and at twenty of 88/95/100 for
 dense/full-text/RRF. These are revised-reference development scores; unannotated
-passages remain unjudged. No Luna call or DB write occurred. Reranker selection
-and a proposed top-20 → top-5 evaluation follow as component work.
+passages remain unjudged. No Luna call or DB write occurred. The subsequent
+Qwen4B evaluation and owner selection are recorded below.
 The complete Enhanced workflow, tools, LangGraph and router remain unimplemented.
 The [Qwen4B setup](docs/QWEN_RERANKER_SETUP.md) pins a separate runtime and verifies
 all 2,400 saved candidate inputs without truncation. The 8.04-GB weights are now
 local and the MPS/float16 smoke passed. A four-question/80-pair real-candidate
 probe completed in 110.40 seconds of scoring. The subsequent
 [paired 0.6B/4B comparison](docs/QWEN_RERANKER_COMPARISON.md) averages 5.95/27.90
-seconds per question. 0.6B meets the observed 10-second budget but loses P05
-top-five support. The full 120-question 0.6B comparison is next; these targeted
-probes are not general quality results.
+seconds per question; 0.6B loses P05 top-five support. These targeted probes
+are not general quality results.
 The subsequent [full 120-question 4B run](docs/QWEN_RERANKER_COMPARISON.md#full-120-question-qwen4b-run)
 is now verified: RRF top-five full support improves from 82/100 to 92/100,
-but reranking averages 43.69 seconds per question (batch one). The matched
-full-set 0.6B run remains pending; no default or answer workflow changed.
+and reranking averages 43.69 seconds per question (batch one). **The owner
+selected Qwen3-Reranker-4B for the school project/demo**, accepting this wait
+for one or two demo questions. The earlier 10-second limit is withdrawn;
+latency remains a reported measurement. Full-set 0.6B testing is optional.
+The live RRF top-20 → Qwen4B → top-5 retrieval function is now added and
+offline-tested; a live check and the Enhanced answer workflow are next.
+Simple remains dense-only.
 A [Qwen4B batch-four command](docs/COMMANDS.md#run-qwen4b-with-batch-size-four)
 is also prepared; one P05 check preserved ranks but was slower than batch one.
 See [STATUS](docs/STATUS.md).
@@ -136,8 +142,9 @@ The [papers](docs/papers/rag-papers/README.md) are background, not the retrieval
 Python 3.11+, PostgreSQL + pgvector in Docker, parameterized Psycopg SQL and
 raw-SQL Alembic migrations. SQLAlchemy is migration infrastructure only.
 Nomic Embed Text v1.5 runs locally; OpenAI `gpt-6-luna` is the initial generator
-with reasoning `none` and a 1000-output-token limit. LangGraph is selected for
-later agentic work. Project-owned PostgreSQL tracing replaces MLflow.
+with reasoning `none` and a 1000-output-token limit. Qwen3-Reranker-4B is selected
+for local reranking. LangGraph is selected for later agentic work. Project-owned
+PostgreSQL tracing replaces MLflow.
 Dependency pins are in [pyproject.toml](pyproject.toml) and script lockfiles.
 
 ## Run the scaffold

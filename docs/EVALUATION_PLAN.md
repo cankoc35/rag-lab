@@ -6,6 +6,13 @@ docs/synthetic-runbook pilot. Metrics, thresholds,
 final thesis sample sizes, and the complete final protocol remain open. This is a planning
 artifact, not a result. Read the [method design](METHOD_DESIGN.md) first.
 
+**Reranker decision (owner, 2026-11-25):** Use Qwen3-Reranker-4B for the current
+project/demo with the existing pinned profile and batch-one default. The verified
+120-question run averages 43.69 seconds per question; this wait is accepted.
+The earlier under-10-second requirement is withdrawn. Continue reporting timing
+alongside quality; a full 0.6B comparison is optional and does not block Enhanced
+integration. This selection does not freeze the held-out thesis protocol.
+
 **Owner decision, 2026-11-23:** Prepare 100 answerable questions split 50
 PostgreSQL-only, 30 Atlas-only and 20 combined, plus 20 unanswerable questions.
 Broader topics and the source distribution are approved. The completed
@@ -73,8 +80,8 @@ not a sufficient final benchmark or a held-out set.
 
 Record retrieval variant, candidate/context counts, fusion settings and
 reranker identifier/settings with the existing per-run records. Luna is the
-initial generator client; reranker and final experimental budgets/settings
-remain open. Future additions
+initial generator client; Qwen3-Reranker-4B is selected. Final experimental
+budgets/settings remain open. Future additions
 must be versioned and assessed on development data before freezing final tests.
 Tool-dependent cases still need fixtures/contracts and their separate reporting;
 the document-path decision does not finalize the future tool workflow.
@@ -327,8 +334,9 @@ the historical ranking. Cold-process model loading is recorded separately;
 scoring includes first inference without a separate warm-up. The
 [paired result](QWEN_RERANKER_COMPARISON.md) shows lower latency with a P05
 support loss. These four observations do not estimate p95, held-out quality
-or answer accuracy. No threshold, production winner or final protocol was
-selected; the complete 120-question 0.6B comparison remains next.
+or answer accuracy. No threshold or final protocol was selected in that paired
+probe. The later owner decision above selects 4B and makes full-set 0.6B testing
+optional; the historical probe does not imply a full-set 0.6B comparison.
 
 ### Batch-four preparation — 2026-11-25
 

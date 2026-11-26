@@ -354,8 +354,10 @@ Compare those times with the batch-size-one baseline; no linear speedup is assum
 
 ### Run the Qwen0.6B profile
 
-The original 4B profile remains the default. Select the separate pinned 0.6B
-profile explicitly. Download its approximately 1.19-GB weights and run the toy
+Qwen4B is the selected project/demo reranker and remains the default. This
+0.6B profile is an optional comparison, not a required next step. Select the
+separate pinned 0.6B profile explicitly. Download its approximately 1.19-GB
+weights and run the toy
 smoke when setting up a fresh machine:
 
 ```sh
